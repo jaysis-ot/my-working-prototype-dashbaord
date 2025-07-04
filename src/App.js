@@ -16,17 +16,22 @@ import { DashboardUIProvider } from './contexts/DashboardUIContext';
 import DashboardLayout from './components/templates/DashboardLayout';
 
 // Lazy-loaded Pages
-const LoginPage = lazy(() => import('./components/pages/LoginPage'));
 const OverviewPage = lazy(() => import('./components/pages/OverviewPage'));
-const RequirementsPage = lazy(() => import('./components/pages/RequirementsPage'));
-const CapabilitiesPage = lazy(() => import('./components/pages/CapabilitiesPage'));
-const ResourcePlanningPage = lazy(() => import('./components/pages/ResourcePlanningPage'));
-const MaturityAnalysisPage = lazy(() => import('./components/pages/MaturityAnalysisPage'));
-const ThreatIntelligencePage = lazy(() => import('./components/pages/ThreatIntelligencePage'));
-const RiskManagementPage = lazy(() => import('./components/pages/RiskManagementPage'));
-const AnalyticsPage = lazy(() => import('./components/pages/AnalyticsPage'));
-const PCDBreakdownPage = lazy(() => import('./components/pages/PCDBreakdownPage'));
 const SettingsPage = lazy(() => import('./components/pages/SettingsPage'));
+
+// NOTE:
+// The following pages are referenced only as placeholder <div> routes
+// and do not yet have real components.  Their lazy imports are removed
+// to avoid build-time resolution errors.  Add them back once the files exist.
+// const LoginPage            = lazy(() => import('./components/pages/LoginPage'));
+// const RequirementsPage     = lazy(() => import('./components/pages/RequirementsPage'));
+// const CapabilitiesPage     = lazy(() => import('./components/pages/CapabilitiesPage'));
+// const ResourcePlanningPage = lazy(() => import('./components/pages/ResourcePlanningPage'));
+// const MaturityAnalysisPage = lazy(() => import('./components/pages/MaturityAnalysisPage'));
+// const ThreatIntelligencePage = lazy(() => import('./components/pages/ThreatIntelligencePage'));
+// const RiskManagementPage   = lazy(() => import('./components/pages/RiskManagementPage'));
+// const AnalyticsPage        = lazy(() => import('./components/pages/AnalyticsPage'));
+// const PCDBreakdownPage     = lazy(() => import('./components/pages/PCDBreakdownPage'));
 
 // A simple wrapper for providers to keep the App component clean
 const AppProviders = ({ children }) => {
