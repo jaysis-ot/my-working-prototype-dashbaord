@@ -14,6 +14,7 @@ import {
   TrendingUp,
   AlertTriangle,
   Target,
+  Layers,
   Settings as SettingsIcon,
 } from 'lucide-react';
 import { useDashboardUI } from '../../contexts/DashboardUIContext';
@@ -51,6 +52,7 @@ const DashboardLayout = ({ children }) => {
     TrendingUp,
     AlertTriangle,
     Target,
+    Layers,
     Settings: SettingsIcon,
   };
 
@@ -68,6 +70,7 @@ const DashboardLayout = ({ children }) => {
     { id: 'analytics', label: 'Analytics', icon: 'BarChart3' },
     { id: 'pcd-breakdown', label: 'PCD Breakdown', icon: 'PieChart' },
     { id: 'maturity-analysis', label: 'Maturity Analysis', icon: 'TrendingUp' },
+    { id: 'mitre-attack', label: 'MITRE ATT&CK', icon: 'Layers' },
     { id: 'threat-intelligence', label: 'Threat Intelligence', icon: 'AlertTriangle' },
     { id: 'risk-management', label: 'Risk Management', icon: 'Target' },
     { id: 'settings', label: 'Settings', icon: 'Settings' },
