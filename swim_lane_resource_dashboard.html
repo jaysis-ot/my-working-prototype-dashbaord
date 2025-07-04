@@ -1,0 +1,2063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Swim Lane Resource Management - Business Assurance Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            overflow-x: auto;
+        }
+
+        .container {
+            min-width: 1400px;
+            padding: 2rem;
+        }
+
+        .header {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+        }
+
+        .header-main h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-main p {
+            font-size: 1.1rem;
+            color: #94a3b8;
+        }
+
+        .current-date {
+            background: rgba(30, 41, 59, 0.8);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .current-date .date-label {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            margin-bottom: 0.25rem;
+        }
+
+        .current-date .date-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #3b82f6;
+        }
+
+        .capacity-overview {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+        }
+
+        .capacity-metric {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value.primary {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .metric-value.warning {
+            color: #f59e0b;
+        }
+
+        .metric-value.success {
+            color: #22c55e;
+        }
+
+        .metric-value.danger {
+            color: #ef4444;
+        }
+
+        .metric-label {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .controls-bar {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .control-group label {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            white-space: nowrap;
+        }
+
+        .control-group select,
+        .control-group input {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            color: #e2e8f0;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+        }
+
+        .view-toggle {
+            display: flex;
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 8px;
+            padding: 0.25rem;
+        }
+
+        .view-toggle-btn {
+            padding: 0.5rem 1rem;
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            font-size: 0.875rem;
+        }
+
+        .view-toggle-btn.active {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .search-input {
+            width: 100%;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            color: #e2e8f0;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            position: relative;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #64748b;
+            pointer-events: none;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(30, 41, 59, 0.8);
+            color: #e2e8f0;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .swim-lane-container {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        .timeline-nav {
+            background: rgba(30, 41, 59, 0.8);
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .timeline-controls {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .nav-btn {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #60a5fa;
+            padding: 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn:hover {
+            background: rgba(59, 130, 246, 0.3);
+        }
+
+        .timeline-info {
+            font-size: 0.875rem;
+            color: #94a3b8;
+        }
+
+        /* Extended Timeline Grid */
+        .swim-lane-header {
+            display: grid;
+            gap: 1px;
+            background: rgba(30, 41, 59, 0.8);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .swim-lane-header.detailed {
+            grid-template-columns: 300px repeat(12, 1fr);
+        }
+
+        .swim-lane-header.extended {
+            grid-template-columns: 300px repeat(20, 1fr);
+        }
+
+        .lane-label {
+            padding: 1rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            background: rgba(30, 41, 59, 0.8);
+            display: flex;
+            align-items: center;
+            border-right: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .time-slot {
+            padding: 0.75rem 0.5rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            background: rgba(30, 41, 59, 0.5);
+            border-right: 1px solid rgba(148, 163, 184, 0.1);
+            min-width: 80px;
+        }
+
+        .time-slot:last-child {
+            border-right: none;
+        }
+
+        .time-slot.current {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            font-weight: 600;
+        }
+
+        .swim-lane {
+            display: grid;
+            gap: 1px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            min-height: 80px;
+        }
+
+        .swim-lane.detailed {
+            grid-template-columns: 300px repeat(12, 1fr);
+        }
+
+        .swim-lane.extended {
+            grid-template-columns: 300px repeat(20, 1fr);
+        }
+
+        .swim-lane:last-child {
+            border-bottom: none;
+        }
+
+        .capability-info {
+            padding: 1rem;
+            background: rgba(15, 23, 42, 0.8);
+            border-right: 1px solid rgba(148, 163, 184, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .capability-name {
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-bottom: 0.25rem;
+        }
+
+        .capability-meta {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+        }
+
+        .completion-date {
+            font-size: 0.75rem;
+            color: #3b82f6;
+            font-weight: 500;
+        }
+
+        .maturity-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.125rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.625rem;
+            font-weight: 500;
+        }
+
+        .maturity-initial {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .maturity-developing {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .maturity-established {
+            background: rgba(34, 197, 94, 0.2);
+            color: #86efac;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .maturity-advanced {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .allocation-slot {
+            background: rgba(30, 41, 59, 0.3);
+            border-right: 1px solid rgba(148, 163, 184, 0.1);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            padding: 0.25rem;
+            gap: 0.25rem;
+        }
+
+        .allocation-slot:last-child {
+            border-right: none;
+        }
+
+        .allocation-slot.droppable {
+            background: rgba(59, 130, 246, 0.1);
+            border: 2px dashed rgba(59, 130, 246, 0.3);
+        }
+
+        /* Extended Allocation Bars */
+        .extended-allocation {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 60px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(139, 92, 246, 0.9));
+            border-radius: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            cursor: move;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            color: white;
+            font-weight: 600;
+            z-index: 10;
+            margin-left: 300px; /* Start after the capability info column */
+        }
+
+        .extended-allocation:hover {
+            transform: translateY(-50%) scale(1.02);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+            z-index: 20;
+        }
+
+        .extended-allocation.dragging {
+            opacity: 0.7;
+            transform: translateY(-50%) rotate(2deg) scale(1.05);
+            z-index: 1000;
+        }
+
+        .allocation-content {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            width: 100%;
+        }
+
+        .allocation-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            font-weight: 700;
+        }
+
+        .allocation-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .allocation-name {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.125rem;
+        }
+
+        .allocation-duration {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+
+        .allocation-progress {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .allocation-progress-fill {
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            color: #e2e8f0;
+            font-size: 0.875rem;
+            z-index: 1000;
+            min-width: 250px;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.2s ease;
+        }
+
+        .tooltip.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .tooltip-header {
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-bottom: 0.5rem;
+        }
+
+        .tooltip-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.25rem;
+        }
+
+        .tooltip-label {
+            color: #94a3b8;
+        }
+
+        .tooltip-value {
+            color: #60a5fa;
+            font-weight: 500;
+        }
+
+        .resource-allocation {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(139, 92, 246, 0.8));
+            border-radius: 4px;
+            padding: 0.5rem;
+            font-size: 0.75rem;
+            color: white;
+            cursor: move;
+            transition: all 0.2s ease;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .resource-allocation:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .resource-allocation.dragging {
+            opacity: 0.7;
+            transform: rotate(5deg);
+            z-index: 1000;
+        }
+
+        .allocation-time {
+            font-size: 0.6rem;
+            opacity: 0.8;
+        }
+
+        .allocation-skills {
+            font-size: 0.6rem;
+            opacity: 0.7;
+            margin-top: 0.125rem;
+        }
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #f1f5f9;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #f1f5f9;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-input {
+            width: 100%;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            color: #e2e8f0;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+
+        .team-pool {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .pool-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .pool-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+
+        .team-members {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .team-member {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            cursor: grab;
+            transition: all 0.2s ease;
+        }
+
+        .team-member:hover {
+            border-color: rgba(59, 130, 246, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .team-member.dragging {
+            opacity: 0.5;
+            transform: rotate(3deg);
+        }
+
+        .team-member.hidden {
+            display: none;
+        }
+
+        .member-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .member-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: white;
+            font-size: 0.75rem;
+        }
+
+        .member-info {
+            flex: 1;
+        }
+
+        .member-name {
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-bottom: 0.125rem;
+        }
+
+        .member-role {
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+
+        .member-capacity {
+            font-size: 0.75rem;
+            color: #22c55e;
+            font-weight: 500;
+        }
+
+        .member-skills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .skill-badge {
+            padding: 0.125rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.625rem;
+            font-weight: 500;
+        }
+
+        .skill-expert {
+            background: rgba(34, 197, 94, 0.2);
+            color: #86efac;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .skill-advanced {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .skill-intermediate {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .member-allocation {
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+
+        @media (max-width: 1600px) {
+            .swim-lane-header.extended {
+                grid-template-columns: 250px repeat(16, 1fr);
+            }
+            
+            .swim-lane.extended {
+                grid-template-columns: 250px repeat(16, 1fr);
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                min-width: 100%;
+                padding: 1rem;
+            }
+            
+            .swim-lane-header.detailed,
+            .swim-lane.detailed {
+                grid-template-columns: 200px repeat(8, 1fr);
+            }
+            
+            .swim-lane-header.extended,
+            .swim-lane.extended {
+                grid-template-columns: 200px repeat(12, 1fr);
+            }
+            
+            .capacity-overview {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .optimization-results {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        }
+
+        .optimization-results.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .optimization-title {
+            color: #22c55e;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .optimization-item {
+            font-size: 0.875rem;
+            color: #cbd5e1;
+            margin-bottom: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header with Capacity Overview -->
+        <div class="header">
+            <div class="header-content">
+                <div class="header-main">
+                    <h1>Resource Allocation Matrix</h1>
+                    <p>Extended timeline capability management with predictive completion tracking</p>
+                </div>
+                <div class="current-date">
+                    <div class="date-label">Current Date</div>
+                    <div class="date-value">July 15, 2025</div>
+                </div>
+            </div>
+            
+            <div class="capacity-overview">
+                <div class="capacity-metric">
+                    <div class="metric-value primary">67%</div>
+                    <div class="metric-label">Overall Utilization</div>
+                </div>
+                <div class="capacity-metric">
+                    <div class="metric-value warning">23</div>
+                    <div class="metric-label">Available Days</div>
+                </div>
+                <div class="capacity-metric">
+                    <div class="metric-value success">8</div>
+                    <div class="metric-label">Optimally Allocated</div>
+                </div>
+                <div class="capacity-metric">
+                    <div class="metric-value danger">3</div>
+                    <div class="metric-label">Over-allocated</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls Bar -->
+        <div class="controls-bar">
+            <div class="view-toggle">
+                <button class="view-toggle-btn active" onclick="switchView('detailed')" id="detailedView">
+                    Detailed (4 weeks)
+                </button>
+                <button class="view-toggle-btn" onclick="switchView('extended')" id="extendedView">
+                    Extended (20 weeks)
+                </button>
+            </div>
+            
+            <div class="control-group">
+                <label>View Mode:</label>
+                <select id="viewMode">
+                    <option value="capability">By Capability</option>
+                    <option value="project">By Project</option>
+                    <option value="team">By Team Member</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>Maturity Filter:</label>
+                <select id="maturityFilter">
+                    <option value="all">All Levels</option>
+                    <option value="initial">Initial (Needs Focus)</option>
+                    <option value="developing">Developing</option>
+                    <option value="established">Established</option>
+                    <option value="advanced">Advanced</option>
+                </select>
+            </div>
+            
+            <div class="search-box" style="position: relative;">
+                <span class="search-icon">🔍</span>
+                <input 
+                    type="text" 
+                    class="search-input" 
+                    placeholder="Search skills, names, or capabilities..." 
+                    id="searchInput"
+                    oninput="filterTeamMembers()"
+                >
+            </div>
+            
+            <button class="btn btn-secondary" onclick="autoOptimize()">
+                ⚡ Auto-Optimize
+            </button>
+            
+            <button class="btn btn-primary" onclick="saveAllocation()">
+                💾 Save Changes
+            </button>
+        </div>
+
+        <!-- Optimization Results -->
+        <div class="optimization-results" id="optimizationResults">
+            <div class="optimization-title">🎯 Optimization Recommendations</div>
+            <div class="optimization-item">• Move James to SIEM support to free 8 hours/week of David's expert time</div>
+            <div class="optimization-item">• Extend Alice's Zero Trust allocation by 1 day/week to meet November deadline</div>
+            <div class="optimization-item">• Cross-train Emma in GDPR automation to reduce single-point dependency</div>
+        </div>
+
+        <!-- Swim Lane Grid -->
+        <div class="swim-lane-container">
+            <!-- Timeline Navigation -->
+            <div class="timeline-nav">
+                <div class="timeline-controls">
+                    <button class="nav-btn" onclick="navigateTimeline(-1)">‹ Previous</button>
+                    <button class="nav-btn" onclick="navigateTimeline(1)">Next ›</button>
+                    <button class="nav-btn" onclick="goToToday()">Today</button>
+                </div>
+                <div class="timeline-info" id="timelineInfo">
+                    Showing: July 15 - November 5, 2025 (16 weeks)
+                </div>
+            </div>
+
+            <!-- Header Row -->
+            <div class="swim-lane-header extended" id="swimLaneHeader">
+                <div class="lane-label">Capability / Project</div>
+                <div class="time-slot current">Jul 15<br>Week 1</div>
+                <div class="time-slot">Jul 22<br>Week 2</div>
+                <div class="time-slot">Jul 29<br>Week 3</div>
+                <div class="time-slot">Aug 5<br>Week 4</div>
+                <div class="time-slot">Aug 12<br>Week 5</div>
+                <div class="time-slot">Aug 19<br>Week 6</div>
+                <div class="time-slot">Aug 26<br>Week 7</div>
+                <div class="time-slot">Sep 2<br>Week 8</div>
+                <div class="time-slot">Sep 9<br>Week 9</div>
+                <div class="time-slot">Sep 16<br>Week 10</div>
+                <div class="time-slot">Sep 23<br>Week 11</div>
+                <div class="time-slot">Sep 30<br>Week 12</div>
+                <div class="time-slot">Oct 7<br>Week 13</div>
+                <div class="time-slot">Oct 14<br>Week 14</div>
+                <div class="time-slot">Oct 21<br>Week 15</div>
+                <div class="time-slot">Oct 28<br>Week 16</div>
+                <div class="time-slot">Nov 4<br>Week 17</div>
+                <div class="time-slot">Nov 11<br>Week 18</div>
+                <div class="time-slot">Nov 18<br>Week 19</div>
+                <div class="time-slot">Nov 25<br>Week 20</div>
+            </div>
+
+            <!-- Capability Swim Lanes -->
+            <div class="swim-lane extended" id="swimLane1">
+                <div class="capability-info">
+                    <div class="capability-name">Zero Trust Architecture</div>
+                    <div class="capability-meta">High Priority • 16 weeks estimated</div>
+                    <div class="completion-date">Target Completion: November 12, 2025</div>
+                    <div class="maturity-indicator maturity-initial">Initial - Needs 3-4 days/week</div>
+                </div>
+                <!-- Grid slots for extended allocation -->
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                
+                <!-- Extended allocation spanning multiple weeks -->
+                <div class="extended-allocation" 
+                     style="left: 0; width: calc(75% - 1rem);" 
+                     draggable="true" 
+                     ondragstart="drag(event)" 
+                     id="alice-zt-extended"
+                     onmouseenter="showTooltip(event, 'alice-zt')"
+                     onmouseleave="hideTooltip()">
+                    <div class="allocation-content">
+                        <div class="allocation-avatar">AC</div>
+                        <div class="allocation-details">
+                            <div class="allocation-name">Alice Chen</div>
+                            <div class="allocation-duration">3 days/week • Jul 15 - Oct 28</div>
+                            <div class="allocation-progress">
+                                <div class="allocation-progress-fill" style="width: 25%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="extended-allocation" 
+                     style="left: 40%; width: calc(35% - 1rem);" 
+                     draggable="true" 
+                     ondragstart="drag(event)" 
+                     id="bob-zt-extended"
+                     onmouseenter="showTooltip(event, 'bob-zt')"
+                     onmouseleave="hideTooltip()">
+                    <div class="allocation-content">
+                        <div class="allocation-avatar">BM</div>
+                        <div class="allocation-details">
+                            <div class="allocation-name">Bob Martinez</div>
+                            <div class="allocation-duration">1 day/week • Aug 19 - Oct 14</div>
+                            <div class="allocation-progress">
+                                <div class="allocation-progress-fill" style="width: 15%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="swim-lane extended" id="swimLane2">
+                <div class="capability-info">
+                    <div class="capability-name">GDPR Compliance Automation</div>
+                    <div class="capability-meta">Medium Priority • 12 weeks estimated</div>
+                    <div class="completion-date">Target Completion: October 7, 2025</div>
+                    <div class="maturity-indicator maturity-developing">Developing - Needs 2-3 days/week</div>
+                </div>
+                <!-- Grid slots -->
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+
+                <div class="extended-allocation" 
+                     style="left: 0; width: calc(60% - 1rem);" 
+                     draggable="true" 
+                     ondragstart="drag(event)" 
+                     id="sarah-gdpr-extended"
+                     onmouseenter="showTooltip(event, 'sarah-gdpr')"
+                     onmouseleave="hideTooltip()">
+                    <div class="allocation-content">
+                        <div class="allocation-avatar">SW</div>
+                        <div class="allocation-details">
+                            <div class="allocation-name">Sarah Williams</div>
+                            <div class="allocation-duration">2 days/week • Jul 15 - Oct 7</div>
+                            <div class="allocation-progress">
+                                <div class="allocation-progress-fill" style="width: 40%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="swim-lane extended" id="swimLane3">
+                <div class="capability-info">
+                    <div class="capability-name">Advanced Threat Hunting</div>
+                    <div class="capability-meta">High Priority • 20 weeks estimated</div>
+                    <div class="completion-date">Target Completion: December 9, 2025</div>
+                    <div class="maturity-indicator maturity-initial">Initial - Needs 4-5 days/week</div>
+                </div>
+                <!-- Grid slots -->
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+
+                <div class="extended-allocation" 
+                     style="left: 0; width: calc(100% - 1rem);" 
+                     draggable="true" 
+                     ondragstart="drag(event)" 
+                     id="david-threat-extended"
+                     onmouseenter="showTooltip(event, 'david-threat')"
+                     onmouseleave="hideTooltip()">
+                    <div class="allocation-content">
+                        <div class="allocation-avatar">DK</div>
+                        <div class="allocation-details">
+                            <div class="allocation-name">David Kim</div>
+                            <div class="allocation-duration">3 days/week • Jul 15 - Nov 25</div>
+                            <div class="allocation-progress">
+                                <div class="allocation-progress-fill" style="width: 15%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="swim-lane extended" id="swimLane4">
+                <div class="capability-info">
+                    <div class="capability-name">Container Security Enhancement</div>
+                    <div class="capability-meta">Medium Priority • 8 weeks estimated</div>
+                    <div class="completion-date">Target Completion: September 9, 2025</div>
+                    <div class="maturity-indicator maturity-advanced">Advanced - Needs 2 days/week</div>
+                </div>
+                <!-- Grid slots -->
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div class="allocation-slot" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+
+                <div class="extended-allocation" 
+                     style="left: 0; width: calc(40% - 1rem);" 
+                     draggable="true" 
+                     ondragstart="drag(event)" 
+                     id="bob-container-extended"
+                     onmouseenter="showTooltip(event, 'bob-container')"
+                     onmouseleave="hideTooltip()">
+                    <div class="allocation-content">
+                        <div class="allocation-avatar">BM</div>
+                        <div class="allocation-details">
+                            <div class="allocation-name">Bob Martinez</div>
+                            <div class="allocation-duration">2 days/week • Jul 15 - Sep 9</div>
+                            <div class="allocation-progress">
+                                <div class="allocation-progress-fill" style="width: 60%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Pool -->
+        <div class="team-pool">
+            <div class="pool-header">
+                <div class="pool-title">Available Team Members</div>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-secondary" onclick="showAddMemberModal()">
+                        👥 Add Member
+                    </button>
+                    <button class="btn btn-secondary" onclick="showBulkAssignModal()">
+                        ⚡ Bulk Assign
+                    </button>
+                </div>
+            </div>
+            
+            <div class="team-members" id="teamMembers">
+                <div class="team-member" draggable="true" ondragstart="dragMember(event)" id="member-alice">
+                    <div class="member-header">
+                        <div class="member-avatar">AC</div>
+                        <div class="member-info">
+                            <div class="member-name">Alice Chen</div>
+                            <div class="member-role">Senior Security Architect</div>
+                        </div>
+                        <div class="member-capacity">60% Available</div>
+                    </div>
+                    <div class="member-skills">
+                        <span class="skill-badge skill-expert">Cloud Security</span>
+                        <span class="skill-badge skill-expert">Zero Trust</span>
+                        <span class="skill-badge skill-advanced">Risk Assessment</span>
+                    </div>
+                    <div class="member-allocation">Current: Zero Trust (3 days/week through Oct 28)</div>
+                </div>
+
+                <div class="team-member" draggable="true" ondragstart="dragMember(event)" id="member-bob">
+                    <div class="member-header">
+                        <div class="member-avatar">BM</div>
+                        <div class="member-info">
+                            <div class="member-name">Bob Martinez</div>
+                            <div class="member-role">DevSecOps Engineer</div>
+                        </div>
+                        <div class="member-capacity">20% Available</div>
+                    </div>
+                    <div class="member-skills">
+                        <span class="skill-badge skill-expert">Docker</span>
+                        <span class="skill-badge skill-advanced">DevSecOps</span>
+                        <span class="skill-badge skill-intermediate">Security Scanning</span>
+                    </div>
+                    <div class="member-allocation">Current: Container Security (2 days/week) + Zero Trust support</div>
+                </div>
+
+                <div class="team-member" draggable="true" ondragstart="dragMember(event)" id="member-sarah">
+                    <div class="member-header">
+                        <div class="member-avatar">SW</div>
+                        <div class="member-info">
+                            <div class="member-name">Sarah Williams</div>
+                            <div class="member-role">Compliance Analyst</div>
+                        </div>
+                        <div class="member-capacity">60% Available</div>
+                    </div>
+                    <div class="member-skills">
+                        <span class="skill-badge skill-expert">GDPR</span>
+                        <span class="skill-badge skill-expert">Risk Assessment</span>
+                        <span class="skill-badge skill-advanced">SOX Compliance</span>
+                    </div>
+                    <div class="member-allocation">Current: GDPR Automation (2 days/week through Oct 7)</div>
+                </div>
+
+                <div class="team-member" draggable="true" ondragstart="dragMember(event)" id="member-david">
+                    <div class="member-header">
+                        <div class="member-avatar">DK</div>
+                        <div class="member-info">
+                            <div class="member-name">David Kim</div>
+                            <div class="member-role">Security Analyst</div>
+                        </div>
+                        <div class="member-capacity">40% Available</div>
+                    </div>
+                    <div class="member-skills">
+                        <span class="skill-badge skill-expert">SIEM</span>
+                        <span class="skill-badge skill-expert">Incident Response</span>
+                        <span class="skill-badge skill-intermediate">Threat Hunting</span>
+                    </div>
+                    <div class="member-allocation">Current: Threat Hunting (3 days/week through Nov 25)</div>
+                </div>
+
+                <div class="team-member" draggable="true" ondragstart="dragMember(event)" id="member-emma">
+                    <div class="member-header">
+                        <div class="member-avatar">ET</div>
+                        <div class="member-info">
+                            <div class="member-name">Emma Taylor</div>
+                            <div class="member-role">Cloud Engineer</div>
+                        </div>
+                        <div class="member-capacity">75% Available</div>
+                    </div>
+                    <div class="member-skills">
+                        <span class="skill-badge skill-expert">AWS</span>
+                        <span class="skill-badge skill-advanced">Azure</span>
+                        <span class="skill-badge skill-intermediate">Terraform</span>
+                    </div>
+                    <div class="member-allocation">Available for allocation to capabilities</div>
+                </div>
+
+                <div class="team-member" draggable="true" ondragstart="dragMember(event)" id="member-james">
+                    <div class="member-header">
+                        <div class="member-avatar">JB</div>
+                        <div class="member-info">
+                            <div class="member-name">James Brown</div>
+                            <div class="member-role">Junior Security Engineer</div>
+                        </div>
+                        <div class="member-capacity">90% Available</div>
+                    </div>
+                    <div class="member-skills">
+                        <span class="skill-badge skill-intermediate">Linux</span>
+                        <span class="skill-badge skill-intermediate">Network Security</span>
+                        <span class="skill-badge skill-intermediate">Learning CISSP</span>
+                    </div>
+                    <div class="member-allocation">Available for allocation and training opportunities</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tooltip -->
+    <div class="tooltip" id="tooltip">
+        <div class="tooltip-header" id="tooltipHeader">Resource Allocation Details</div>
+        <div class="tooltip-row">
+            <span class="tooltip-label">Duration:</span>
+            <span class="tooltip-value" id="tooltipDuration">-</span>
+        </div>
+        <div class="tooltip-row">
+            <span class="tooltip-label">Days per Week:</span>
+            <span class="tooltip-value" id="tooltipDaysPerWeek">-</span>
+        </div>
+        <div class="tooltip-row">
+            <span class="tooltip-label">Total Hours:</span>
+            <span class="tooltip-value" id="tooltipTotalHours">-</span>
+        </div>
+        <div class="tooltip-row">
+            <span class="tooltip-label">Progress:</span>
+            <span class="tooltip-value" id="tooltipProgress">-</span>
+        </div>
+        <div class="tooltip-row">
+            <span class="tooltip-label">Completion Date:</span>
+            <span class="tooltip-value" id="tooltipCompletion">-</span>
+        </div>
+    </div>
+
+    <!-- Add Member Modal -->
+    <div class="modal" id="addMemberModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Add Team Member</div>
+                <button class="modal-close" onclick="hideAddMemberModal()">&times;</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" class="form-input" id="memberName" placeholder="Enter full name">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Role</label>
+                <input type="text" class="form-input" id="memberRole" placeholder="e.g., Security Engineer">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Skills (comma-separated)</label>
+                <input type="text" class="form-input" id="memberSkills" placeholder="e.g., SIEM, Python, Risk Assessment">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Availability (%)</label>
+                <input type="number" class="form-input" id="memberAvailability" min="0" max="100" value="100">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="hideAddMemberModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="addTeamMember()">Add Member</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Allocation Dialog Modal -->
+    <div class="modal" id="allocationModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Resource Allocation</div>
+                <button class="modal-close" onclick="hideAllocationModal()">&times;</button>
+            </div>
+            <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(59, 130, 246, 0.1); border-radius: 8px; border-left: 4px solid #3b82f6;">
+                <div style="font-weight: 600; color: #60a5fa; margin-bottom: 0.5rem;">Allocating:</div>
+                <div id="allocationSummary" style="color: #cbd5e1;">Alice Chen → Zero Trust Architecture</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Duration (weeks)</label>
+                <input type="number" class="form-input" id="allocationDuration" min="1" max="52" value="8">
+                <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem;">How many weeks should this allocation last?</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Days per Week</label>
+                <input type="number" class="form-input" id="allocationDaysPerWeek" min="1" max="5" value="2" step="0.5">
+                <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem;">Full days dedicated to this capability per week</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Start Date</label>
+                <input type="date" class="form-input" id="allocationStartDate" value="2025-07-15">
+            </div>
+            <div style="margin-top: 1rem; padding: 1rem; background: rgba(30, 41, 59, 0.5); border-radius: 8px;">
+                <div style="font-weight: 500; color: #f1f5f9; margin-bottom: 0.5rem;">Allocation Summary:</div>
+                <div style="font-size: 0.875rem; color: #94a3b8;">
+                    <div>Total Hours: <span id="totalHours">64 hours</span></div>
+                    <div>Completion Date: <span id="completionDate">September 9, 2025</span></div>
+                    <div>Capacity Used: <span id="capacityUsed">40%</span></div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="hideAllocationModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmAllocation()">Allocate Resource</button>
+            </div>
+        </div>
+    </div>
+    <div class="modal" id="bulkAssignModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Bulk Assignment Wizard</div>
+                <button class="modal-close" onclick="hideBulkAssignModal()">&times;</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Select Capability</label>
+                <select class="form-input" id="bulkCapability">
+                    <option value="zero-trust">Zero Trust Architecture</option>
+                    <option value="gdpr">GDPR Compliance Automation</option>
+                    <option value="threat-hunting">Advanced Threat Hunting</option>
+                    <option value="container-security">Container Security</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Duration (weeks)</label>
+                <input type="number" class="form-input" id="bulkDuration" min="1" max="52" value="8">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Days per Week</label>
+                <input type="number" class="form-input" id="bulkDaysPerWeek" min="1" max="5" value="2">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Select Team Members</label>
+                <div style="max-height: 200px; overflow-y: auto; border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 6px; padding: 0.5rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <input type="checkbox" value="alice"> Alice Chen
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <input type="checkbox" value="bob"> Bob Martinez
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <input type="checkbox" value="sarah"> Sarah Williams
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <input type="checkbox" value="david"> David Kim
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <input type="checkbox" value="emma"> Emma Taylor
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" value="james"> James Brown
+                    </label>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="hideBulkAssignModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="executeBulkAssign()">Assign Resources</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentView = 'extended';
+        let currentTimelinePosition = 0;
+
+        const tooltipData = {
+            'alice-zt': {
+                name: 'Alice Chen - Zero Trust Architecture',
+                duration: '15 weeks (Jul 15 - Oct 28, 2025)',
+                daysPerWeek: '3 days/week',
+                totalHours: '360 hours',
+                progress: '25% complete',
+                completion: 'Oct 28, 2025'
+            },
+            'bob-zt': {
+                name: 'Bob Martinez - Zero Trust Support',
+                duration: '8 weeks (Aug 19 - Oct 14, 2025)',
+                daysPerWeek: '1 day/week',
+                totalHours: '64 hours',
+                progress: '15% complete',
+                completion: 'Oct 14, 2025'
+            },
+            'sarah-gdpr': {
+                name: 'Sarah Williams - GDPR Automation',
+                duration: '12 weeks (Jul 15 - Oct 7, 2025)',
+                daysPerWeek: '2 days/week',
+                totalHours: '192 hours',
+                progress: '40% complete',
+                completion: 'Oct 7, 2025'
+            },
+            'david-threat': {
+                name: 'David Kim - Threat Hunting',
+                duration: '20 weeks (Jul 15 - Nov 25, 2025)',
+                daysPerWeek: '3 days/week',
+                totalHours: '480 hours',
+                progress: '15% complete',
+                completion: 'Nov 25, 2025'
+            },
+            'bob-container': {
+                name: 'Bob Martinez - Container Security',
+                duration: '8 weeks (Jul 15 - Sep 9, 2025)',
+                daysPerWeek: '2 days/week',
+                totalHours: '128 hours',
+                progress: '60% complete',
+                completion: 'Sep 9, 2025'
+            }
+        };
+
+        // View Switching
+        function switchView(viewType) {
+            currentView = viewType;
+            const detailedBtn = document.getElementById('detailedView');
+            const extendedBtn = document.getElementById('extendedView');
+            
+            if (viewType === 'detailed') {
+                detailedBtn.classList.add('active');
+                extendedBtn.classList.remove('active');
+                showDetailedView();
+            } else {
+                extendedBtn.classList.add('active');
+                detailedBtn.classList.remove('active');
+                showExtendedView();
+            }
+        }
+
+        function showDetailedView() {
+            // Switch to 4-week detailed view
+            document.getElementById('timelineInfo').textContent = 'Showing: July 15 - August 12, 2025 (4 weeks)';
+            // Implementation would update grid columns and content
+            showToast('Switched to detailed 4-week view', 'info');
+        }
+
+        function showExtendedView() {
+            // Switch to 20-week extended view
+            document.getElementById('timelineInfo').textContent = 'Showing: July 15 - November 25, 2025 (20 weeks)';
+            // Implementation would update grid columns and content
+            showToast('Switched to extended 20-week view', 'info');
+        }
+
+        // Timeline Navigation
+        function navigateTimeline(direction) {
+            currentTimelinePosition += direction;
+            const weeks = currentView === 'detailed' ? 4 : 20;
+            const startDate = new Date('2025-07-15');
+            startDate.setDate(startDate.getDate() + (currentTimelinePosition * weeks * 7));
+            
+            const endDate = new Date(startDate);
+            endDate.setDate(endDate.getDate() + (weeks * 7));
+            
+            const options = { month: 'short', day: 'numeric' };
+            const startStr = startDate.toLocaleDateString('en-US', options);
+            const endStr = endDate.toLocaleDateString('en-US', options);
+            
+            document.getElementById('timelineInfo').textContent = 
+                `Showing: ${startStr} - ${endStr}, ${startDate.getFullYear()} (${weeks} weeks)`;
+            
+            showToast(`Navigated ${direction > 0 ? 'forward' : 'backward'} ${weeks} weeks`, 'info');
+        }
+
+        function goToToday() {
+            currentTimelinePosition = 0;
+            const weeks = currentView === 'detailed' ? 4 : 20;
+            document.getElementById('timelineInfo').textContent = 
+                `Showing: July 15 - ${currentView === 'detailed' ? 'August 12' : 'November 25'}, 2025 (${weeks} weeks)`;
+            showToast('Returned to current timeline position', 'info');
+        }
+
+        // Tooltip Functions
+        function showTooltip(event, dataKey) {
+            const tooltip = document.getElementById('tooltip');
+            const data = tooltipData[dataKey];
+            
+            if (data) {
+                document.getElementById('tooltipHeader').textContent = data.name;
+                document.getElementById('tooltipDuration').textContent = data.duration;
+                document.getElementById('tooltipDaysPerWeek').textContent = data.daysPerWeek;
+                document.getElementById('tooltipTotalHours').textContent = data.totalHours;
+                document.getElementById('tooltipProgress').textContent = data.progress;
+                document.getElementById('tooltipCompletion').textContent = data.completion;
+                
+                tooltip.style.left = event.pageX + 10 + 'px';
+                tooltip.style.top = event.pageY - 10 + 'px';
+                tooltip.classList.add('show');
+            }
+        }
+
+        function hideTooltip() {
+            document.getElementById('tooltip').classList.remove('show');
+        }
+
+        // Drag and Drop Functions
+        function allowDrop(ev) {
+            ev.preventDefault();
+            const slot = ev.target.closest('.allocation-slot');
+            const swimLane = ev.target.closest('.swim-lane');
+            
+            if (slot) {
+                slot.classList.add('droppable');
+            }
+            if (swimLane) {
+                swimLane.style.backgroundColor = 'rgba(59, 130, 246, 0.05)';
+                swimLane.style.borderLeft = '4px solid #3b82f6';
+            }
+        }
+
+        function drag(ev) {
+            ev.dataTransfer.setData("text", ev.target.id);
+            ev.target.classList.add('dragging');
+        }
+
+        function dragMember(ev) {
+            ev.dataTransfer.setData("member", ev.target.id);
+            ev.target.classList.add('dragging');
+        }
+
+        function drop(ev) {
+            ev.preventDefault();
+            const data = ev.dataTransfer.getData("text") || ev.dataTransfer.getData("member");
+            const slot = ev.target.closest('.allocation-slot');
+            const swimLane = ev.target.closest('.swim-lane');
+            
+            if ((slot || swimLane) && data) {
+                const draggedElement = document.getElementById(data);
+                if (draggedElement) {
+                    if (data.startsWith('member-')) {
+                        showAllocationDialog(draggedElement, swimLane);
+                    } else {
+                        // Move existing allocation
+                        moveExistingAllocation(draggedElement, swimLane);
+                    }
+                    draggedElement.classList.remove('dragging');
+                }
+            }
+            
+            document.querySelectorAll('.allocation-slot').forEach(s => s.classList.remove('droppable'));
+            document.querySelectorAll('.swim-lane').forEach(s => s.classList.remove('droppable'));
+        }
+
+        let currentAllocationContext = null;
+
+        function showAllocationDialog(memberElement, swimLane) {
+            const memberName = memberElement.querySelector('.member-name').textContent;
+            const capabilityName = swimLane.querySelector('.capability-name').textContent;
+            
+            // Store context for later use
+            currentAllocationContext = {
+                memberElement,
+                swimLane,
+                memberName,
+                capabilityName
+            };
+            
+            // Update modal content
+            document.getElementById('allocationSummary').textContent = `${memberName} → ${capabilityName}`;
+            
+            // Show modal
+            document.getElementById('allocationModal').classList.add('show');
+            
+            // Update calculations when inputs change
+            updateAllocationCalculations();
+        }
+
+        function hideAllocationModal() {
+            document.getElementById('allocationModal').classList.remove('show');
+            currentAllocationContext = null;
+        }
+
+        function updateAllocationCalculations() {
+            const duration = parseInt(document.getElementById('allocationDuration').value) || 0;
+            const daysPerWeek = parseFloat(document.getElementById('allocationDaysPerWeek').value) || 0;
+            const startDate = new Date(document.getElementById('allocationStartDate').value);
+            
+            // Calculate totals
+            const totalHours = duration * daysPerWeek * 8; // 8 hours per day
+            const completionDate = new Date(startDate);
+            completionDate.setDate(completionDate.getDate() + (duration * 7));
+            const capacityUsed = (daysPerWeek / 5) * 100; // Assuming 5-day work week
+            
+            // Update display
+            document.getElementById('totalHours').textContent = `${totalHours} hours`;
+            document.getElementById('completionDate').textContent = completionDate.toLocaleDateString('en-US', { 
+                month: 'long', 
+                day: 'numeric', 
+                year: 'numeric' 
+            });
+            document.getElementById('capacityUsed').textContent = `${Math.round(capacityUsed)}%`;
+        }
+
+        function confirmAllocation() {
+            if (!currentAllocationContext) return;
+            
+            const duration = document.getElementById('allocationDuration').value;
+            const daysPerWeek = document.getElementById('allocationDaysPerWeek').value;
+            
+            createExtendedAllocation(
+                currentAllocationContext.memberName,
+                currentAllocationContext.memberElement,
+                currentAllocationContext.swimLane,
+                duration,
+                daysPerWeek
+            );
+            
+            showToast(
+                `${currentAllocationContext.memberName} allocated to ${currentAllocationContext.capabilityName} for ${duration} weeks (${daysPerWeek} days/week)`, 
+                'success'
+            );
+            
+            hideAllocationModal();
+        }
+
+        function createExtendedAllocation(memberName, memberElement, swimLane, duration, daysPerWeek) {
+            const memberAvatar = memberElement.querySelector('.member-avatar').textContent;
+            const allocationId = `allocation-${Date.now()}`;
+            
+            // Get start date from modal if available, otherwise use default
+            const startDateInput = document.getElementById('allocationStartDate');
+            const startDate = startDateInput ? new Date(startDateInput.value) : new Date('2025-07-15');
+            
+            // Calculate width based on duration (each week is roughly 5% of the timeline)
+            const widthPercentage = Math.min((parseInt(duration) / 20) * 100, 95);
+            
+            // Create the allocation bar
+            const allocationBar = document.createElement('div');
+            allocationBar.className = 'extended-allocation';
+            allocationBar.id = allocationId;
+            allocationBar.draggable = true;
+            allocationBar.ondragstart = drag;
+            allocationBar.style.left = '0';
+            allocationBar.style.width = `calc(${widthPercentage}% - 1rem)`;
+            allocationBar.onmouseenter = (e) => showTooltip(e, allocationId);
+            allocationBar.onmouseleave = hideTooltip;
+            
+            // Calculate completion date
+            const completionDate = new Date(startDate);
+            completionDate.setDate(completionDate.getDate() + (parseInt(duration) * 7));
+            const startStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const completionStr = completionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            
+            allocationBar.innerHTML = `
+                <div class="allocation-content">
+                    <div class="allocation-avatar">${memberAvatar}</div>
+                    <div class="allocation-details">
+                        <div class="allocation-name">${memberName}</div>
+                        <div class="allocation-duration">${daysPerWeek} days/week • ${startStr} - ${completionStr}</div>
+                        <div class="allocation-progress">
+                            <div class="allocation-progress-fill" style="width: 5%"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add tooltip data
+            tooltipData[allocationId] = {
+                name: `${memberName} - ${swimLane.querySelector('.capability-name').textContent}`,
+                duration: `${duration} weeks (${startStr} - ${completionStr})`,
+                daysPerWeek: `${daysPerWeek} days/week`,
+                totalHours: `${parseInt(duration) * parseFloat(daysPerWeek) * 8} hours`,
+                progress: '5% complete',
+                completion: completionStr
+            };
+            
+            // Add to swim lane
+            swimLane.appendChild(allocationBar);
+            
+            // Update member availability
+            updateMemberAvailability(memberElement, daysPerWeek, duration, swimLane);
+        }
+
+        function moveExistingAllocation(allocationElement, newSwimLane) {
+            // Move existing allocation to new swim lane
+            newSwimLane.appendChild(allocationElement);
+            showToast('Allocation moved to new capability', 'success');
+        }
+
+        function updateMemberAvailability(memberElement, daysPerWeek, duration, swimLane) {
+            const capacityElement = memberElement.querySelector('.member-capacity');
+            const allocationElement = memberElement.querySelector('.member-allocation');
+            
+            // Calculate new availability (simplified calculation)
+            const currentText = capacityElement.textContent;
+            const currentAvailability = parseInt(currentText.match(/\d+/)[0]);
+            const usedCapacity = (parseFloat(daysPerWeek) / 5) * 100; // Assuming 5-day work week
+            const newAvailability = Math.max(0, currentAvailability - usedCapacity);
+            
+            capacityElement.textContent = `${Math.round(newAvailability)}% Available`;
+            capacityElement.style.color = newAvailability < 20 ? '#ef4444' : newAvailability < 50 ? '#f59e0b' : '#22c55e';
+            
+            // Update allocation text
+            const capabilityName = swimLane.querySelector('.capability-name').textContent;
+            allocationElement.textContent = `Current: ${capabilityName} (${daysPerWeek} days/week for ${duration} weeks)`;
+        }
+
+        // Auto-Optimization
+        function autoOptimize() {
+            showToast('Running AI-powered resource optimization...', 'info');
+            
+            setTimeout(() => {
+                document.getElementById('optimizationResults').classList.add('show');
+                showToast('Optimization complete! 3 recommendations generated.', 'success');
+                
+                // Update metrics
+                document.querySelector('.metric-value.primary').textContent = '73%';
+                document.querySelector('.metric-value.warning').textContent = '31';
+                document.querySelector('.metric-value.success').textContent = '11';
+            }, 2000);
+        }
+
+        // Save Allocation
+        function saveAllocation() {
+            showToast('Saving allocation changes...', 'info');
+            
+            setTimeout(() => {
+                showToast('Allocation saved! Team notifications sent.', 'success');
+                // Update team member current allocations
+                updateTeamMemberAllocations();
+            }, 1500);
+        }
+
+        function updateTeamMemberAllocations() {
+            // Update the current allocation text for team members
+            const members = document.querySelectorAll('.member-allocation');
+            members.forEach(member => {
+                // Update with new allocation info
+            });
+        }
+
+        // Modal Functions
+        function showAddMemberModal() {
+            document.getElementById('addMemberModal').classList.add('show');
+        }
+
+        function hideAddMemberModal() {
+            document.getElementById('addMemberModal').classList.remove('show');
+            // Clear form
+            document.getElementById('memberName').value = '';
+            document.getElementById('memberRole').value = '';
+            document.getElementById('memberSkills').value = '';
+            document.getElementById('memberAvailability').value = '100';
+        }
+
+        function addTeamMember() {
+            const name = document.getElementById('memberName').value;
+            const role = document.getElementById('memberRole').value;
+            const skills = document.getElementById('memberSkills').value;
+            const availability = document.getElementById('memberAvailability').value;
+            
+            if (name && role) {
+                showToast(`${name} added to team successfully!`, 'success');
+                hideAddMemberModal();
+                // Add new member to team pool
+                createNewTeamMember(name, role, skills, availability);
+            } else {
+                showToast('Please fill in required fields', 'error');
+            }
+        }
+
+        function createNewTeamMember(name, role, skills, availability) {
+            const teamMembers = document.getElementById('teamMembers');
+            const initials = name.split(' ').map(n => n[0]).join('');
+            const skillsArray = skills.split(',').map(s => s.trim()).slice(0, 3);
+            
+            const memberElement = document.createElement('div');
+            memberElement.className = 'team-member';
+            memberElement.draggable = true;
+            memberElement.ondragstart = dragMember;
+            memberElement.id = `member-${name.toLowerCase().replace(' ', '-')}`;
+            
+            memberElement.innerHTML = `
+                <div class="member-header">
+                    <div class="member-avatar">${initials}</div>
+                    <div class="member-info">
+                        <div class="member-name">${name}</div>
+                        <div class="member-role">${role}</div>
+                    </div>
+                    <div class="member-capacity">${availability}% Available</div>
+                </div>
+                <div class="member-skills">
+                    ${skillsArray.map(skill => `<span class="skill-badge skill-intermediate">${skill}</span>`).join('')}
+                </div>
+                <div class="member-allocation">Available for allocation</div>
+            `;
+            
+            teamMembers.appendChild(memberElement);
+        }
+
+        function showBulkAssignModal() {
+            document.getElementById('bulkAssignModal').classList.add('show');
+        }
+
+        function hideBulkAssignModal() {
+            document.getElementById('bulkAssignModal').classList.remove('show');
+        }
+
+        function executeBulkAssign() {
+            const capability = document.getElementById('bulkCapability').value;
+            const duration = document.getElementById('bulkDuration').value;
+            const daysPerWeek = document.getElementById('bulkDaysPerWeek').value;
+            const selectedMembers = Array.from(document.querySelectorAll('#bulkAssignModal input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+            
+            if (selectedMembers.length > 0) {
+                showToast(`Bulk assigned ${selectedMembers.length} members to ${capability} for ${duration} weeks`, 'success');
+                hideBulkAssignModal();
+            } else {
+                showToast('Please select at least one team member', 'error');
+            }
+        }
+
+        // Search and Filter
+        function filterTeamMembers() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const members = document.querySelectorAll('.team-member');
+            
+            members.forEach(member => {
+                const name = member.querySelector('.member-name').textContent.toLowerCase();
+                const role = member.querySelector('.member-role').textContent.toLowerCase();
+                const skills = Array.from(member.querySelectorAll('.skill-badge'))
+                    .map(skill => skill.textContent.toLowerCase())
+                    .join(' ');
+                
+                const matches = name.includes(searchTerm) || 
+                               role.includes(searchTerm) || 
+                               skills.includes(searchTerm);
+                
+                member.classList.toggle('hidden', !matches);
+            });
+        }
+
+        // Toast Notification System
+        function showToast(message, type = 'info') {
+            const existingToast = document.querySelector('.toast-notification');
+            if (existingToast) {
+                existingToast.remove();
+            }
+            
+            const toast = document.createElement('div');
+            toast.className = 'toast-notification';
+            toast.textContent = message;
+            
+            const styles = {
+                position: 'fixed',
+                top: '20px',
+                right: '20px',
+                padding: '1rem 1.5rem',
+                borderRadius: '8px',
+                color: 'white',
+                fontWeight: '500',
+                zIndex: '1000',
+                transform: 'translateX(100%)',
+                transition: 'transform 0.3s ease'
+            };
+            
+            const colors = {
+                success: '#22c55e',
+                error: '#ef4444',
+                info: '#3b82f6'
+            };
+            
+            Object.assign(toast.style, styles);
+            toast.style.background = colors[type] || colors.info;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.transform = 'translateX(0)';
+            }, 100);
+            
+            setTimeout(() => {
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up initial state
+            showExtendedView();
+            
+            // Add event listeners for allocation modal calculations
+            document.getElementById('allocationDuration').addEventListener('input', updateAllocationCalculations);
+            document.getElementById('allocationDaysPerWeek').addEventListener('input', updateAllocationCalculations);
+            document.getElementById('allocationStartDate').addEventListener('change', updateAllocationCalculations);
+        });
+
+        // Event Listeners
+        document.getElementById('viewMode').addEventListener('change', function() {
+            showToast(`Switched to ${this.value} view`, 'info');
+        });
+
+        document.getElementById('maturityFilter').addEventListener('change', function() {
+            showToast(`Filtered by ${this.value} maturity level`, 'info');
+        });
+
+        // Drag leave cleanup
+        document.addEventListener('dragleave', (e) => {
+            if (!e.relatedTarget) {
+                document.querySelectorAll('.allocation-slot').forEach(s => s.classList.remove('droppable'));
+                document.querySelectorAll('.swim-lane').forEach(s => {
+                    s.style.backgroundColor = '';
+                    s.style.borderLeft = '';
+                });
+                document.querySelectorAll('.dragging').forEach(d => d.classList.remove('dragging'));
+            }
+        });
+
+        // Also clean up on dragend
+        document.addEventListener('dragend', (e) => {
+            document.querySelectorAll('.allocation-slot').forEach(s => s.classList.remove('droppable'));
+            document.querySelectorAll('.swim-lane').forEach(s => {
+                s.style.backgroundColor = '';
+                s.style.borderLeft = '';
+            });
+            document.querySelectorAll('.dragging').forEach(d => d.classList.remove('dragging'));
+        });
+
+        // Close modals on outside click
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('show');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Standards Assessment - Cyber Trust Portal</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 20px;
+            background-color: #f8fafc;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+        }
+        
+        .header h1 {
+            margin: 0 0 8px 0;
+            color: #1e293b;
+            font-size: 28px;
+        }
+        
+        .header p {
+            margin: 0;
+            color: #64748b;
+            font-size: 16px;
+        }
+        
+        .framework-selector {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+        }
+        
+        .framework-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+        
+        .framework-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #fafafa;
+        }
+        
+        .framework-card:hover {
+            border-color: #3b82f6;
+            background: #f0f9ff;
+        }
+        
+        .framework-card.selected {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+        
+        .framework-card h4 {
+            margin: 0 0 8px 0;
+            color: #1e293b;
+        }
+        
+        .framework-card p {
+            margin: 0;
+            color: #64748b;
+            font-size: 14px;
+        }
+        
+        .assessment-container {
+            display: none;
+        }
+        
+        .assessment-container.active {
+            display: block;
+        }
+        
+        .framework-assessment {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+        
+        .framework-header {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            padding: 20px 24px;
+        }
+        
+        .framework-header h2 {
+            margin: 0 0 8px 0;
+            font-size: 24px;
+        }
+        
+        .framework-header p {
+            margin: 0;
+            opacity: 0.9;
+        }
+        
+        .progress-bar {
+            background: rgba(255,255,255,0.2);
+            height: 8px;
+            border-radius: 4px;
+            margin-top: 12px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            background: white;
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .control-block {
+            border-bottom: 1px solid #e2e8f0;
+            padding: 24px;
+        }
+        
+        .control-block:last-child {
+            border-bottom: none;
+        }
+        
+        .control-header {
+            display: flex;
+            justify-content: between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+        
+        .control-title {
+            flex: 1;
+        }
+        
+        .control-title h3 {
+            margin: 0 0 8px 0;
+            color: #1e293b;
+            font-size: 18px;
+        }
+        
+        .control-description {
+            color: #64748b;
+            margin: 0 0 12px 0;
+        }
+        
+        .control-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-not-met {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+        
+        .status-partially-met {
+            background: #fef3c7;
+            color: #d97706;
+        }
+        
+        .status-fully-met {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+        
+        .status-not-applicable {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+        
+        .assessment-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .assessment-field {
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .assessment-field label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .assessment-field select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            font-size: 14px;
+        }
+        
+        .assessment-field select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .evidence-section {
+            margin-top: 20px;
+        }
+        
+        .evidence-section label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+        
+        .evidence-section textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+        }
+        
+        .evidence-section textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            padding: 20px 24px;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+        
+        .export-section {
+            background: white;
+            padding: 20px 24px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-top: 24px;
+        }
+        
+        .multi-framework-view {
+            display: none;
+        }
+        
+        .multi-framework-view.active {
+            display: block;
+        }
+        
+        .framework-comparison {
+            display: grid;
+            gap: 20px;
+        }
+        
+        .comparison-framework {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .comparison-header {
+            background: #f1f5f9;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .comparison-header h3 {
+            margin: 0;
+            color: #1e293b;
+        }
+        
+        .comparison-content {
+            padding: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .assessment-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🎯 Standards Assessment</h1>
+            <p>Evaluate your organization's compliance with selected cybersecurity frameworks and standards.</p>
+        </div>
+        
+        <!-- Framework Selection -->
+        <div class="framework-selector">
+            <h3>Select Assessment Framework(s)</h3>
+            <p>Choose the cybersecurity frameworks your organization needs to assess against. You can select multiple frameworks for comparison.</p>
+            
+            <div class="framework-grid">
+                <div class="framework-card" data-framework="cyber-essentials">
+                    <h4>🇬🇧 UK Cyber Essentials</h4>
+                    <p>5 core controls • Basic cyber hygiene • SME focused</p>
+                </div>
+                
+                <div class="framework-card" data-framework="nist-csf">
+                    <h4>🇺🇸 NIST Cybersecurity Framework</h4>
+                    <p>23 categories • Risk-based • Universal application</p>
+                </div>
+                
+                <div class="framework-card" data-framework="iso-27001">
+                    <h4>🌍 ISO 27001:2022</h4>
+                    <p>93 controls • ISMS approach • International standard</p>
+                </div>
+                
+                <div class="framework-card" data-framework="cis-controls">
+                    <h4>🛡️ CIS Controls v8</h4>
+                    <p>18 controls • Implementation groups • Prescriptive guidance</p>
+                </div>
+                
+                <div class="framework-card" data-framework="essential-eight">
+                    <h4>🇦🇺 Essential Eight</h4>
+                    <p>8 mitigation strategies • Australian DSD • Prevent 85% of attacks</p>
+                </div>
+                
+                <div class="framework-card" data-framework="gdpr">
+                    <h4>🇪🇺 GDPR Security Requirements</h4>
+                    <p>Data protection focused • Privacy by design • EU mandatory</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Cyber Essentials Assessment -->
+        <div id="cyber-essentials-assessment" class="assessment-container">
+            <div class="framework-assessment">
+                <div class="framework-header">
+                    <h2>🇬🇧 UK Cyber Essentials Assessment</h2>
+                    <p>Assess your organization against the 5 core Cyber Essentials controls</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <!-- Control 1: Firewalls -->
+                <div class="control-block" data-control="Firewalls">
+                    <div class="control-header">
+                        <div class="control-title">
+                            <h3>1. Firewalls</h3>
+                            <p class="control-description">
+                                Properly configured boundary firewalls and Internet gateways that block unauthorized connections and only allow necessary services.
+                            </p>
+                            <div class="control-status">
+                                <span class="status-badge status-not-met">Assessment Required</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="assessment-grid">
+                        <div class="assessment-field">
+                            <label>Overall Score</label>
+                            <select class="score">
+                                <option value="">Select...</option>
+                                <option value="not-met">❌ Not Met</option>
+                                <option value="partially-met">⚠️ Partially Met</option>
+                                <option value="fully-met">✅ Fully Met</option>
+                                <option value="not-applicable">➖ Not Applicable</option>
+                            </select>
+                        </div>
+                        
+                        <div class="assessment-field">
+                            <label>Intent & Relevance</label>
+                            <select class="intent">
+                                <option value="">Select...</option>
+                                <option value="not-understood">Not Understood</option>
+                                <option value="partially-understood">Partially Understood</option>
+                                <option value="fully-understood">Fully Understood</option>
+                            </select>
+                        </div>
+                        
+                        <div class="assessment-field">
+                            <label>Implementation</label>
+                            <select class="implementation">
+                                <option value="">Select...</option>
+                                <option value="not-implemented">Not Implemented</option>
+                                <option value="partially-implemented">Partially Implemented</option>
+                                <option value="fully-implemented">Fully Implemented</option>
+                            </select>
+                        </div>
+                        
+                        <div class="assessment-field">
+                            <label>Evidence / Documentation</label>
+                            <select class="evidence">
+                                <option value="">Select...</option>
+                                <option value="none">None</option>
+                                <option value="partial">Partial</option>
+                                <option value="complete">Complete</option>
+                            </select>
+                        </div>
+                        
+                        <div class="assessment-field">
+                            <label>Effectiveness</label>
+                            <select class="effectiveness">
+                                <option value="">Select...</option>
+                                <option value="ineffective">Ineffective</option>
+                                <option value="needs-improvement">Needs Improvement</option>
+                                <option value="effective">Effective</option>
+                            </select>
+                        </div>
+                        
+                        <div class="assessment-field">
+                            <label>Maintenance & Review</label>
+                            <select class="maintenance">
+                                <option value="">Select...</option>
+                                <option value="none">None</option>
+                                <option value="ad-hoc">Ad-hoc</option>
+                                <option value="periodic">Periodic</option>
+                                <option value="continuous">Continuous</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="evidence-section">
+                        <label>Summary Assessment</label>
+                        <textarea class="summary" placeholder="Summarize your current firewall implementation, including strengths, gaps, and planned improvements..."></textarea>
+                    </div>
+                    
+                    <div class="evidence-section">
+                        <label>Evidence / Notes</label>
+                        <textarea class="notes" placeholder="Document specific evidence, policies, configurations, logs, or other supporting materials..."></textarea>
+                    </div>
+                </div>
+                
+                <!-- Control 2: Secure Configuration -->
+                <div class="control-block" data-control="Secure Configuration">
+                    <div class="control-header">
+                        <div class="control-title">
+                            <h3>2. Secure Configuration</h3>
+                            <p class="control-description">
+                                Computers and network devices are configured to reduce the level of inherent vulnerabilities.
+                            </p>
+                            <div class="control-status">
+                                <span class="status-badge status-not-met">Assessment Required</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="assessment-grid">
+                        <div class="assessment-field">
+                            <label>Overall Score</label>
+                            <select class="score">
+                                <option value="">Select...</option>
+                                <option value="not-met">❌ Not Met</option>
+                                <option value="partially-met">⚠️ Partially Met</option>
+                                <option value="fully-met">✅ Fully Met</option>
+                                <option value="not-applicable">➖ Not Applicable</option>
+                            </select>
+                        </div>
+                        
+                        <div class="assessment-field">
+                            <label>Intent & Relevance</label>
+                            <select class="intent">
+                                <option value="">Select...</option>
+                                <option value="not-understood">Not Understood</option>
+                                <option value="partially-understood">Partially Understood</option>
+                                <option value="fully-understood">Fully Understood</option>
+                            </select>
+                        </div>
+                        
+                        <div class="assessment-field">
+                            <label>Implementation</label>
+                            <select class="implementation">
+                                <option value="">Select...</option>
+                                <option value="not-implemented">Not Implemented</option>
+                                <option value="partially-implemented">Partially Implemented</option>
+                                <option value="fully-implemented">Fully Implemented</option>
+                            </select>
+                        </div>
+                        
+                        <div class="assessment-field">
+                            <label>Evidence / Documentation</label>
+                            <select class="evidence">
+                                <option value="">Select...</option>
+                                <option value="none">None</option>
+                                <option value="partial">Partial</option>
+                                <option value="complete">Complete</option>
+                            </select>
+                        </div>
+                        
+                        <div class="assessment-field">
+                            <label>Effectiveness</label>
+                            <select class="effectiveness">
+                                <option value="">Select...</option>
+                                <option value="ineffective">Ineffective</option>
+                                <option value="needs-improvement">Needs Improvement</option>
+                                <option value="effective">Effective</option>
+                            </select>
+                        </div>
+                        
+                        <div class="assessment-field">
+                            <label>Maintenance & Review</label>
+                            <select class="maintenance">
+                                <option value="">Select...</option>
+                                <option value="none">None</option>
+                                <option value="ad-hoc">Ad-hoc</option>
+                                <option value="periodic">Periodic</option>
+                                <option value="continuous">Continuous</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="evidence-section">
+                        <label>Summary Assessment</label>
+                        <textarea class="summary" placeholder="Describe your secure configuration practices, including hardening standards, configuration management, and security baselines..."></textarea>
+                    </div>
+                    
+                    <div class="evidence-section">
+                        <label>Evidence / Notes</label>
+                        <textarea class="notes" placeholder="Document configuration standards, policies, automated tools, and verification processes..."></textarea>
+                    </div>
+                </div>
+                
+                <!-- Additional controls would follow the same pattern -->
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="saveAssessment('cyber-essentials')">💾 Save Assessment</button>
+                    <button class="btn btn-secondary" onclick="exportAssessment('cyber-essentials')">📊 Export Results</button>
+                    <button class="btn btn-secondary" onclick="generateReport('cyber-essentials')">📄 Generate Report</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Multi-Framework Comparison View -->
+        <div id="multi-framework-view" class="multi-framework-view">
+            <div class="export-section">
+                <h3>📊 Framework Comparison & Export</h3>
+                <p>Compare assessments across multiple frameworks and export consolidated results.</p>
+                
+                <div class="framework-comparison">
+                    <div class="comparison-framework">
+                        <div class="comparison-header">
+                            <h3>🇬🇧 Cyber Essentials</h3>
+                        </div>
+                        <div class="comparison-content">
+                            <p>Progress: 0/5 controls assessed</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="exportAllAssessments()">📊 Export All Assessments</button>
+                    <button class="btn btn-secondary" onclick="generateComparisonReport()">📄 Generate Comparison Report</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Framework selection functionality
+        document.querySelectorAll('.framework-card').forEach(card => {
+            card.addEventListener('click', function() {
+                const framework = this.dataset.framework;
+                this.classList.toggle('selected');
+                toggleFrameworkAssessment(framework);
+                updateMultiFrameworkView();
+            });
+        });
+        
+        function toggleFrameworkAssessment(framework) {
+            const container = document.getElementById(framework + '-assessment');
+            if (container) {
+                container.classList.toggle('active');
+            }
+        }
+        
+        function updateMultiFrameworkView() {
+            const selectedFrameworks = document.querySelectorAll('.framework-card.selected');
+            const multiView = document.getElementById('multi-framework-view');
+            
+            if (selectedFrameworks.length > 1) {
+                multiView.classList.add('active');
+            } else {
+                multiView.classList.remove('active');
+            }
+        }
+        
+        // Assessment functionality
+        document.addEventListener('change', function(e) {
+            if (e.target.matches('.score')) {
+                updateControlStatus(e.target);
+                updateProgress();
+            }
+        });
+        
+        function updateControlStatus(scoreSelect) {
+            const controlBlock = scoreSelect.closest('.control-block');
+            const statusBadge = controlBlock.querySelector('.status-badge');
+            const score = scoreSelect.value;
+            
+            // Remove existing status classes
+            statusBadge.classList.remove('status-not-met', 'status-partially-met', 'status-fully-met', 'status-not-applicable');
+            
+            // Add new status class and update text
+            switch(score) {
+                case 'not-met':
+                    statusBadge.classList.add('status-not-met');
+                    statusBadge.textContent = '❌ Not Met';
+                    break;
+                case 'partially-met':
+                    statusBadge.classList.add('status-partially-met');
+                    statusBadge.textContent = '⚠️ Partially Met';
+                    break;
+                case 'fully-met':
+                    statusBadge.classList.add('status-fully-met');
+                    statusBadge.textContent = '✅ Fully Met';
+                    break;
+                case 'not-applicable':
+                    statusBadge.classList.add('status-not-applicable');
+                    statusBadge.textContent = '➖ Not Applicable';
+                    break;
+                default:
+                    statusBadge.classList.add('status-not-met');
+                    statusBadge.textContent = 'Assessment Required';
+            }
+        }
+        
+        function updateProgress() {
+            const assessmentContainers = document.querySelectorAll('.assessment-container.active');
+            
+            assessmentContainers.forEach(container => {
+                const totalControls = container.querySelectorAll('.control-block').length;
+                const assessedControls = container.querySelectorAll('.score[value]:not([value=""])').length;
+                const progressPercent = totalControls > 0 ? (assessedControls / totalControls) * 100 : 0;
+                
+                const progressFill = container.querySelector('.progress-fill');
+                if (progressFill) {
+                    progressFill.style.width = progressPercent + '%';
+                }
+            });
+        }
+        
+        // Export functionality
+        function exportAssessment(framework) {
+            const container = document.getElementById(framework + '-assessment');
+            const controls = container.querySelectorAll('.control-block');
+            const results = [];
+            
+            controls.forEach(control => {
+                const controlName = control.dataset.control;
+                const result = {
+                    framework: framework,
+                    control: controlName,
+                    score: control.querySelector('.score').value,
+                    dimensions: {
+                        intent_relevance: control.querySelector('.intent').value,
+                        implementation: control.querySelector('.implementation').value,
+                        evidence: control.querySelector('.evidence').value,
+                        effectiveness: control.querySelector('.effectiveness').value,
+                        maintenance: control.querySelector('.maintenance').value
+                    },
+                    summary: control.querySelector('.summary').value,
+                    notes: control.querySelector('.notes').value,
+                    assessed_date: new Date().toISOString()
+                };
+                results.push(result);
+            });
+            
+            // Download as JSON
+            const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${framework}-assessment-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            alert('Assessment exported successfully!');
+        }
+        
+        function saveAssessment(framework) {
+            // In a real implementation, this would save to your backend
+            localStorage.setItem(`assessment-${framework}`, JSON.stringify(gatherAssessmentData(framework)));
+            alert('Assessment saved successfully!');
+        }
+        
+        function generateReport(framework) {
+            alert('Report generation would integrate with your existing reporting system.');
+        }
+        
+        function exportAllAssessments() {
+            alert('Multi-framework export would consolidate all selected framework assessments.');
+        }
+        
+        function generateComparisonReport() {
+            alert('Comparison report would show gaps and overlaps across frameworks.');
+        }
+        
+        function gatherAssessmentData(framework) {
+            const container = document.getElementById(framework + '-assessment');
+            const controls = container.querySelectorAll('.control-block');
+            const data = {
+                framework: framework,
+                assessed_date: new Date().toISOString(),
+                controls: []
+            };
+            
+            controls.forEach(control => {
+                const controlData = {
+                    name: control.dataset.control,
+                    score: control.querySelector('.score').value,
+                    intent: control.querySelector('.intent').value,
+                    implementation: control.querySelector('.implementation').value,
+                    evidence: control.querySelector('.evidence').value,
+                    effectiveness: control.querySelector('.effectiveness').value,
+                    maintenance: control.querySelector('.maintenance').value,
+                    summary: control.querySelector('.summary').value,
+                    notes: control.querySelector('.notes').value
+                };
+                data.controls.push(controlData);
+            });
+            
+            return data;
+        }
+        
+        // Load saved assessments on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // In a real implementation, load saved assessments from backend
+            console.log('Standards Assessment module loaded');
+        });
+    </script>
+</body>
+</html>
