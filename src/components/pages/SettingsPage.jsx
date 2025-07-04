@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Palette, Bell, Link, Database, Zap, Shield, Save, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Palette, Bell, Link, Database, Zap, Shield, Save, CheckCircle, AlertTriangle, Building2 } from 'lucide-react';
 import Button from '../atoms/Button';
 import AppearanceSettings from '../organisms/AppearanceSettings';
 import NotificationsSettings from '../organisms/NotificationsSettings';
@@ -7,20 +7,9 @@ import IntegrationsSettings from '../organisms/IntegrationsSettings';
 import DataBackupSettings from '../organisms/DataBackupSettings';
 import PerformanceSettings from '../organisms/PerformanceSettings';
 import ComplianceSettings from '../organisms/ComplianceSettings';
+import CompanyProfileSettings from '../organisms/CompanyProfileSettings';
 
 // --- Organisms (Internal to SettingsPage for now) ---
-
-/**
- * Placeholder for the actual tab content components.
- * In a full implementation, these would be separate files, likely organisms themselves.
- */
-const AppearanceTab = () => <div className="dashboard-card p-6">Appearance Settings Content - To be built</div>;
-const NotificationsTab = () => <div className="dashboard-card p-6">Notifications Settings Content - To be built</div>;
-const IntegrationsTab = () => <div className="dashboard-card p-6">Integrations Settings Content - To be built</div>;
-const DataBackupTab = () => <div className="dashboard-card p-6">Data & Backup Settings Content - To be built</div>;
-const PerformanceTab = () => <div className="dashboard-card p-6">Performance Settings Content - To be built</div>;
-const ComplianceTab = () => <div className="dashboard-card p-6">Compliance Settings Content - To be built</div>;
-
 
 /**
  * SettingsHeader Organism
@@ -114,6 +103,7 @@ const SettingsPage = () => {
     dataBackup: {},
     performance: {},
     compliance: {},
+    companyProfile: {},
   });
 
   const handleSaveSettings = useCallback(async () => {
@@ -138,19 +128,34 @@ const SettingsPage = () => {
     { id: 'backup', label: 'Data & Backup', icon: Database, component: DataBackupSettings },
     { id: 'performance', label: 'Performance', icon: Zap, component: PerformanceSettings },
     { id: 'compliance', label: 'Compliance', icon: Shield, component: ComplianceSettings },
+    { id: 'company-profile', label: 'Company Profile', icon: Building2, component: CompanyProfileSettings },
   ];
 
   const CurrentTabComponent = tabs.find(tab => tab.id === activeTab)?.component;
 
-  // Simple updater placeholder – can be expanded later
-  const updateSetting = useCallback((section, path, value) => {
-    setSettings(prev => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        [path]: value,
-      },
-    }));
+  // Updater function passed to child components
+  const updateSetting = useCallback((section, pathOrValue, value) => {
+    setSettings(prev => {
+      const newSettings = { ...prev };
+      // Handle two types of updates:
+      // 1. updateSetting('section', 'path.to.value', value)
+      // 2. updateSetting('section', { ...fullSectionObject })
+      if (typeof pathOrValue === 'string') {
+        // This part is a bit complex for deep paths, simplifying for now
+        // For simple one-level paths like 'brandColors'
+        newSettings[section] = {
+          ...newSettings[section],
+          [pathOrValue]: value,
+        };
+      } else {
+        // For replacing a whole section's settings
+        newSettings[section] = {
+          ...newSettings[section],
+          ...pathOrValue,
+        };
+      }
+      return newSettings;
+    });
   }, []);
 
   return (
