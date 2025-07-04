@@ -1,24 +1,36 @@
-import logo from './logo.svg';
+import React, { useEffect } from 'react';
+import { ThemeProvider, generateThemeCSS } from './contexts/ThemeProvider';
+import { Dashboard } from './components/dashboard'; // ✅ NEW: Import your new Dashboard
+import { ToastProvider } from './components/ui/Toast';
 import './App.css';
 
+// Inject theme CSS into the document
+const injectThemeCSS = () => {
+  const existingStyle = document.getElementById('theme-styles');
+  if (existingStyle) {
+    existingStyle.remove();
+  }
+
+  const style = document.createElement('style');
+  style.id = 'theme-styles';
+  style.textContent = generateThemeCSS();
+  document.head.appendChild(style);
+};
+
 function App() {
+  useEffect(() => {
+    // Inject theme CSS when app loads
+    injectThemeCSS();
+  }, []);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <ThemeProvider>
+      <ToastProvider>
+        <div className="App">
+          <Dashboard /> {/* ✅ CHANGED: Use new Dashboard instead of RequirementsDashboard */}
+        </div>
+      </ToastProvider>
+    </ThemeProvider>
   );
 }
 

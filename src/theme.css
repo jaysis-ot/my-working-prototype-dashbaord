@@ -1,0 +1,361 @@
+/* Theme System CSS */
+/* This file contains the base styles and theme-specific customizations */
+
+/* Base reset and global styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Theme-specific body classes */
+body.theme-default {
+  background-color: #f9fafb;
+  color: #111827;
+}
+
+body.theme-stripe {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #1e293b;
+  min-height: 100vh;
+}
+
+body.theme-dark {
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
+
+body.theme-minimal {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+/* Global transition for smooth theme changes */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Stripe Theme Specific Styles */
+.theme-stripe .main-background {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+}
+
+.theme-stripe .sidebar-gradient {
+  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.theme-stripe .content-area {
+  background: var(--color-background-secondary, #ffffff);
+  border-radius: 16px 16px 0 0;
+  margin-top: 20px;
+  min-height: calc(100vh - 20px);
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.theme-stripe .header-area {
+  background: transparent;
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.theme-stripe .stat-card {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.theme-stripe .card-enhanced {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark Theme Specific Styles */
+.theme-dark {
+  /* Dark theme cards */
+}
+
+.theme-dark .bg-white {
+  background-color: var(--color-background-secondary, #1e293b) !important;
+  color: var(--color-text-primary, #f1f5f9);
+}
+
+.theme-dark .text-gray-900 {
+  color: var(--color-text-primary, #f1f5f9) !important;
+}
+
+.theme-dark .text-gray-600 {
+  color: var(--color-text-secondary, #cbd5e1) !important;
+}
+
+.theme-dark .border-gray-200 {
+  border-color: var(--color-border-light, #334155) !important;
+}
+
+/* Minimal Theme Specific Styles */
+.theme-minimal .sidebar-minimal {
+  background: #fafafa;
+  border-right: 1px solid #e0e0e0;
+}
+
+.theme-minimal .border-minimal {
+  border-color: #e0e0e0;
+}
+
+/* Enhanced scrollbar styles for different themes */
+.theme-default ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.theme-default ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.theme-default ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.theme-default ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.theme-stripe ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.theme-stripe ::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.theme-stripe ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+.theme-stripe ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.theme-dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.theme-dark ::-webkit-scrollbar-track {
+  background: #334155;
+}
+
+.theme-dark ::-webkit-scrollbar-thumb {
+  background: #64748b;
+  border-radius: 4px;
+}
+
+.theme-dark ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.theme-minimal ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.theme-minimal ::-webkit-scrollbar-track {
+  background: #f5f5f5;
+}
+
+.theme-minimal ::-webkit-scrollbar-thumb {
+  background: #cccccc;
+  border-radius: 3px;
+}
+
+.theme-minimal ::-webkit-scrollbar-thumb:hover {
+  background: #999999;
+}
+
+/* Responsive theme adjustments */
+@media (max-width: 768px) {
+  .theme-stripe .content-area {
+    border-radius: 0;
+    margin-top: 0;
+    min-height: 100vh;
+  }
+  
+  .theme-stripe .main-background {
+    background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+  }
+}
+
+@media (max-width: 1024px) {
+  .theme-stripe .sidebar-gradient {
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Custom component overrides for themes */
+.theme-stripe .bg-gray-50 {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.theme-stripe .bg-gray-100 {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.theme-stripe .text-white {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Enhanced focus styles for accessibility */
+.theme-stripe *:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+.theme-dark *:focus {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.theme-minimal *:focus {
+  outline: 2px solid #000000;
+  outline-offset: 2px;
+}
+
+/* Animation enhancements */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.theme-stripe .animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.theme-stripe .loading-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Print styles */
+@media print {
+  .theme-stripe .main-background,
+  .theme-stripe .sidebar-gradient {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .theme-dark .bg-white {
+    background: white !important;
+    color: black !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .theme-stripe {
+    --color-text-primary: #000000;
+    --color-background-secondary: #ffffff;
+  }
+  
+  .theme-dark {
+    --color-text-primary: #ffffff;
+    --color-background-secondary: #000000;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Theme-specific utility classes */
+.theme-border {
+  border-color: var(--color-border-light);
+}
+
+.theme-bg-primary {
+  background-color: var(--color-background-primary);
+}
+
+.theme-bg-secondary {
+  background-color: var(--color-background-secondary);
+}
+
+.theme-text-primary {
+  color: var(--color-text-primary);
+}
+
+.theme-text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.theme-accent {
+  color: var(--color-text-accent);
+}
+
+.theme-success {
+  color: var(--color-status-success);
+}
+
+.theme-warning {
+  color: var(--color-status-warning);
+}
+
+.theme-error {
+  color: var(--color-status-error);
+}
+
+/* Custom button styles for themes */
+.btn-theme-primary {
+  background: var(--color-background-accent);
+  color: var(--color-text-white);
+  border: 1px solid var(--color-background-accent);
+}
+
+.btn-theme-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-theme-secondary {
+  background: var(--color-background-secondary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-medium);
+}
+
+.btn-theme-secondary:hover {
+  background: var(--color-background-tertiary);
+}
