@@ -18,6 +18,7 @@ import DashboardLayout from './components/templates/DashboardLayout';
 // Lazy-loaded Pages
 const OverviewPage = React.lazy(() => import('./components/pages/OverviewPage'));
 const SettingsPage = React.lazy(() => import('./components/pages/SettingsPage'));
+const CompanyProfilePage = React.lazy(() => import('./components/pages/CompanyProfilePage'));
 
 // A simple wrapper for providers to keep the App component clean
 const AppProviders = ({ children }) => {
@@ -87,6 +88,7 @@ function App() {
                     <Route path="analytics" element={<div className="text-2xl font-bold">Analytics Page</div>} />
                     <Route path="pcd-breakdown" element={<div className="text-2xl font-bold">PCD Breakdown Page</div>} />
                     <Route path="settings" element={<SettingsPage />} />
+                    <Route path="company-profile" element={<CompanyProfilePage />} />
                     
                     {/* Default route within the dashboard */}
                     <Route path="*" element={<Navigate to="/dashboard/overview" replace />} />

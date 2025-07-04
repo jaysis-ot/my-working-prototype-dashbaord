@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   Target,
   Settings as SettingsIcon,
+  Building2,
 } from 'lucide-react';
 import { useDashboardUI } from '../../contexts/DashboardUIContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -52,6 +53,7 @@ const DashboardLayout = ({ children }) => {
     AlertTriangle,
     Target,
     Settings: SettingsIcon,
+    Building2,
   };
 
   // Handle sidebar toggle
@@ -71,6 +73,7 @@ const DashboardLayout = ({ children }) => {
     { id: 'threat-intelligence', label: 'Threat Intelligence', icon: 'AlertTriangle' },
     { id: 'risk-management', label: 'Risk Management', icon: 'Target' },
     { id: 'settings', label: 'Settings', icon: 'Settings' },
+    { id: 'company-profile', label: 'Company Profile', icon: 'Building2' },
   ];
 
   return (
