@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: [
     "./src/**/*.{js,jsx,ts,tsx}",
     "./public/index.html",
@@ -84,13 +85,13 @@ module.exports = {
           pending: '#a855f7',
         },
 
-        /* Maturity Levels */
+        /* Maturity Levels (Updated for better distinction) */
         maturity: {
-          1: '#ef4444',
-          2: '#f59e0b',
-          3: '#facc15',
-          4: '#84cc16',
-          5: '#10b981',
+          1: '#ef4444', // Red
+          2: '#f97316', // Orange
+          3: '#eab308', // Yellow
+          4: '#65a30d', // Lime
+          5: '#16a34a', // Green
         },
 
         /* Backgrounds */
@@ -99,6 +100,43 @@ module.exports = {
           dark:  '#0f172a',
           sidebar: '#1e293b',
         },
+      },
+      
+      /* --------------------------------------------------------
+       * Typography & Spacing
+       * ------------------------------------------------------*/
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'monospace'],
+      },
+      fontSize: {
+        'xs': '0.75rem',    // 12px
+        'sm': '0.875rem',   // 14px
+        'base': '1rem',     // 16px
+        'lg': '1.125rem',   // 18px
+        'xl': '1.25rem',    // 20px
+        '2xl': '1.5rem',    // 24px
+        '3xl': '1.875rem',  // 30px
+      },
+      spacing: {
+        '128': '32rem',
+        '144': '36rem',
+      },
+      borderRadius: {
+        'sm': '0.125rem',
+        'DEFAULT': '0.25rem',
+        'md': '0.375rem',
+        'lg': '0.5rem',
+        'xl': '0.75rem',
+        '2xl': '1rem',
+      },
+      boxShadow: {
+        'sm': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+        'DEFAULT': '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
+        'md': '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+        'lg': '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+        'xl': '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+        'inner': 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)',
       },
     },
   },

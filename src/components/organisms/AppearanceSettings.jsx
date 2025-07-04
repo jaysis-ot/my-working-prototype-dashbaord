@@ -1,13 +1,11 @@
 import React, { useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Sun, Moon, Laptop, Droplets, Type, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Sun, Moon, Laptop, Droplets, Type, ToggleLeft, ToggleRight, TextQuote } from 'lucide-react';
 import Input from '../atoms/Input';
 
-/**
- * SettingsSection Molecule
- * A wrapper for a single settings group to ensure consistent layout and styling.
- */
+// --- Reusable Molecules (Internal to this component) ---
+
 const SettingsSection = ({ title, description, children }) => (
   <div className="dashboard-card p-6">
     <div className="mb-4">
@@ -26,10 +24,6 @@ SettingsSection.propTypes = {
   children: PropTypes.node.isRequired,
 };
 
-/**
- * ThemeOption Molecule
- * A clickable option for theme selection.
- */
 const ThemeOption = ({ icon: Icon, label, isActive, onClick }) => (
   <button
     onClick={onClick}
@@ -55,6 +49,23 @@ ThemeOption.propTypes = {
   onClick: PropTypes.func.isRequired,
 };
 
+// --- Main Organism Component ---
+
+const PREDEFINED_SCHEMES = [
+  { name: 'Default', colors: { primary: '#0073e6', secondary: '#627d98' } },
+  { name: 'Trust-Centric', colors: { primary: '#6d28d9', secondary: '#486581' } },
+  { name: 'Forest Green', colors: { primary: '#10b981', secondary: '#334e68' } },
+  { name: 'Blaze Orange', colors: { primary: '#f97316', secondary: '#4a5568' } },
+  { name: 'Crimson Red', colors: { primary: '#dc2626', secondary: '#374151' } },
+];
+
+const FONT_SIZES = [
+  { name: 'Small', value: 'sm', class: 'font-size-sm' },
+  { name: 'Normal', value: 'md', class: 'font-size-md' },
+  { name: 'Large', value: 'lg', class: 'font-size-lg' },
+];
+
+
 /**
  * AppearanceSettings Organism Component
  * 
@@ -66,7 +77,7 @@ const AppearanceSettings = ({ settings, updateSetting }) => {
   const { theme, setTheme, themes } = useTheme();
   
   const brandColors = settings.brandColors || { primary: '#0073e6', secondary: '#627d98' };
-  const dashboardSettings = settings.dashboard || { density: 'comfortable', animations: true };
+  const dashboardSettings = settings.dashboard || { density: 'comfortable', animations: true, fontSize: 'md' };
 
   /**
    * FIX: Apply brand colors in real-time by injecting a style tag.
@@ -96,26 +107,37 @@ const AppearanceSettings = ({ settings, updateSetting }) => {
   }, [brandColors]);
 
   /**
-   * FIX: Apply density settings by adding a class to the body.
-   * Note: Corresponding CSS for these classes must be added in a global stylesheet (e.g., index.css)
-   * to adjust padding, font sizes, etc.
+   * FIX: Apply density and font size settings by adding a class to the body/html.
    */
   useEffect(() => {
-    const body = document.body;
-    // Clean up previous density classes
-    body.classList.remove('density-compact', 'density-comfortable', 'density-spacious');
-    // Add the current density class
+    const root = document.documentElement;
+    // Clean up previous classes
+    root.classList.remove('density-compact', 'density-comfortable', 'density-spacious');
+    root.classList.remove('font-size-sm', 'font-size-md', 'font-size-lg');
+    
+    // Add the current classes
     if (dashboardSettings.density) {
-      body.classList.add(`density-${dashboardSettings.density}`);
+      root.classList.add(`density-${dashboardSettings.density}`);
     }
-  }, [dashboardSettings.density]);
+    if (dashboardSettings.fontSize) {
+      root.classList.add(`font-size-${dashboardSettings.fontSize}`);
+    }
+  }, [dashboardSettings.density, dashboardSettings.fontSize]);
 
   const handleColorChange = useCallback((colorField, value) => {
     updateSetting('brandColors', { ...brandColors, [colorField]: value });
   }, [brandColors, updateSetting]);
+  
+  const applyScheme = useCallback((scheme) => {
+    updateSetting('brandColors', scheme.colors);
+  }, [updateSetting]);
 
   const handleDensityChange = useCallback((newDensity) => {
     updateSetting('dashboard', { ...dashboardSettings, density: newDensity });
+  }, [dashboardSettings, updateSetting]);
+
+  const handleFontSizeChange = useCallback((newSize) => {
+    updateSetting('dashboard', { ...dashboardSettings, fontSize: newSize });
   }, [dashboardSettings, updateSetting]);
 
   const handleAnimationToggle = useCallback(() => {
@@ -151,10 +173,33 @@ const AppearanceSettings = ({ settings, updateSetting }) => {
         </div>
       </SettingsSection>
 
-      {/* --- Brand Colors --- */}
+      {/* --- Predefined Color Schemes --- */}
       <SettingsSection
-        title="Brand Colors"
-        description="Customize the primary and secondary colors to match your organization's branding."
+        title="Color Scheme"
+        description="Select a predefined color palette for the dashboard."
+      >
+        <div className="flex flex-wrap gap-4">
+          {PREDEFINED_SCHEMES.map((scheme) => (
+            <button
+              key={scheme.name}
+              onClick={() => applyScheme(scheme)}
+              className="flex items-center gap-3 p-2 rounded-lg border-2 transition-all"
+              style={{ borderColor: scheme.colors.primary === brandColors.primary ? scheme.colors.primary : 'transparent' }}
+            >
+              <div className="flex -space-x-2">
+                <div className="w-8 h-8 rounded-full border-2 border-white dark:border-secondary-800" style={{ backgroundColor: scheme.colors.primary }}></div>
+                <div className="w-8 h-8 rounded-full border-2 border-white dark:border-secondary-800" style={{ backgroundColor: scheme.colors.secondary }}></div>
+              </div>
+              <span className="text-sm font-medium">{scheme.name}</span>
+            </button>
+          ))}
+        </div>
+      </SettingsSection>
+
+      {/* --- Custom Brand Colors --- */}
+      <SettingsSection
+        title="Custom Brand Colors"
+        description="Fine-tune the primary and secondary colors to match your organization's branding."
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="flex items-center gap-4">
@@ -192,10 +237,10 @@ const AppearanceSettings = ({ settings, updateSetting }) => {
         </div>
       </SettingsSection>
 
-      {/* --- Dashboard Density & Animations --- */}
+      {/* --- Interface Options --- */}
       <SettingsSection
         title="Interface Options"
-        description="Adjust the information density and visual effects to your preference."
+        description="Adjust information density, font size, and visual effects to your preference."
       >
         <div className="space-y-6">
           {/* Dashboard Density */}
@@ -204,38 +249,43 @@ const AppearanceSettings = ({ settings, updateSetting }) => {
               Dashboard Density
             </label>
             <div className="flex">
-              <button
-                onClick={() => handleDensityChange('compact')}
-                className={`px-4 py-2 rounded-l-md text-sm transition-colors ${
-                  dashboardSettings.density === 'compact'
-                    ? 'bg-primary-600 text-white z-10'
-                    : 'bg-white dark:bg-secondary-700 border border-secondary-300 dark:border-secondary-600'
-                }`}
-              >
-                Compact
-              </button>
-              <button
-                onClick={() => handleDensityChange('comfortable')}
-                className={`px-4 py-2 text-sm transition-colors -ml-px ${
-                  dashboardSettings.density === 'comfortable'
-                    ? 'bg-primary-600 text-white z-10'
-                    : 'bg-white dark:bg-secondary-700 border border-secondary-300 dark:border-secondary-600'
-                }`}
-              >
-                Comfortable
-              </button>
-              <button
-                onClick={() => handleDensityChange('spacious')}
-                className={`px-4 py-2 rounded-r-md text-sm transition-colors -ml-px ${
-                  dashboardSettings.density === 'spacious'
-                    ? 'bg-primary-600 text-white z-10'
-                    : 'bg-white dark:bg-secondary-700 border border-secondary-300 dark:border-secondary-600'
-                }`}
-              >
-                Spacious
-              </button>
+              <button onClick={() => handleDensityChange('compact')} className={`px-4 py-2 rounded-l-md text-sm transition-colors ${dashboardSettings.density === 'compact' ? 'bg-primary-600 text-white z-10' : 'bg-white dark:bg-secondary-700 border border-secondary-300 dark:border-secondary-600'}`}>Compact</button>
+              <button onClick={() => handleDensityChange('comfortable')} className={`px-4 py-2 text-sm transition-colors -ml-px ${dashboardSettings.density === 'comfortable' ? 'bg-primary-600 text-white z-10' : 'bg-white dark:bg-secondary-700 border border-secondary-300 dark:border-secondary-600'}`}>Comfortable</button>
+              <button onClick={() => handleDensityChange('spacious')} className={`px-4 py-2 rounded-r-md text-sm transition-colors -ml-px ${dashboardSettings.density === 'spacious' ? 'bg-primary-600 text-white z-10' : 'bg-white dark:bg-secondary-700 border border-secondary-300 dark:border-secondary-600'}`}>Spacious</button>
             </div>
           </div>
+
+          {/* Font Size */}
+          <div>
+            <label className="block text-sm font-medium text-secondary-700 dark:text-secondary-300 mb-2">
+              Font Size
+            </label>
+            <div className="flex items-center gap-4">
+              <TextQuote size={20} className="text-secondary-400" />
+              <div className="w-full flex items-center gap-2">
+                {FONT_SIZES.map((size, index) => (
+                  <React.Fragment key={size.value}>
+                    <button
+                      onClick={() => handleFontSizeChange(size.value)}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                        dashboardSettings.fontSize === size.value
+                          ? 'bg-primary-600 text-white scale-110'
+                          : 'bg-secondary-200 dark:bg-secondary-600 hover:bg-primary-200'
+                      }`}
+                      aria-label={`Set font size to ${size.name}`}
+                    >
+                      <span className="text-xs font-bold">{size.name.charAt(0)}</span>
+                    </button>
+                    {index < FONT_SIZES.length - 1 && <div className="flex-1 h-0.5 bg-secondary-200 dark:bg-secondary-600"></div>}
+                  </React.Fragment>
+                ))}
+              </div>
+              <span className="w-20 text-center font-medium">
+                {FONT_SIZES.find(s => s.value === dashboardSettings.fontSize)?.name}
+              </span>
+            </div>
+          </div>
+
           {/* Interface Animations */}
           <div>
             <label className="block text-sm font-medium text-secondary-700 dark:text-secondary-300 mb-2">
@@ -277,7 +327,7 @@ AppearanceSettings.propTypes = {
 AppearanceSettings.defaultProps = {
   settings: {
     brandColors: { primary: '#0073e6', secondary: '#627d98' },
-    dashboard: { density: 'comfortable', animations: true },
+    dashboard: { density: 'comfortable', animations: true, fontSize: 'md' },
   },
   updateSetting: () => {},
 };

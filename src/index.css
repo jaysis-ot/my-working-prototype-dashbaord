@@ -126,6 +126,41 @@ body {
   .density-spacious .dashboard-card {
     @apply p-8;
   }
+
+  /* ===== Font Size Settings ===== */
+  /* These classes are toggled on <html> (or <body>) to enlarge or reduce
+     the root font size.  All rem-based Tailwind utilities respond
+     automatically. */
+  .font-size-sm {
+    font-size: 0.875rem; /* 14px */
+  }
+  .font-size-md {
+    font-size: 1rem;     /* 16px – default, included for completeness */
+  }
+  .font-size-lg {
+    font-size: 1.125rem; /* 18px */
+  }
+
+  /* ===== Maturity Indicator Palette ===== */
+  /* Centralised colour tokens so components / utilities remain consistent */
+  :root {
+    --maturity-1: #ef4444; /* red     */
+    --maturity-2: #f97316; /* orange  */
+    --maturity-3: #eab308; /* yellow  */
+    --maturity-4: #65a30d; /* lime    */
+    --maturity-5: #16a34a; /* green   */
+  }
+  .bg-maturity-1 { background-color: var(--maturity-1) !important; }
+  .bg-maturity-2 { background-color: var(--maturity-2) !important; }
+  .bg-maturity-3 { background-color: var(--maturity-3) !important; }
+  .bg-maturity-4 { background-color: var(--maturity-4) !important; }
+  .bg-maturity-5 { background-color: var(--maturity-5) !important; }
+
+  .text-maturity-1 { color: var(--maturity-1) !important; }
+  .text-maturity-2 { color: var(--maturity-2) !important; }
+  .text-maturity-3 { color: var(--maturity-3) !important; }
+  .text-maturity-4 { color: var(--maturity-4) !important; }
+  .text-maturity-5 { color: var(--maturity-5) !important; }
 }
 
 /* Portal System Animations */
