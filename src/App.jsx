@@ -5,7 +5,6 @@ import { Loader2 } from 'lucide-react';
 // Context Providers
 import { ThemeProvider } from './contexts/ThemeContext';
 // import { AuthProvider } from './contexts/AuthContext'; // To be created
-import { ToastProvider } from './contexts/ToastContext'; // To be created
 import { DashboardUIProvider } from './contexts/DashboardUIContext';
 
 // Feature Context Providers - to be created
@@ -16,7 +15,7 @@ import { DashboardUIProvider } from './contexts/DashboardUIContext';
 // Templates
 import DashboardLayout from './components/templates/DashboardLayout';
 
-// Lazy-loaded Pages - to be created
+// Lazy-loaded Pages
 const LoginPage = lazy(() => import('./components/pages/LoginPage'));
 const OverviewPage = lazy(() => import('./components/pages/OverviewPage'));
 const RequirementsPage = lazy(() => import('./components/pages/RequirementsPage'));
@@ -27,14 +26,13 @@ const ThreatIntelligencePage = lazy(() => import('./components/pages/ThreatIntel
 const RiskManagementPage = lazy(() => import('./components/pages/RiskManagementPage'));
 const AnalyticsPage = lazy(() => import('./components/pages/AnalyticsPage'));
 const PCDBreakdownPage = lazy(() => import('./components/pages/PCDBreakdownPage'));
-const SystemSettingsPage = lazy(() => import('./components/pages/SystemSettingsPage'));
+const SettingsPage = lazy(() => import('./components/pages/SettingsPage'));
 
 // A simple wrapper for providers to keep the App component clean
 const AppProviders = ({ children }) => {
   return (
     <ThemeProvider>
       {/* <AuthProvider> */}
-        {/* <ToastProvider> */}
           <DashboardUIProvider>
             {/* <RequirementsProvider> */}
               {/* <CapabilitiesProvider> */}
@@ -44,7 +42,6 @@ const AppProviders = ({ children }) => {
               {/* </CapabilitiesProvider> */}
             {/* </RequirementsProvider> */}
           </DashboardUIProvider>
-        {/* </ToastProvider> */}
       {/* </AuthProvider> */}
     </ThemeProvider>
   );
@@ -86,8 +83,11 @@ function App() {
               element={
                 <DashboardLayout>
                   <Routes>
+                    {/* Implemented Pages */}
+                    <Route path="overview" element={<OverviewPage />} />
+                    <Route path="settings" element={<SettingsPage />} />
+
                     {/* Placeholder Pages */}
-                    <Route path="overview" element={<div className="text-2xl font-bold">Overview Page</div>} />
                     <Route path="requirements" element={<div className="text-2xl font-bold">Requirements Page</div>} />
                     <Route path="capabilities" element={<div className="text-2xl font-bold">Capabilities Page</div>} />
                     <Route path="resources" element={<div className="text-2xl font-bold">Resource Planning Page</div>} />
@@ -96,7 +96,6 @@ function App() {
                     <Route path="risk-management" element={<div className="text-2xl font-bold">Risk Management Page</div>} />
                     <Route path="analytics" element={<div className="text-2xl font-bold">Analytics Page</div>} />
                     <Route path="pcd-breakdown" element={<div className="text-2xl font-bold">PCD Breakdown Page</div>} />
-                    <Route path="settings" element={<div className="text-2xl font-bold">Settings Page</div>} />
                     
                     {/* Default route within the dashboard */}
                     <Route path="*" element={<Navigate to="/dashboard/overview" replace />} />
