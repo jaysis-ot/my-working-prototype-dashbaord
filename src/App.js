@@ -19,6 +19,7 @@ import DashboardLayout from './components/templates/DashboardLayout';
 const OverviewPage = lazy(() => import('./components/pages/OverviewPage'));
 const SettingsPage = lazy(() => import('./components/pages/SettingsPage'));
 const CapabilitiesPage = lazy(() => import('./components/pages/CapabilitiesPage'));
+const RequirementsPage = lazy(() => import('./components/pages/RequirementsPage'));
 
 // NOTE:
 // The following pages are referenced only as placeholder <div> routes
@@ -94,7 +95,7 @@ function App() {
                     <Route path="settings" element={<SettingsPage />} />
 
                     {/* Placeholder Pages */}
-                    <Route path="requirements" element={<div className="text-2xl font-bold">Requirements Page</div>} />
+                    <Route path="requirements" element={<RequirementsPage />} />
                     <Route path="capabilities" element={<CapabilitiesPage />} />
                     <Route path="resources" element={<div className="text-2xl font-bold">Resource Planning Page</div>} />
                     <Route path="maturity-analysis" element={<div className="text-2xl font-bold">Maturity Analysis Page</div>} />
