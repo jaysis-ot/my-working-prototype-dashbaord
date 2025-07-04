@@ -1,41 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-
-/**
- * Generates a static list of mock requirements for demonstration purposes.
- * In a real application, this data would be fetched from an API.
- * @returns {Array} An array of requirement objects.
- */
-const generateMockData = () => {
-  const mockData = [];
-  const statuses = ['Not Started', 'In Progress', 'Completed', 'On Hold', 'Under Review'];
-  const priorities = ['Low', 'Medium', 'High', 'Critical'];
-  const areas = ['Business', 'User', 'System', 'Infrastructure'];
-  const types = ['Functional', 'Non-Functional'];
-  const capabilities = ['CAP-001', 'CAP-002', 'CAP-003', 'CAP-004', 'CAP-005', 'CAP-006'];
-
-  for (let i = 1; i <= 50; i++) {
-    const status = statuses[i % statuses.length];
-    const maturityScore = (i % 5) + 1;
-    mockData.push({
-      id: `REQ-${String(i).padStart(3, '0')}`,
-      description: `Requirement for enhancing security protocol #${i}. This involves multiple steps including review, implementation, and verification to ensure compliance with standards.`,
-      capabilityId: capabilities[i % capabilities.length],
-      status: status,
-      priority: priorities[i % priorities.length],
-      businessValueScore: parseFloat(((i % 4) + 1.5).toFixed(1)),
-      maturityLevel: {
-        score: maturityScore,
-        level: ['Initial', 'Developing', 'Defined', 'Managed', 'Optimizing'][maturityScore - 1],
-      },
-      area: areas[i % areas.length],
-      type: types[i % types.length],
-      assignee: `Team ${String.fromCharCode(65 + (i % 4))}`,
-      dueDate: new Date(Date.now() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      lastUpdated: new Date(Date.now() - (i % 10) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    });
-  }
-  return mockData;
-};
+// Use the comprehensive mock-data generator from the shared utilities,
+// which mirrors the structure of the legacy platform (maturityLevel,
+// applicability, progressStatus, etc.)
+import { generateMockData } from '../utils/dataService';
 
 /**
  * Custom hook for fetching and managing requirements data.

@@ -41,7 +41,7 @@ MaturityIndicator.propTypes = { score: PropTypes.number };
  * Displays the progress status with a label and percentage.
  */
 const ProgressStatus = ({ status, percentage }) => {
-  const color = status === 'Qualifying' ? 'text-blue-600' : 'text-green-600';
+  const color = status === 'Qualifying' ? 'text-blue-600 dark:text-blue-400' : 'text-green-600 dark:text-green-400';
   return (
     <div className="flex items-center gap-2">
       <span className={`font-medium ${color}`}>{status}</span>
@@ -68,7 +68,6 @@ const TableToolbar = ({
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
           leadingIcon={Search}
-          onClear={searchTerm ? onClearSearch : null}
         />
       </div>
       <div className="flex items-center gap-2">
@@ -88,7 +87,7 @@ const TableToolbar = ({
  */
 const FilterPanel = ({ filters, capabilities, onFilterChange, onClearFilters }) => (
   <div className="p-4 bg-secondary-50 dark:bg-secondary-900/50 border-b border-secondary-200 dark:border-secondary-700">
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
       <select value={filters.capability || ''} onChange={(e) => onFilterChange('capability', e.target.value)} className="w-full text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600">
         <option value="">All Capabilities</option>
         {capabilities.map(cap => <option key={cap.id} value={cap.id}>{cap.name}</option>)}
@@ -108,6 +107,10 @@ const FilterPanel = ({ filters, capabilities, onFilterChange, onClearFilters }) 
       <select value={filters.priority || ''} onChange={(e) => onFilterChange('priority', e.target.value)} className="w-full text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600">
         <option value="">All Priorities</option>
         {['Low', 'Medium', 'High', 'Critical'].map(p => <option key={p} value={p}>{p}</option>)}
+      </select>
+      <select value={filters.maturityLevel || ''} onChange={(e) => onFilterChange('maturityLevel', e.target.value)} className="w-full text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600">
+        <option value="">All Maturity</option>
+        {['Initial', 'Developing', 'Defined', 'Managed', 'Optimizing'].map(m => <option key={m} value={m}>{m}</option>)}
       </select>
       <select value={filters.applicability || ''} onChange={(e) => onFilterChange('applicability', e.target.value)} className="w-full text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600">
         <option value="">All Applicability</option>
@@ -278,14 +281,21 @@ const RequirementsTable = ({
           </thead>
           <tbody className="bg-white dark:bg-secondary-800 divide-y divide-secondary-200 dark:divide-secondary-700">
             {paginatedRequirements.map(req => (
-              <tr key={req.id} className="hover:bg-secondary-50 dark:hover:bg-secondary-700/50">
+              <tr key={req.id} className="hover:bg-secondary-50 dark:hover:bg-secondary-700/50 group">
                 <td className="px-4 py-3"><input type="checkbox" checked={selectedRows.has(req.id)} onChange={() => handleRowSelect(req.id)} className="rounded" /></td>
                 {visibleColumns.map(col => (
                   <td key={col.key} className="px-4 py-3 whitespace-nowrap text-sm">
                     {(() => {
                       switch (col.key) {
                         case 'id': return <span className="font-mono text-primary-600 dark:text-primary-300">{req.id}</span>;
-                        case 'description': return <span className="text-secondary-800 dark:text-secondary-200 line-clamp-1" title={req.description}>{req.description}</span>;
+                        case 'description': return (
+                          <div className="relative max-w-xs">
+                            <span className="text-secondary-800 dark:text-secondary-200 truncate block">{req.description}</span>
+                            <div className="absolute hidden group-hover:block top-full left-0 mt-1 p-2 bg-black text-white text-xs rounded-md shadow-lg z-10 w-96 whitespace-normal">
+                              {req.description}
+                            </div>
+                          </div>
+                        );
                         case 'capabilityId': return <Badge variant="info">{req.capabilityId || 'N/A'}</Badge>;
                         case 'progressStatus': return <ProgressStatus status={req.progressStatus} percentage={req.progress} />;
                         case 'businessValueScore': return <div className="flex items-center gap-1"><Star className="w-4 h-4 text-yellow-500" /> {req.businessValueScore?.toFixed(1)}</div>;

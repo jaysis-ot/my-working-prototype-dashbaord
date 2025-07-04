@@ -14,6 +14,7 @@ import { DashboardUIProvider } from './contexts/DashboardUIContext';
 
 // Templates
 import DashboardLayout from './components/templates/DashboardLayout';
+import ModalManager from './components/templates/ModalManager';
 
 // Lazy-loaded Pages
 const OverviewPage = lazy(() => import('./components/pages/OverviewPage'));
@@ -45,6 +46,8 @@ const AppProviders = ({ children }) => {
               {/* <CapabilitiesProvider> */}
                 {/* <TeamProvider> */}
                   {children}
+                  {/* Global Modal Manager */}
+                  <ModalManager />
                 {/* </TeamProvider> */}
               {/* </CapabilitiesProvider> */}
             {/* </RequirementsProvider> */}
