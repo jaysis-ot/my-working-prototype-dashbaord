@@ -26,6 +26,73 @@ body {
   .table-hover tr:hover {
     @apply bg-gray-50;
   }
+
+  /* ===== Dashboard Card ===== */
+  .dashboard-card {
+    /* Base card styling */
+    @apply bg-white dark:bg-secondary-800 rounded-lg shadow-md transition-shadow duration-200;
+  }
+  .dashboard-card-hover:hover {
+    @apply shadow-lg;
+  }
+
+  /* ===== Dashboard Layout ===== */
+  .dashboard-header {
+    @apply w-full h-16 flex items-center justify-between px-4 bg-white dark:bg-secondary-800 border-b border-secondary-200 dark:border-secondary-700 shadow-sm z-30;
+  }
+
+  .dashboard-container {
+    @apply flex h-[calc(100vh-4rem)] overflow-hidden;
+  }
+
+  .content-container {
+    @apply flex-1 overflow-y-auto p-4 md:p-6 bg-background-light dark:bg-background-dark;
+  }
+
+  /* ===== Sidebar ===== */
+  .sidebar {
+    @apply flex flex-col bg-background-sidebar dark:bg-background-sidebar text-white transition-all duration-300 ease-in-out;
+  }
+
+  .sidebar-expanded {
+    @apply w-64;
+  }
+
+  .sidebar-collapsed {
+    @apply w-16;
+  }
+
+  /* Navigation item base */
+  .sidebar-item {
+    @apply flex items-center px-4 py-2 text-sm rounded-md transition-colors duration-200;
+  }
+
+  .sidebar-item-inactive {
+    @apply text-gray-300 hover:bg-primary-700 hover:bg-opacity-25 hover:text-white;
+  }
+
+  .sidebar-item-active {
+    @apply bg-primary-600 text-white;
+  }
+
+  /* ===== Trust Score Card (sidebar footer) ===== */
+  .trust-score-card {
+    @apply bg-secondary-800 bg-opacity-50 rounded-lg p-3;
+  }
+
+  /* ===== Animations / Transitions ===== */
+  .fade-in {
+    @apply animate-fade-in;
+  }
+
+  /* ===== Utility ===== */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;     /* Firefox */
+  }
 }
 
 /* Portal System Animations */
@@ -48,6 +115,16 @@ body {
   to {
     opacity: 0;
     transform: translateX(100%) scale(0.95);
+  }
+}
+
+/* Fade-in animation used by .fade-in utility class */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 

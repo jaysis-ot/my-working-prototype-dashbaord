@@ -15,7 +15,8 @@ import { DashboardUIProvider } from './contexts/DashboardUIContext';
 // Templates
 import DashboardLayout from './components/templates/DashboardLayout';
 
-// Lazy-loaded Pages will be added once the actual files are created.
+// Lazy-loaded Pages
+const OverviewPage = React.lazy(() => import('./components/pages/OverviewPage'));
 
 // A simple wrapper for providers to keep the App component clean
 const AppProviders = ({ children }) => {
@@ -75,7 +76,7 @@ function App() {
                 <DashboardLayout>
                   <Routes>
                     {/* Placeholder Pages */}
-                    <Route path="overview" element={<div className="text-2xl font-bold">Overview Page</div>} />
+                    <Route path="overview" element={<OverviewPage />} />
                     <Route path="requirements" element={<div className="text-2xl font-bold">Requirements Page</div>} />
                     <Route path="capabilities" element={<div className="text-2xl font-bold">Capabilities Page</div>} />
                     <Route path="resources" element={<div className="text-2xl font-bold">Resource Planning Page</div>} />
