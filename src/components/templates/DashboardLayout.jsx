@@ -23,7 +23,7 @@ const DashboardLayout = ({ children }) => {
     setViewMode
   } = useDashboardUI();
   
-  const { themeClasses, isDark } = useTheme();
+  const { themeClasses } = useTheme();
 
   // Handle sidebar toggle
   const handleSidebarToggle = () => {
