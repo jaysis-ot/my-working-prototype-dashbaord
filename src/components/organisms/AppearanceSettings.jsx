@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Sun, Moon, Laptop, Droplets, Type, ToggleLeft, ToggleRight } from 'lucide-react';
@@ -64,21 +64,34 @@ ThemeOption.propTypes = {
  */
 const AppearanceSettings = ({ settings, updateSetting }) => {
   const { theme, setTheme, themes } = useTheme();
+  
+  const brandColors = settings.brandColors || { primary: '#0073e6', secondary: '#627d98' };
+  const dashboardSettings = settings.dashboard || { density: 'comfortable', animations: true };
 
-  // Local state for immediate feedback on color pickers
-  const [brandColors, setBrandColors] = useState(
-    settings.brandColors || { primary: '#0073e6', secondary: '#627d98' }
-  );
-
-  const handleColorChange = useCallback((colorField, value) => {
-    const newColors = { ...brandColors, [colorField]: value };
-    setBrandColors(newColors);
-    // This would update the main settings state in a real implementation
-    // updateSetting('appearance.brandColors', newColors);
+  // Apply brand colors to CSS variables for real-time feedback
+  useEffect(() => {
+    const root = document.documentElement;
+    if (brandColors.primary) {
+      root.style.setProperty('--color-primary-500', brandColors.primary);
+      // You could generate shades here if needed, e.g., for hover states
+      // For simplicity, we'll just set the main color.
+    }
+    if (brandColors.secondary) {
+      root.style.setProperty('--color-secondary-500', brandColors.secondary);
+    }
   }, [brandColors]);
 
-  // Placeholder for density and animations state
-  const dashboardSettings = settings.dashboard || { density: 'comfortable', animations: true };
+  const handleColorChange = useCallback((colorField, value) => {
+    updateSetting('brandColors', { ...brandColors, [colorField]: value });
+  }, [brandColors, updateSetting]);
+
+  const handleDensityChange = useCallback((newDensity) => {
+    updateSetting('dashboard', { ...dashboardSettings, density: newDensity });
+  }, [dashboardSettings, updateSetting]);
+
+  const handleAnimationToggle = useCallback(() => {
+    updateSetting('dashboard', { ...dashboardSettings, animations: !dashboardSettings.animations });
+  }, [dashboardSettings, updateSetting]);
 
   return (
     <div className="space-y-6">
@@ -121,6 +134,7 @@ const AppearanceSettings = ({ settings, updateSetting }) => {
               value={brandColors.primary}
               onChange={(e) => handleColorChange('primary', e.target.value)}
               className="w-12 h-12 rounded-md border-none cursor-pointer p-1 bg-transparent"
+              style={{ backgroundColor: brandColors.primary }}
               aria-label="Primary brand color picker"
             />
             <Input
@@ -136,6 +150,7 @@ const AppearanceSettings = ({ settings, updateSetting }) => {
               value={brandColors.secondary}
               onChange={(e) => handleColorChange('secondary', e.target.value)}
               className="w-12 h-12 rounded-md border-none cursor-pointer p-1 bg-transparent"
+              style={{ backgroundColor: brandColors.secondary }}
               aria-label="Secondary brand color picker"
             />
             <Input
@@ -161,7 +176,18 @@ const AppearanceSettings = ({ settings, updateSetting }) => {
             </label>
             <div className="flex">
               <button
+                onClick={() => handleDensityChange('compact')}
                 className={`px-4 py-2 rounded-l-md text-sm transition-colors ${
+                  dashboardSettings.density === 'compact'
+                    ? 'bg-primary-600 text-white z-10'
+                    : 'bg-white dark:bg-secondary-700 border border-secondary-300 dark:border-secondary-600'
+                }`}
+              >
+                Compact
+              </button>
+              <button
+                onClick={() => handleDensityChange('comfortable')}
+                className={`px-4 py-2 text-sm transition-colors -ml-px ${
                   dashboardSettings.density === 'comfortable'
                     ? 'bg-primary-600 text-white z-10'
                     : 'bg-white dark:bg-secondary-700 border border-secondary-300 dark:border-secondary-600'
@@ -170,13 +196,14 @@ const AppearanceSettings = ({ settings, updateSetting }) => {
                 Comfortable
               </button>
               <button
+                onClick={() => handleDensityChange('spacious')}
                 className={`px-4 py-2 rounded-r-md text-sm transition-colors -ml-px ${
-                  dashboardSettings.density === 'compact'
+                  dashboardSettings.density === 'spacious'
                     ? 'bg-primary-600 text-white z-10'
                     : 'bg-white dark:bg-secondary-700 border border-secondary-300 dark:border-secondary-600'
                 }`}
               >
-                Compact
+                Spacious
               </button>
             </div>
           </div>
@@ -186,6 +213,7 @@ const AppearanceSettings = ({ settings, updateSetting }) => {
               Interface Animations
             </label>
             <button
+              onClick={handleAnimationToggle}
               className="flex items-center gap-2 text-secondary-700 dark:text-secondary-300"
               aria-checked={dashboardSettings.animations}
               role="switch"

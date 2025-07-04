@@ -1,6 +1,21 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Menu, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Menu,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  LayoutDashboard,
+  FileText,
+  Shield,
+  Users,
+  BarChart3,
+  PieChart,
+  TrendingUp,
+  AlertTriangle,
+  Target,
+  Settings as SettingsIcon,
+} from 'lucide-react';
 import { useDashboardUI } from '../../contexts/DashboardUIContext';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -24,6 +39,20 @@ const DashboardLayout = ({ children }) => {
   } = useDashboardUI();
   
   const { themeClasses } = useTheme();
+
+  // Map icon names to actual Lucide icon components
+  const iconMap = {
+    LayoutDashboard,
+    FileText,
+    Shield,
+    Users,
+    BarChart3,
+    PieChart,
+    TrendingUp,
+    AlertTriangle,
+    Target,
+    Settings: SettingsIcon,
+  };
 
   // Handle sidebar toggle
   const handleSidebarToggle = () => {
@@ -119,11 +148,18 @@ const DashboardLayout = ({ children }) => {
                   onClick={() => setViewMode(item.id)}
                   aria-current={viewMode === item.id ? 'page' : undefined}
                 >
-                  {/* Dynamic icon would be rendered here */}
-                  <div className={`flex-shrink-0 ${!sidebarExpanded ? '' : 'mr-3'}`}>
-                    {/* Placeholder for icon */}
-                    <div className="w-5 h-5 rounded bg-current opacity-20"></div>
-                  </div>
+                  {/* Actual navigation icon */}
+                  {(() => {
+                    const Icon = iconMap[item.icon];
+                    return (
+                      <Icon
+                        className={`w-5 h-5 flex-shrink-0 ${
+                          !sidebarExpanded ? '' : 'mr-3'
+                        }`}
+                        aria-hidden="true"
+                      />
+                    );
+                  })()}
                   
                   {sidebarExpanded && (
                     <span className="truncate">{item.label}</span>

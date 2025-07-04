@@ -2,6 +2,9 @@ import React, { useState, useCallback } from 'react';
 import { Palette, Bell, Link, Database, Zap, Shield, Save, CheckCircle, AlertTriangle } from 'lucide-react';
 import Button from '../atoms/Button';
 import AppearanceSettings from '../organisms/AppearanceSettings';
+import NotificationsSettings from '../organisms/NotificationsSettings';
+import IntegrationsSettings from '../organisms/IntegrationsSettings';
+import DataBackupSettings from '../organisms/DataBackupSettings';
 
 // --- Organisms (Internal to SettingsPage for now) ---
 
@@ -128,9 +131,9 @@ const SettingsPage = () => {
 
   const tabs = [
     { id: 'appearance', label: 'Appearance', icon: Palette, component: AppearanceSettings },
-    { id: 'notifications', label: 'Notifications', icon: Bell, component: NotificationsTab },
-    { id: 'integrations', label: 'Integrations', icon: Link, component: IntegrationsTab },
-    { id: 'backup', label: 'Data & Backup', icon: Database, component: DataBackupTab },
+    { id: 'notifications', label: 'Notifications', icon: Bell, component: NotificationsSettings },
+    { id: 'integrations', label: 'Integrations', icon: Link, component: IntegrationsSettings },
+    { id: 'backup', label: 'Data & Backup', icon: Database, component: DataBackupSettings },
     { id: 'performance', label: 'Performance', icon: Zap, component: PerformanceTab },
     { id: 'compliance', label: 'Compliance', icon: Shield, component: ComplianceTab },
   ];
