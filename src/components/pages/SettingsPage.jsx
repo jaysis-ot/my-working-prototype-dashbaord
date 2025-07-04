@@ -5,6 +5,8 @@ import AppearanceSettings from '../organisms/AppearanceSettings';
 import NotificationsSettings from '../organisms/NotificationsSettings';
 import IntegrationsSettings from '../organisms/IntegrationsSettings';
 import DataBackupSettings from '../organisms/DataBackupSettings';
+import PerformanceSettings from '../organisms/PerformanceSettings';
+import ComplianceSettings from '../organisms/ComplianceSettings';
 
 // --- Organisms (Internal to SettingsPage for now) ---
 
@@ -134,8 +136,8 @@ const SettingsPage = () => {
     { id: 'notifications', label: 'Notifications', icon: Bell, component: NotificationsSettings },
     { id: 'integrations', label: 'Integrations', icon: Link, component: IntegrationsSettings },
     { id: 'backup', label: 'Data & Backup', icon: Database, component: DataBackupSettings },
-    { id: 'performance', label: 'Performance', icon: Zap, component: PerformanceTab },
-    { id: 'compliance', label: 'Compliance', icon: Shield, component: ComplianceTab },
+    { id: 'performance', label: 'Performance', icon: Zap, component: PerformanceSettings },
+    { id: 'compliance', label: 'Compliance', icon: Shield, component: ComplianceSettings },
   ];
 
   const CurrentTabComponent = tabs.find(tab => tab.id === activeTab)?.component;

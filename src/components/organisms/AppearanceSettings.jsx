@@ -37,7 +37,7 @@ const ThemeOption = ({ icon: Icon, label, isActive, onClick }) => (
       flex-1 p-4 rounded-lg border-2 transition-all duration-200
       flex flex-col items-center justify-center space-y-2
       ${isActive
-        ? 'bg-primary-50 dark:bg-primary-500/20 border-primary-500 text-primary-600 dark:text-primary-200'
+        ? 'bg-primary-100 dark:bg-primary-500/20 border-primary-500 text-primary-600 dark:text-primary-200'
         : 'bg-secondary-50 dark:bg-secondary-700/50 border-transparent hover:border-primary-300 dark:hover:border-primary-500'
       }
     `}
@@ -68,18 +68,47 @@ const AppearanceSettings = ({ settings, updateSetting }) => {
   const brandColors = settings.brandColors || { primary: '#0073e6', secondary: '#627d98' };
   const dashboardSettings = settings.dashboard || { density: 'comfortable', animations: true };
 
-  // Apply brand colors to CSS variables for real-time feedback
+  /**
+   * FIX: Apply brand colors in real-time by injecting a style tag.
+   * This overrides Tailwind's default colors at runtime.
+   */
   useEffect(() => {
-    const root = document.documentElement;
-    if (brandColors.primary) {
-      root.style.setProperty('--color-primary-500', brandColors.primary);
-      // You could generate shades here if needed, e.g., for hover states
-      // For simplicity, we'll just set the main color.
+    const styleId = 'custom-brand-colors';
+    let styleElement = document.getElementById(styleId);
+    if (!styleElement) {
+      styleElement = document.createElement('style');
+      styleElement.id = styleId;
+      document.head.appendChild(styleElement);
     }
-    if (brandColors.secondary) {
-      root.style.setProperty('--color-secondary-500', brandColors.secondary);
-    }
+
+    const primaryColor = brandColors.primary;
+    styleElement.innerHTML = `
+      :root { --color-primary: ${primaryColor}; }
+      .bg-primary-100 { background-color: ${primaryColor}1A !important; } /* 10% opacity */
+      .bg-primary-600, .bg-primary-500 { background-color: ${primaryColor} !important; }
+      .text-primary-600, .text-primary-700 { color: ${primaryColor} !important; }
+      .border-primary-500 { border-color: ${primaryColor} !important; }
+      .ring-primary-500 { --tw-ring-color: ${primaryColor} !important; }
+      .sidebar-item-active { background-color: ${primaryColor} !important; }
+      .dark .dark\\:bg-primary-500\\/20 { background-color: ${primaryColor}33 !important; } /* 20% opacity */
+      .dark .dark\\:text-primary-200 { color: ${primaryColor} !important; opacity: 0.8; }
+    `;
   }, [brandColors]);
+
+  /**
+   * FIX: Apply density settings by adding a class to the body.
+   * Note: Corresponding CSS for these classes must be added in a global stylesheet (e.g., index.css)
+   * to adjust padding, font sizes, etc.
+   */
+  useEffect(() => {
+    const body = document.body;
+    // Clean up previous density classes
+    body.classList.remove('density-compact', 'density-comfortable', 'density-spacious');
+    // Add the current density class
+    if (dashboardSettings.density) {
+      body.classList.add(`density-${dashboardSettings.density}`);
+    }
+  }, [dashboardSettings.density]);
 
   const handleColorChange = useCallback((colorField, value) => {
     updateSetting('brandColors', { ...brandColors, [colorField]: value });
@@ -133,7 +162,7 @@ const AppearanceSettings = ({ settings, updateSetting }) => {
               type="color"
               value={brandColors.primary}
               onChange={(e) => handleColorChange('primary', e.target.value)}
-              className="w-12 h-12 rounded-md border-none cursor-pointer p-1 bg-transparent"
+              className="w-12 h-12 rounded-md border-none cursor-pointer p-0 bg-transparent"
               style={{ backgroundColor: brandColors.primary }}
               aria-label="Primary brand color picker"
             />
@@ -149,7 +178,7 @@ const AppearanceSettings = ({ settings, updateSetting }) => {
               type="color"
               value={brandColors.secondary}
               onChange={(e) => handleColorChange('secondary', e.target.value)}
-              className="w-12 h-12 rounded-md border-none cursor-pointer p-1 bg-transparent"
+              className="w-12 h-12 rounded-md border-none cursor-pointer p-0 bg-transparent"
               style={{ backgroundColor: brandColors.secondary }}
               aria-label="Secondary brand color picker"
             />

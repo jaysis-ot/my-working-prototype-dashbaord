@@ -93,6 +93,39 @@ body {
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;     /* Firefox */
   }
+
+  /* ===== Density Settings ===== */
+  /* These classes should be applied to <body> or the main wrapper
+     to control overall spacing and sizing across the application. */
+
+  /* --- Compact (tighter spacing) --- */
+  .density-compact {
+    font-size: 0.875rem; /* 14px */
+  }
+  .density-compact .content-container {
+    @apply p-2 md:p-4;
+  }
+  .density-compact .dashboard-card {
+    @apply p-3;
+  }
+
+  /* --- Comfortable (default) ---
+     No overrides needed because existing utility paddings represent the
+     comfortable baseline.  This class exists mainly for semantics. */
+  .density-comfortable {
+    font-size: 1rem; /* 16px */
+  }
+
+  /* --- Spacious (looser spacing) --- */
+  .density-spacious {
+    font-size: 1.125rem; /* 18px */
+  }
+  .density-spacious .content-container {
+    @apply p-6 md:p-8;
+  }
+  .density-spacious .dashboard-card {
+    @apply p-8;
+  }
 }
 
 /* Portal System Animations */
