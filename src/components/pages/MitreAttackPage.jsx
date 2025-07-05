@@ -42,7 +42,7 @@ const MitreAttackPage = () => {
   }, [setFilters]);
   
   // --- Render Logic ---
-
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -75,7 +75,6 @@ const MitreAttackPage = () => {
         filters={filters}
         onFilterChange={handleFilterChange}
         getTechniquesForTactic={getTechniquesForTactic}
-        onNavigateBack={handleNavigateBack}
       />
     </div>
   );
