@@ -321,19 +321,30 @@ const TimelineView = ({ resources, assignments, capabilities }) => {
 
     assignments.forEach((a) => {
       if (!map[a.resourceId]) return;
+
+      // ensure valid date objects
       const start = new Date(a.startDate);
       const end = new Date(a.endDate);
-      if (start > monthEnd || end < monthStart) return; // outside month
+      if (isNaN(start) || isNaN(end)) return;
+
+      // skip if completely outside current month
+      if (start > monthEnd || end < monthStart) return;
 
       const capabilityName =
         capabilities.find((c) => c.id === a.capabilityId)?.name ||
         a.capabilityId;
 
+      // visible portion inside current month
+      const visibleStart = start < monthStart ? monthStart : start;
+      const visibleEnd = end > monthEnd ? monthEnd : end;
+
       map[a.resourceId].push({
         ...a,
         capabilityName,
-        startDay: Math.max(1, start.getDate()),
-        endDay: Math.min(daysInMonth, end.getDate()),
+        startDay: visibleStart.getDate(),
+        endDay: visibleEnd.getDate(),
+        continuesBefore: start < monthStart,
+        continuesAfter: end > monthEnd,
       });
     });
     return map;
@@ -379,14 +390,26 @@ const TimelineView = ({ resources, assignments, capabilities }) => {
           <div className="p-2 font-semibold border-r dark:border-secondary-700">
             Resource
           </div>
-          {days.map((d) => (
-            <div
-              key={d}
-              className="p-2 text-center text-xs font-medium border-r dark:border-secondary-700"
-            >
-              {d}
-            </div>
-          ))}
+          {days.map((d) => {
+            const today = new Date();
+            const isToday =
+              d === today.getDate() &&
+              today.getMonth() === currentMonth.getMonth() &&
+              today.getFullYear() === currentMonth.getFullYear();
+            return (
+              <div
+                key={d}
+                className={`p-2 text-center text-xs font-medium border-r dark:border-secondary-700 ${
+                  isToday ? 'bg-primary-100 dark:bg-primary-900/20' : ''
+                }`}
+              >
+                {d}
+                {isToday && (
+                  <div className="h-1 w-1 rounded-full bg-primary-500 mx-auto mt-1" />
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* resource rows */}
@@ -412,7 +435,7 @@ const TimelineView = ({ resources, assignments, capabilities }) => {
               return (
                 <div
                   key={a.id}
-                  className={`absolute rounded-full ${getColor(
+                  className={`absolute ${getColor(
                     a.timeAllocation,
                   )} text-white text-[10px] overflow-hidden px-2 flex items-center`}
                   style={{
@@ -420,10 +443,25 @@ const TimelineView = ({ resources, assignments, capabilities }) => {
                     width: duration * cellW,
                     top: 8 + idx * 18,
                     height: 16,
+                    borderTopLeftRadius: a.continuesBefore ? 0 : 9999,
+                    borderBottomLeftRadius: a.continuesBefore ? 0 : 9999,
+                    borderTopRightRadius: a.continuesAfter ? 0 : 9999,
+                    borderBottomRightRadius: a.continuesAfter ? 0 : 9999,
                   }}
-                  title={`${a.capabilityName} (${a.timeAllocation})`}
+                  title={`${a.capabilityName} (${a.timeAllocation})\n${a.startDate} → ${a.endDate}`}
                 >
-                  {duration * cellW > 80 ? a.capabilityName : ''}
+                  {duration * cellW > 80 ? (
+                    <>
+                      {a.continuesBefore && '◄'}
+                      {a.capabilityName}
+                      {a.continuesAfter && '►'}
+                    </>
+                  ) : (
+                    <>
+                      {a.continuesBefore && '◄'}
+                      {a.continuesAfter && '►'}
+                    </>
+                  )}
                 </div>
               );
             })}
