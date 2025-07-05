@@ -26,6 +26,9 @@ const MitreAttackPage = lazy(() => import('./components/pages/MitreAttackPage'))
 const ThreatIntelligencePage = lazy(() => import('./components/pages/ThreatIntelligencePage'));
 const RiskManagementPage = lazy(() => import('./components/pages/RiskManagementPage'));
 const StandardsFrameworksPage = lazy(() => import('./components/pages/StandardsFrameworksPage'));
+const AnalyticsPage = lazy(() => import('./components/pages/AnalyticsPage'));
+const BusinessPlanPage = lazy(() => import('./components/pages/BusinessPlanPage'));
+const MaturityAnalysisPage = lazy(() => import('./components/pages/MaturityAnalysisPage'));
 
 // NOTE:
 // The following pages are referenced only as placeholder <div> routes
@@ -107,63 +110,12 @@ function App() {
                     <Route path="capabilities" element={<CapabilitiesPage />} />
                     <Route path="resources" element={<ResourcePlanningPage />} />
                     <Route path="mitre-attack" element={<MitreAttackPage />} />
-                    <Route
-                      path="maturity-analysis"
-                      element={
-                        <div className="p-8 text-center bg-white dark:bg-secondary-800 rounded-lg shadow-md">
-                          <h1 className="text-3xl font-bold mb-4">Maturity Analysis Dashboard</h1>
-                          <p className="text-lg mb-4">This page is currently under development.</p>
-                          <div className="p-4 border border-dashed border-secondary-300 dark:border-secondary-600 rounded-lg">
-                            <p>The Maturity Analysis Dashboard will include:</p>
-                            <ul className="list-disc pl-8 text-left mt-2">
-                              <li>Maturity level distribution</li>
-                              <li>Category-based maturity scoring</li>
-                              <li>Improvement recommendations</li>
-                              <li>Maturity roadmap planning</li>
-                            </ul>
-                          </div>
-                        </div>
-                      }
-                    />
+                    <Route path="maturity-analysis" element={<MaturityAnalysisPage />} />
                     <Route path="threat-intelligence" element={<ThreatIntelligencePage />} />
                     <Route path="risk-management" element={<RiskManagementPage />} />
                     <Route path="standards-frameworks" element={<StandardsFrameworksPage />} />
-                    <Route
-                      path="analytics"
-                      element={
-                        <div className="p-8 text-center bg-white dark:bg-secondary-800 rounded-lg shadow-md">
-                          <h1 className="text-3xl font-bold mb-4">Analytics Dashboard</h1>
-                          <p className="text-lg mb-4">This page is currently under development.</p>
-                          <div className="p-4 border border-dashed border-secondary-300 dark:border-secondary-600 rounded-lg">
-                            <p>The Analytics Dashboard will include:</p>
-                            <ul className="list-disc pl-8 text-left mt-2">
-                              <li>Status distribution charts</li>
-                              <li>Business value analysis</li>
-                              <li>Requirement progress metrics</li>
-                              <li>Maturity level visualizations</li>
-                            </ul>
-                          </div>
-                        </div>
-                      }
-                    />
-                    <Route
-                      path="business-plan"
-                      element={
-                        <div className="p-8 text-center bg-white dark:bg-secondary-800 rounded-lg shadow-md">
-                          <h1 className="text-3xl font-bold mb-4">Business Plan Dashboard</h1>
-                          <p className="text-lg mb-4">This page is currently under development.</p>
-                          <div className="p-4 border border-dashed border-secondary-300 dark:border-secondary-600 rounded-lg">
-                            <p>The Business Plan Dashboard will include:</p>
-                            <ul className="list-disc pl-8 text-left mt-2">
-                              <li>Executive summaries</li>
-                              <li>Project details and timelines</li>
-                              <li>Resource planning and allocation</li>
-                              <li>Budget tracking and ROI analysis</li>
-                            </ul>
-                          </div>
-                        </div>
-                      }
-                    />
+                    <Route path="analytics" element={<AnalyticsPage />} />
+                    <Route path="business-plan" element={<BusinessPlanPage />} />
                     
                     {/* Default route within the dashboard */}
                     <Route path="*" element={<Navigate to="/dashboard/overview" replace />} />
