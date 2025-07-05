@@ -747,18 +747,53 @@ const ResourcesTab = ({ plan }) => {
       </div>
 
       {/* Contact Info */}
-      <div className="dashboard-card p-6">
+        <div className="dashboard-card p-6">
         <h3 className="text-lg font-semibold mb-3">Contact Information</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {plan.resources.map((r, i) => (
-            <div key={i} className="bg-secondary-50 dark:bg-secondary-800/50 p-4 rounded-lg">
-              <p className="font-bold text-secondary-900 dark:text-white">{r.name}</p>
-              <p className="text-xs text-secondary-500">{r.jobTitle} • {r.company}</p>
-              <div className="mt-2 space-y-1 text-xs">
-                <p className="flex items-center gap-2"><Mail className="w-3 h-3" /> {r.email}</p>
-                <p className="flex items-center gap-2"><Phone className="w-3 h-3" /> {r.phone}</p>
-                <p className="flex items-center gap-2"><MapPin className="w-3 h-3" /> {r.location}</p>
-              </div>
+            <div
+              key={i}
+              className="bg-secondary-50 dark:bg-secondary-800/50 p-4 rounded-lg space-y-1 text-xs"
+            >
+              <p className="font-bold text-secondary-900 dark:text-white text-sm">
+                {r.name}
+              </p>
+              {/* Company */}
+              {r.company && (
+                <p className="flex items-center gap-2 text-secondary-600 dark:text-secondary-400">
+                  <Factory className="w-3 h-3" /> {r.company}
+                </p>
+              )}
+              {/* Job Title */}
+              {r.jobTitle && (
+                <p className="flex items-center gap-2">
+                  <BookUser className="w-3 h-3" /> {r.jobTitle}
+                </p>
+              )}
+              {/* Department */}
+              {r.department && (
+                <p className="flex items-center gap-2">
+                  <Briefcase className="w-3 h-3" /> {r.department}
+                </p>
+              )}
+              {/* Email */}
+              {r.email && (
+                <p className="flex items-center gap-2">
+                  <Mail className="w-3 h-3" /> {r.email}
+                </p>
+              )}
+              {/* Phone */}
+              {r.phone && (
+                <p className="flex items-center gap-2">
+                  <Phone className="w-3 h-3" /> {r.phone}
+                </p>
+              )}
+              {/* Location */}
+              {r.location && (
+                <p className="flex items-center gap-2">
+                  <MapPin className="w-3 h-3" /> {r.location}
+                </p>
+              )}
             </div>
           ))}
         </div>
