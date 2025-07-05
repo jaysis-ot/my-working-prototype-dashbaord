@@ -17,6 +17,19 @@ import {
   Info,
   AlertTriangle,
   CheckCircle,
+  Mail,
+  Phone,
+  MapPin,
+  Briefcase,
+  BookUser,
+  Factory,
+  GanttChartSquare,
+  Handshake,
+  History,
+  Landmark,
+  Lightbulb,
+  Replace,
+  Server,
 } from 'lucide-react';
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
@@ -45,7 +58,6 @@ const mockBusinessPlans = {
       timeline: '18 Months',
       keyRisks: 'Project delays due to supply chain issues, budget overruns from unforeseen complexities, and potential for minor operational disruption during implementation.',
     },
-    /* ---------------- NEW: BUSINESS-PLAN META DATA ---------------- */
     projectBackground: `The manufacturing sector is experiencing increased cyber-physical
 risks as IT and OT networks converge. Recent industry reports indicate a 35% year-on-year
 increase in ransomware targeting industrial plants. A segmented architecture is considered a
@@ -99,7 +111,6 @@ security manager, and passive monitoring for anomaly detection.`,
       'Skilled resources are available 4 weeks before pilot go-live',
       'No significant changes in regulatory landscape within next 18 months',
     ],
-    /* ---------------------------------------------------------------- */
 
     keyRisksAndOpportunities: [
         { type: 'Risk', description: 'Implementation could disrupt critical operations during deployment.', approach: 'Phased implementation during planned maintenance windows with comprehensive rollback procedures.', impact: 'High' },
@@ -147,6 +158,12 @@ security manager, and passive monitoring for anomaly detection.`,
       endDate: '2026-02-01',
       scope: 'Includes all Level 3 and below assets in the primary manufacturing plant. Excludes corporate network infrastructure.',
       successMetrics: ['95% reduction in IT-to-OT cross-network traffic', 'Achieve ISA/IEC 62443 compliance', 'Zero production downtime during rollout'],
+      financialImpacts: {
+        outageCosts: { perHour: 120000, annualFrequency: 0.5 },
+        downtimeCosts: { perEvent: 500000, annualFrequency: 0.2 },
+        productionLoss: { annualCost: 750000 },
+        regulatoryFines: { potentialFine: 2000000, likelihood: 0.1 },
+      },
     },
     timeline: [
       { name: 'Phase 1: Discovery & Design', status: 'Completed', duration: '3 Months' },
@@ -155,34 +172,12 @@ security manager, and passive monitoring for anomaly detection.`,
       { name: 'Phase 4: Full Rollout', status: 'Not Started', duration: '6 Months' },
     ],
     resources: [
-      { role: 'Project Manager', name: 'John Doe', allocation: '100%' },
-      { role: 'Lead Network Architect', name: 'Brenda Smith', allocation: '75%' },
-      { role: 'Security Engineer', name: 'Charles Davis', allocation: '100%' },
-      { role: 'OT Specialist', name: 'Diana Miller', allocation: '50%' },
-
-      /* enriched internal & external resources */
-      {
-        role: 'Change Manager',
-        name: 'Ellie Young',
-        type: 'Internal',
-        experience: 'Senior',
-        skills: ['Change Management', 'Stakeholder Comms'],
-        allocation: '40%',
-        availability: '2024-08-01 ➜ 2025-09-30',
-        responsibilities: 'Manage change requests & comms plan',
-        contact: 'ellie.young@corp.local',
-      },
-      {
-        role: 'Firewall Specialist',
-        name: 'SecureNet Consulting (Ben Clark)',
-        type: 'External',
-        experience: 'Consultant',
-        skills: ['NGFW', 'IDS/IPS', 'Zone Policies'],
-        allocation: '60%',
-        availability: '2024-10-01 ➜ 2025-03-31',
-        responsibilities: 'Configure & test perimeter firewalls',
-        contact: 'ben.clark@securenet.com',
-      },
+      { name: 'John Doe', company: 'Cyber Solutions Inc.', jobTitle: 'Project Manager', department: 'PMO', location: 'London, UK', email: 'john.doe@corp.local', phone: '+44 20 7946 0958', allocation: '100%', skills: ['PMP', 'Risk Management'], responsibilities: 'Overall project delivery', type: 'Internal' },
+      { name: 'Brenda Smith', company: 'Cyber Solutions Inc.', jobTitle: 'Lead Network Architect', department: 'Engineering', location: 'Manchester, UK', email: 'brenda.smith@corp.local', phone: '+44 161 496 0101', allocation: '75%', skills: ['Network Architecture', 'Firewall Policy'], responsibilities: 'Technical design and architecture', type: 'Internal' },
+      { name: 'Charles Davis', company: 'Cyber Solutions Inc.', jobTitle: 'Security Engineer', department: 'IT Security', location: 'London, UK', email: 'charles.davis@corp.local', phone: '+44 20 7946 0959', allocation: '100%', skills: ['IDS/IPS', 'SIEM'], responsibilities: 'Security control implementation', type: 'Internal' },
+      { name: 'Diana Miller', company: 'Cyber Solutions Inc.', jobTitle: 'OT Specialist', department: 'Operations', location: 'Plant Floor', email: 'diana.miller@corp.local', phone: '+44 161 496 0102', allocation: '50%', skills: ['OT Systems', 'PLC Programming'], responsibilities: 'Liaison with plant operations', type: 'Internal' },
+      { name: 'Ellie Young', company: 'Cyber Solutions Inc.', jobTitle: 'Change Manager', department: 'PMO', location: 'Remote', email: 'ellie.young@corp.local', phone: '+44 20 7946 0960', type: 'Internal', experience: 'Senior', skills: ['Change Management', 'Stakeholder Comms'], allocation: '40%', availability: '2024-08-01 ➜ 2025-09-30', responsibilities: 'Manage change requests & comms plan' },
+      { name: 'SecureNet Consulting (Ben Clark)', company: 'SecureNet Consulting', jobTitle: 'Firewall Specialist', department: 'Professional Services', location: 'External', email: 'ben.clark@securenet.com', phone: '+44 118 496 0123', type: 'External', experience: 'Consultant', skills: ['NGFW', 'IDS/IPS', 'Zone Policies'], allocation: '60%', availability: '2024-10-01 ➜ 2025-03-31', responsibilities: 'Configure & test perimeter firewalls' },
     ],
     teamStructure: [
       { name: 'Jane Smith', role: 'Executive Sponsor' },
@@ -275,6 +270,7 @@ security manager, and passive monitoring for anomaly detection.`,
       endDate: '2025-12-31',
       scope: 'All OT personnel, contractors, and system-to-system accounts. Integration with Active Directory and key OT applications.',
       successMetrics: ['100% MFA coverage for remote access', 'Reduce privileged accounts by 50%', 'Automated access reviews completed quarterly'],
+      financialImpacts: {},
     },
     timeline: [
       { name: 'Phase 1: Vendor Selection', status: 'Not Started', duration: '2 Months' },
@@ -324,8 +320,8 @@ const DetailItem = ({ label, children }) => (
 );
 
 const InfoSection = ({ title, children }) => (
-  <div>
-    <h4 className="font-semibold mb-2 text-secondary-800 dark:text-secondary-100">{title}</h4>
+  <div className="dashboard-card p-6">
+    <h3 className="text-lg font-semibold mb-3 text-secondary-900 dark:text-white">{title}</h3>
     <div className="text-sm text-secondary-600 dark:text-secondary-300 space-y-2">{children}</div>
   </div>
 );
@@ -362,108 +358,95 @@ const OverviewTab = ({ plan }) => (
   </div>
 );
 
-const DetailsTab = ({ plan }) => (
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    <DetailItem label="Project Owner"><Badge variant="info">{plan.owner}</Badge></DetailItem>
-    <DetailItem label="Executive Sponsor"><Badge variant="info">{plan.sponsor}</Badge></DetailItem>
-    <DetailItem label="Status"><Badge variant={plan.status === 'Active' ? 'success' : 'default'}>{plan.status}</Badge></DetailItem>
-    <DetailItem label="Start Date">{plan.projectDetails.startDate}</DetailItem>
-    <DetailItem label="End Date">{plan.projectDetails.endDate}</DetailItem>
-    <div className="md:col-span-2 lg:col-span-3">
-      <DetailItem label="Scope">{plan.projectDetails.scope}</DetailItem>
+const FinancialImpactCard = ({ title, cost, frequency, annualImpact, color }) => (
+    <div className={`p-4 rounded-lg border-l-4 bg-${color}-50 border-${color}-400`}>
+        <p className="font-semibold text-sm text-secondary-800">{title}</p>
+        <p className="text-xs text-secondary-500">{cost} • {frequency}</p>
+        <p className="text-lg font-bold text-secondary-900 mt-2">£{annualImpact.toLocaleString()}</p>
+        <p className="text-xs text-secondary-500">Annualized Risk Value</p>
     </div>
-    <div className="md:col-span-2 lg:col-span-3">
-      <DetailItem label="Success Metrics">
-        <ul className="list-disc pl-5 space-y-1 mt-1">
-          {plan.projectDetails.successMetrics.map((metric, i) => <li key={i}>{metric}</li>)}
-        </ul>
-      </DetailItem>
-    </div>
-    {/* ---------- ENHANCED PROJECT DETAILS ---------- */}
-    <div className="md:col-span-2 lg:col-span-3">
-      <InfoSection title="Project Background">
-        <p>{plan.projectBackground}</p>
-      </InfoSection>
-    </div>
-
-    {/* Stakeholder Analysis */}
-    {plan.stakeholders && plan.stakeholders.length > 0 && (
-      <div className="md:col-span-2 lg:col-span-3">
-        <h4 className="font-semibold mb-2 text-secondary-800 dark:text-secondary-100">Stakeholder Analysis</h4>
-        <div className="dashboard-card overflow-x-auto">
-          <table className="min-w-full text-xs">
-            <thead className="bg-secondary-50 dark:bg-secondary-700/50">
-              <tr>
-                <th className="p-2 text-left font-semibold">Name</th>
-                <th className="p-2 text-left font-semibold">Role</th>
-                <th className="p-2 text-left font-semibold">Interest</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-secondary-200 dark:divide-secondary-700">
-              {plan.stakeholders.map((s, i) => (
-                <tr key={i}>
-                  <td className="p-2">{s.name}</td>
-                  <td className="p-2">{s.role}</td>
-                  <td className="p-2">{s.interest}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    )}
-
-    {/* Benefits */}
-    <div className="md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-      <InfoSection title="Quantitative Benefits">
-        <ul className="list-disc pl-5 space-y-1">
-          {plan.benefits.quantitative.map((b, i) => <li key={i}>{b}</li>)}
-        </ul>
-      </InfoSection>
-      <InfoSection title="Qualitative Benefits">
-        <ul className="list-disc pl-5 space-y-1">
-          {plan.benefits.qualitative.map((b, i) => <li key={i}>{b}</li>)}
-        </ul>
-      </InfoSection>
-    </div>
-
-    {/* Constraints & Dependencies */}
-    <div className="md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-      <InfoSection title="Project Constraints">
-        <ul className="list-disc pl-5 space-y-1">
-          {plan.constraints.map((c, i) => <li key={i}>{c}</li>)}
-        </ul>
-      </InfoSection>
-      <InfoSection title="Dependencies">
-        <ul className="list-disc pl-5 space-y-1">
-          {plan.dependencies.map((d, i) => <li key={i}>{d}</li>)}
-        </ul>
-      </InfoSection>
-    </div>
-
-    {/* Governance & Technical Approach */}
-    <div className="md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-      <InfoSection title="Governance & Decision Making">
-        <p><strong>Governance Board:</strong> {plan.governanceStructure.board}</p>
-        <p><strong>Reporting:</strong> {plan.governanceStructure.reporting}</p>
-        <p><strong>Decision Process:</strong> {plan.governanceStructure.decisionProcess}</p>
-      </InfoSection>
-      <InfoSection title="Technical Approach">
-        <p>{plan.technicalApproach}</p>
-      </InfoSection>
-    </div>
-
-    {/* Assumptions */}
-    <div className="md:col-span-2 lg:col-span-3">
-      <InfoSection title="Assumptions & Prerequisites">
-        <ul className="list-disc pl-5 space-y-1">
-          {plan.assumptions.map((a, i) => <li key={i}>{a}</li>)}
-        </ul>
-      </InfoSection>
-    </div>
-    {/* --------------------------------------------- */}
-  </div>
 );
+
+const DetailsTab = ({ plan }) => {
+    const { projectDetails, executiveSummary } = plan;
+    const { financialImpacts } = projectDetails;
+
+    const annualOutageCost = (financialImpacts.outageCosts.perHour * 24) * financialImpacts.outageCosts.annualFrequency;
+    const annualDowntimeCost = financialImpacts.downtimeCosts.perEvent * financialImpacts.downtimeCosts.annualFrequency;
+    const annualProductionLoss = financialImpacts.productionLoss.annualCost;
+    const annualRegulatoryRisk = financialImpacts.regulatoryFines.potentialFine * financialImpacts.regulatoryFines.likelihood;
+
+    const totalAnnualRiskValue = annualOutageCost + annualDowntimeCost + annualProductionLoss + annualRegulatoryRisk;
+    const calculatedROI = ((totalAnnualRiskValue * 3 - executiveSummary.totalBudget) / executiveSummary.totalBudget) * 100;
+
+    return (
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <DetailItem label="Project Owner"><Badge variant="info">{plan.owner}</Badge></DetailItem>
+                <DetailItem label="Executive Sponsor"><Badge variant="info">{plan.sponsor}</Badge></DetailItem>
+                <DetailItem label="Status"><Badge variant={plan.status === 'Active' ? 'success' : 'default'}>{plan.status}</Badge></DetailItem>
+                <DetailItem label="Start Date">{projectDetails.startDate}</DetailItem>
+                <DetailItem label="End Date">{projectDetails.endDate}</DetailItem>
+            </div>
+            <InfoSection title="Scope"><p>{projectDetails.scope}</p></InfoSection>
+            <InfoSection title="Success Metrics">
+                <ul className="list-disc pl-5 space-y-1">{projectDetails.successMetrics.map((metric, i) => <li key={i}>{metric}</li>)}</ul>
+            </InfoSection>
+            
+            <InfoSection title="Financial Impact Analysis">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <FinancialImpactCard title="Outage Costs" cost={`£${financialImpacts.outageCosts.perHour.toLocaleString()}/hr`} frequency={`${financialImpacts.outageCosts.annualFrequency} events/yr`} annualImpact={annualOutageCost} color="red" />
+                    <FinancialImpactCard title="Downtime Costs" cost={`£${financialImpacts.downtimeCosts.perEvent.toLocaleString()}/event`} frequency={`${financialImpacts.downtimeCosts.annualFrequency} events/yr`} annualImpact={annualDowntimeCost} color="orange" />
+                    <FinancialImpactCard title="Production Loss" cost={`£${financialImpacts.productionLoss.annualCost.toLocaleString()}/yr`} frequency="Annual" annualImpact={annualProductionLoss} color="yellow" />
+                    <FinancialImpactCard title="Regulatory Fines" cost={`£${financialImpacts.regulatoryFines.potentialFine.toLocaleString()} potential`} frequency={`${financialImpacts.regulatoryFines.likelihood * 100}% likelihood`} annualImpact={annualRegulatoryRisk} color="purple" />
+                </div>
+                <div className="mt-4 p-4 bg-primary-50 dark:bg-primary-500/10 rounded-lg flex items-center justify-between">
+                    <p className="font-semibold">Calculated 3-Year ROI (based on risk reduction):</p>
+                    <p className="text-2xl font-bold text-primary-600">{calculatedROI.toFixed(0)}%</p>
+                </div>
+            </InfoSection>
+
+            <InfoSection title="Project Background"><p>{plan.projectBackground}</p></InfoSection>
+            {plan.stakeholders && plan.stakeholders.length > 0 && (
+                <InfoSection title="Stakeholder Analysis">
+                    <div className="dashboard-card overflow-x-auto p-0"><table className="min-w-full text-xs">
+                        <thead className="bg-secondary-50 dark:bg-secondary-700/50"><tr>
+                            <th className="p-2 text-left font-semibold">Name</th>
+                            <th className="p-2 text-left font-semibold">Role</th>
+                            <th className="p-2 text-left font-semibold">Interest</th>
+                        </tr></thead>
+                        <tbody className="divide-y divide-secondary-200 dark:divide-secondary-700">
+                        {plan.stakeholders.map((s, i) => (
+                            <tr key={i}>
+                                <td className="p-2">{s.name}</td>
+                                <td className="p-2">{s.role}</td>
+                                <td className="p-2">{s.interest}</td>
+                            </tr>
+                        ))}
+                        </tbody>
+                    </table></div>
+                </InfoSection>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <InfoSection title="Quantitative Benefits"><ul className="list-disc pl-5 space-y-1">{plan.benefits.quantitative.map((b, i) => <li key={i}>{b}</li>)}</ul></InfoSection>
+                <InfoSection title="Qualitative Benefits"><ul className="list-disc pl-5 space-y-1">{plan.benefits.qualitative.map((b, i) => <li key={i}>{b}</li>)}</ul></InfoSection>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <InfoSection title="Project Constraints"><ul className="list-disc pl-5 space-y-1">{plan.constraints.map((c, i) => <li key={i}>{c}</li>)}</ul></InfoSection>
+                <InfoSection title="Dependencies"><ul className="list-disc pl-5 space-y-1">{plan.dependencies.map((d, i) => <li key={i}>{d}</li>)}</ul></InfoSection>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <InfoSection title="Governance & Decision Making">
+                    <p><strong>Governance Board:</strong> {plan.governanceStructure.board}</p>
+                    <p><strong>Reporting:</strong> {plan.governanceStructure.reporting}</p>
+                    <p><strong>Decision Process:</strong> {plan.governanceStructure.decisionProcess}</p>
+                </InfoSection>
+                <InfoSection title="Technical Approach"><p>{plan.technicalApproach}</p></InfoSection>
+            </div>
+            <InfoSection title="Assumptions & Prerequisites"><ul className="list-disc pl-5 space-y-1">{plan.assumptions.map((a, i) => <li key={i}>{a}</li>)}</ul></InfoSection>
+        </div>
+    );
+};
 
 const FinancialsTab = ({ plan }) => {
   const { financialForecast, costAssumptions, basisOfCost } = plan;
@@ -766,15 +749,19 @@ const ResourcesTab = ({ plan }) => {
       {/* Contact Info */}
       <div className="dashboard-card p-6">
         <h3 className="text-lg font-semibold mb-3">Contact Information</h3>
-        <ul className="space-y-1 text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {plan.resources.map((r, i) => (
-            <li key={i}>
-              <span className="font-medium">{r.name}</span>{' '}
-              <span className="text-secondary-500">— {r.role}</span>{' '}
-              {r.contact && <span className="text-primary-600">{r.contact}</span>}
-            </li>
+            <div key={i} className="bg-secondary-50 dark:bg-secondary-800/50 p-4 rounded-lg">
+              <p className="font-bold text-secondary-900 dark:text-white">{r.name}</p>
+              <p className="text-xs text-secondary-500">{r.jobTitle} • {r.company}</p>
+              <div className="mt-2 space-y-1 text-xs">
+                <p className="flex items-center gap-2"><Mail className="w-3 h-3" /> {r.email}</p>
+                <p className="flex items-center gap-2"><Phone className="w-3 h-3" /> {r.phone}</p>
+                <p className="flex items-center gap-2"><MapPin className="w-3 h-3" /> {r.location}</p>
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
       </div>
 
       {/* Resource Timeline */}
