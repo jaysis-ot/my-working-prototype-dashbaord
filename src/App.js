@@ -109,18 +109,60 @@ function App() {
                     <Route path="mitre-attack" element={<MitreAttackPage />} />
                     <Route
                       path="maturity-analysis"
-                      element={<div className="text-2xl font-bold">Maturity Analysis Page</div>}
+                      element={
+                        <div className="p-8 text-center bg-white dark:bg-secondary-800 rounded-lg shadow-md">
+                          <h1 className="text-3xl font-bold mb-4">Maturity Analysis Dashboard</h1>
+                          <p className="text-lg mb-4">This page is currently under development.</p>
+                          <div className="p-4 border border-dashed border-secondary-300 dark:border-secondary-600 rounded-lg">
+                            <p>The Maturity Analysis Dashboard will include:</p>
+                            <ul className="list-disc pl-8 text-left mt-2">
+                              <li>Maturity level distribution</li>
+                              <li>Category-based maturity scoring</li>
+                              <li>Improvement recommendations</li>
+                              <li>Maturity roadmap planning</li>
+                            </ul>
+                          </div>
+                        </div>
+                      }
                     />
                     <Route path="threat-intelligence" element={<ThreatIntelligencePage />} />
                     <Route path="risk-management" element={<RiskManagementPage />} />
                     <Route path="standards-frameworks" element={<StandardsFrameworksPage />} />
                     <Route
                       path="analytics"
-                      element={<div className="text-2xl font-bold">Analytics Page</div>}
+                      element={
+                        <div className="p-8 text-center bg-white dark:bg-secondary-800 rounded-lg shadow-md">
+                          <h1 className="text-3xl font-bold mb-4">Analytics Dashboard</h1>
+                          <p className="text-lg mb-4">This page is currently under development.</p>
+                          <div className="p-4 border border-dashed border-secondary-300 dark:border-secondary-600 rounded-lg">
+                            <p>The Analytics Dashboard will include:</p>
+                            <ul className="list-disc pl-8 text-left mt-2">
+                              <li>Status distribution charts</li>
+                              <li>Business value analysis</li>
+                              <li>Requirement progress metrics</li>
+                              <li>Maturity level visualizations</li>
+                            </ul>
+                          </div>
+                        </div>
+                      }
                     />
                     <Route
                       path="business-plan"
-                      element={<div className="text-2xl font-bold">Business Plan Page</div>}
+                      element={
+                        <div className="p-8 text-center bg-white dark:bg-secondary-800 rounded-lg shadow-md">
+                          <h1 className="text-3xl font-bold mb-4">Business Plan Dashboard</h1>
+                          <p className="text-lg mb-4">This page is currently under development.</p>
+                          <div className="p-4 border border-dashed border-secondary-300 dark:border-secondary-600 rounded-lg">
+                            <p>The Business Plan Dashboard will include:</p>
+                            <ul className="list-disc pl-8 text-left mt-2">
+                              <li>Executive summaries</li>
+                              <li>Project details and timelines</li>
+                              <li>Resource planning and allocation</li>
+                              <li>Budget tracking and ROI analysis</li>
+                            </ul>
+                          </div>
+                        </div>
+                      }
                     />
                     
                     {/* Default route within the dashboard */}
