@@ -103,6 +103,42 @@ const mockBusinessPlans = {
       { role: 'Lead Network Architect', name: 'Brenda Smith', allocation: '75%' },
       { role: 'Security Engineer', name: 'Charles Davis', allocation: '100%' },
       { role: 'OT Specialist', name: 'Diana Miller', allocation: '50%' },
+
+      /* enriched internal & external resources */
+      {
+        role: 'Change Manager',
+        name: 'Ellie Young',
+        type: 'Internal',
+        experience: 'Senior',
+        skills: ['Change Management', 'Stakeholder Comms'],
+        allocation: '40%',
+        availability: '2024-08-01 ➜ 2025-09-30',
+        responsibilities: 'Manage change requests & comms plan',
+        contact: 'ellie.young@corp.local',
+      },
+      {
+        role: 'Firewall Specialist',
+        name: 'SecureNet Consulting (Ben Clark)',
+        type: 'External',
+        experience: 'Consultant',
+        skills: ['NGFW', 'IDS/IPS', 'Zone Policies'],
+        allocation: '60%',
+        availability: '2024-10-01 ➜ 2025-03-31',
+        responsibilities: 'Configure & test perimeter firewalls',
+        contact: 'ben.clark@securenet.com',
+      },
+    ],
+    teamStructure: [
+      { name: 'Jane Smith', role: 'Executive Sponsor' },
+      { name: 'John Doe', role: 'Project Manager' },
+      { name: 'Brenda Smith', role: 'Lead Network Architect', reportsTo: 'John Doe' },
+      { name: 'Charles Davis', role: 'Security Engineer', reportsTo: 'Brenda Smith' },
+      { name: 'Diana Miller', role: 'OT Specialist', reportsTo: 'John Doe' },
+    ],
+    resourceTimeline: [
+      { name: 'Design & Planning', start: '2024-08', end: '2024-10' },
+      { name: 'Pilot', start: '2024-11', end: '2025-01' },
+      { name: 'Roll-out', start: '2025-02', end: '2026-01' },
     ],
     implementationPlan: [
       {
@@ -492,6 +528,143 @@ const TimelineTab = ({ plan }) => (
   </div>
 );
 
+// ---------- Resources Tab --------------
+
+const ResourcesTab = ({ plan }) => {
+  if (!plan.resources || plan.resources.length === 0) {
+    return <p className="text-secondary-500">Resource details have not been provided for this plan.</p>;
+  }
+
+  /** extract unique skills for matrix */
+  const allSkills = Array.from(
+    new Set(
+      plan.resources
+        .flatMap(r => r.skills || [])
+        .filter(Boolean)
+    )
+  );
+
+  return (
+    <div className="space-y-8">
+      {/* Team Structure */}
+      {plan.teamStructure && (
+        <div className="dashboard-card p-6">
+          <h3 className="text-lg font-semibold mb-3">Team Structure</h3>
+          <ul className="space-y-2 text-sm">
+            {plan.teamStructure.map((m, i) => (
+              <li key={i} className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-primary-600" />
+                <span className="font-medium">{m.name}</span>
+                <span className="text-secondary-500">— {m.role}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Resource Allocation Table */}
+      <div className="dashboard-card p-6 overflow-x-auto">
+        <h3 className="text-lg font-semibold mb-3">Resource Allocation</h3>
+        <table className="min-w-full text-sm">
+          <thead className="bg-secondary-50 dark:bg-secondary-700/50">
+            <tr>
+              <th className="p-3 text-left font-semibold">Role</th>
+              <th className="p-3 text-left font-semibold">Name / Supplier</th>
+              <th className="p-3 text-left font-semibold">Type</th>
+              <th className="p-3 text-left font-semibold">Experience</th>
+              <th className="p-3 text-left font-semibold">Allocation</th>
+              <th className="p-3 text-left font-semibold">Availability</th>
+              <th className="p-3 text-left font-semibold">Responsibilities</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-secondary-200 dark:divide-secondary-700">
+            {plan.resources.map((res, i) => (
+              <tr key={i}>
+                <td className="p-3 font-medium">{res.role}</td>
+                <td className="p-3">{res.name}</td>
+                <td className="p-3">{res.type || 'Internal'}</td>
+                <td className="p-3">{res.experience || '-'}</td>
+                <td className="p-3">{res.allocation}</td>
+                <td className="p-3">{res.availability || '-'}</td>
+                <td className="p-3">{res.responsibilities || '-'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Skills Matrix */}
+      <div className="dashboard-card p-6 overflow-x-auto">
+        <h3 className="text-lg font-semibold mb-3">Skills Matrix</h3>
+        <table className="min-w-full text-xs">
+          <thead className="bg-secondary-50 dark:bg-secondary-700/50">
+            <tr>
+              <th className="p-2 text-left font-semibold">Skill</th>
+              {plan.resources.map((r, idx) => (
+                <th key={idx} className="p-2 text-left font-semibold whitespace-nowrap">{r.name.split(' ')[0]}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-secondary-200 dark:divide-secondary-700">
+            {allSkills.map((skill, i) => (
+              <tr key={i}>
+                <td className="p-2 font-medium">{skill}</td>
+                {plan.resources.map((r, idx) => (
+                  <td key={idx} className="p-2">
+                    {r.skills && r.skills.includes(skill) ? (
+                      <CheckCircle className="w-4 h-4 text-green-500 mx-auto" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-secondary-400 mx-auto" />
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Contact Info */}
+      <div className="dashboard-card p-6">
+        <h3 className="text-lg font-semibold mb-3">Contact Information</h3>
+        <ul className="space-y-1 text-sm">
+          {plan.resources.map((r, i) => (
+            <li key={i}>
+              <span className="font-medium">{r.name}</span>{' '}
+              <span className="text-secondary-500">— {r.role}</span>{' '}
+              {r.contact && <span className="text-primary-600">{r.contact}</span>}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Resource Timeline */}
+      {plan.resourceTimeline && plan.resourceTimeline.length > 0 && (
+        <div className="dashboard-card p-6">
+          <h3 className="text-lg font-semibold mb-3">Resource Timeline</h3>
+          <div className="bg-secondary-50 dark:bg-secondary-800/40 p-4 rounded-lg">
+            <div className="space-y-4">
+              {plan.resourceTimeline.map((phase, idx) => (
+                <div key={idx} className="flex items-center gap-3">
+                  <div className="flex-shrink-0 w-36 font-medium text-sm">{phase.name}</div>
+                  <div className="flex-grow relative h-8 bg-secondary-200 dark:bg-secondary-700 rounded-full overflow-hidden">
+                    <div
+                      className="absolute top-0 left-0 h-full bg-primary-500 rounded-full flex items-center justify-center text-xs text-white font-medium"
+                      style={{ width: '100%' }}
+                    >
+                      {phase.start} — {phase.end}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // --- Main Page Component ---
 
 const BusinessPlanPage = () => {
@@ -517,6 +690,7 @@ const BusinessPlanPage = () => {
       case 'financials': return <FinancialsTab plan={selectedPlan} />;
       case 'risks': return <RisksTab plan={selectedPlan} />;
       case 'timeline': return <TimelineTab plan={selectedPlan} />;
+      case 'resources': return <ResourcesTab plan={selectedPlan} />;
       default: return <div className="p-4 text-secondary-500">This section is under construction.</div>;
     }
   };
