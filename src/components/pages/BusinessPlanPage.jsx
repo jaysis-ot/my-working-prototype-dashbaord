@@ -62,6 +62,30 @@ const mockBusinessPlans = {
         { risk: 'Insider Threat - Malicious Access', family: 'Insider Threat', scenario: 'Authorized user attempts unauthorized access to critical OT systems beyond their role requirements.', narrative: 'Role-based access controls with network-level enforcement and comprehensive activity monitoring.', reduction: 'Medium - 60% reduction in unauthorized access capability and 100% improvement in detection time' },
         { risk: 'Operational System Failure', family: 'System Failure', scenario: 'Critical operational system failure causing cascading impacts across the production line.', narrative: 'Network isolation and redundancy ensuring failure in one zone does not impact others.', reduction: 'Medium - 90% reduction in cascading failure probability' },
     ],
+    financialForecast: {
+      year1: { description: 'Initial implementation and setup costs', capex: 450000, opex: 125000 },
+      year2: { description: 'Rollout completion and operational ramp-up', capex: 200000, opex: 150000 },
+      year3: { description: 'Optimization and steady-state operations', capex: 100000, opex: 175000 },
+    },
+    costAssumptions: [
+      { item: 'Project Manager (Senior)', year1: 85000, year2: 87000, year3: 89000 },
+      { item: 'Security Architect (Lead)', year1: 95000, year2: 97000, year3: 99000 },
+      { item: 'Network Engineers (2 FTE)', year1: 140000, year2: 143000, year3: 146000 },
+      { item: 'Security Engineers (2 FTE)', year1: 130000, year2: 133000, year3: 136000 },
+      { item: 'Hardware & Infrastructure', year1: 300000, year2: 100000, year3: 50000 },
+      { item: 'Software Licensing', year1: 80000, year2: 85000, year3: 90000 },
+      { item: 'Professional Services', year1: 120000, year2: 60000, year3: 30000 },
+      { item: 'Training & Certification', year1: 45000, year2: 23000, year3: 15000 },
+      { item: 'Operational Support', year1: 25000, year2: 40000, year3: 45000 },
+      { item: 'Contingency (10%)', year1: 50000, year2: 25000, year3: 15000 },
+    ],
+    basisOfCost: `Cost estimation based on comprehensive analysis including:
+• Hardware procurement (next-generation firewalls, managed switches, network monitoring tools)
+• Software licensing (security management platforms, monitoring solutions, compliance tools)
+• Professional services (architecture design, implementation services, testing and validation)
+• Training and certification programs for technical and operational staff
+• Ongoing operational costs including maintenance, support, and continuous monitoring
+• Contingency allocation for unforeseen integration complexities`,
     projectDetails: {
       startDate: '2024-08-01',
       endDate: '2026-02-01',
@@ -266,40 +290,80 @@ const DetailsTab = ({ plan }) => (
   </div>
 );
 
-const FinancialsTab = ({ plan }) => (
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <div>
-      <h4 className="font-semibold mb-2">Cost Breakdown</h4>
-      <div className="dashboard-card p-4">
-        <ul className="divide-y divide-secondary-200 dark:divide-secondary-700">
-          {plan.costs.map(item => (
-            <li key={item.item} className="py-2 flex justify-between">
-              <span>{item.item}</span>
-              <span className="font-semibold">£{item.amount.toLocaleString()}</span>
-            </li>
-          ))}
-          <li className="py-2 flex justify-between font-bold text-primary-600 dark:text-primary-300 border-t-2 border-primary-500">
-            <span>Total Budget</span>
-            <span>£{plan.executiveSummary.totalBudget.toLocaleString()}</span>
-          </li>
-        </ul>
+const FinancialsTab = ({ plan }) => {
+  const { financialForecast, costAssumptions, basisOfCost } = plan;
+
+  return (
+    <div className="space-y-8">
+      {/* 3-Year Financial Forecast */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">3-Year Financial Forecast</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {Object.entries(financialForecast).map(([yearKey, data]) => {
+            const total = data.capex + data.opex;
+            return (
+              <div key={yearKey} className="dashboard-card p-4">
+                <h4 className="font-semibold">{`Year ${yearKey.slice(-1)}`}</h4>
+                <p className="text-xs text-secondary-500 mb-3">{data.description}</p>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between"><span>CAPEX:</span><span>£{data.capex.toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span>OPEX:</span><span>£{data.opex.toLocaleString()}</span></div>
+                  <div className="flex justify-between font-bold border-t pt-1 mt-1"><span>Total:</span><span>£{total.toLocaleString()}</span></div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
-    </div>
-    <div>
-      <h4 className="font-semibold mb-2">Value Proposition</h4>
-      <div className="dashboard-card p-4 space-y-4">
-        <DetailItem label="Estimated ROI">{plan.executiveSummary.estimatedROI}%</DetailItem>
-        <DetailItem label="Key Benefits">
-          <ul className="list-disc pl-5 space-y-1 mt-1">
-            <li>Reduced attack surface</li>
-            <li>Improved incident response time</li>
-            <li>Enhanced regulatory compliance</li>
+
+      {/* Cost Assumptions Table */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Cost Assumptions</h3>
+        <div className="dashboard-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-secondary-50 dark:bg-secondary-700/50">
+                <tr>
+                  <th className="p-3 text-left font-semibold">ROLE/ITEM</th>
+                  <th className="p-3 text-left font-semibold">YEAR 1 (£)</th>
+                  <th className="p-3 text-left font-semibold">YEAR 2 (£)</th>
+                  <th className="p-3 text-left font-semibold">YEAR 3 (£)</th>
+                  <th className="p-3 text-left font-semibold">TOTAL (£)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-secondary-200 dark:divide-secondary-700">
+                {costAssumptions.map((item, index) => {
+                  const total = item.year1 + item.year2 + item.year3;
+                  return (
+                    <tr key={index}>
+                      <td className="p-3 font-medium">{item.item}</td>
+                      <td className="p-3">£{item.year1.toLocaleString()}</td>
+                      <td className="p-3">£{item.year2.toLocaleString()}</td>
+                      <td className="p-3">£{item.year3.toLocaleString()}</td>
+                      <td className="p-3 font-semibold">£{total.toLocaleString()}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Basis of Cost */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Basis of Cost</h3>
+        <div className="dashboard-card p-6 bg-secondary-50 dark:bg-secondary-800/50">
+          <ul className="list-disc pl-5 space-y-1 text-sm text-secondary-700 dark:text-secondary-300">
+            {basisOfCost.split('•').filter(line => line.trim()).map((line, index) => (
+              <li key={index}>{line.trim()}</li>
+            ))}
           </ul>
-        </DetailItem>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const RisksTab = ({ plan }) => (
   <div className="space-y-6">
