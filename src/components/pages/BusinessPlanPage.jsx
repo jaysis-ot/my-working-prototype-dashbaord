@@ -80,6 +80,48 @@ const mockBusinessPlans = {
       { role: 'Security Engineer', name: 'Charles Davis', allocation: '100%' },
       { role: 'OT Specialist', name: 'Diana Miller', allocation: '50%' },
     ],
+    implementationPlan: [
+      {
+        phase: 'Phase 1: Design & Planning',
+        duration: '3 months',
+        keyActivities: [
+          'Detailed architecture design and security zone definition',
+          'Hardware and software procurement and delivery',
+          'Resource allocation and team establishment',
+          'Risk assessment and mitigation planning',
+        ],
+      },
+      {
+        phase: 'Phase 2: Pilot Implementation',
+        duration: '2 months',
+        keyActivities: [
+          'Pilot site setup and initial configuration',
+          'Integration testing and security validation',
+          'Performance testing and optimization',
+          'Initial staff training and documentation',
+        ],
+      },
+      {
+        phase: 'Phase 3: Production Rollout',
+        duration: '12 months',
+        keyActivities: [
+          'Site-by-site implementation across all locations',
+          'Comprehensive staff training and certification',
+          'Operational handover and support transition',
+          'Continuous monitoring and optimization',
+        ],
+      },
+      {
+        phase: 'Phase 4: Optimization & Closure',
+        duration: '1 month',
+        keyActivities: [
+          'Performance tuning and final optimization',
+          'Complete documentation and knowledge transfer',
+          'Project closure and lessons learned capture',
+          'Transition to business-as-usual operations',
+        ],
+      },
+    ],
     costs: [
       { item: 'Hardware (Firewalls, Switches)', amount: 350000 },
       { item: 'Software (Monitoring, NAC)', amount: 150000 },
@@ -127,6 +169,7 @@ const mockBusinessPlans = {
     resources: [],
     costs: [],
     linkedCapabilities: ['CAP-002'],
+    implementationPlan: [],
   },
 };
 
@@ -334,6 +377,57 @@ const RisksTab = ({ plan }) => (
   </div>
 );
 
+// ----------- Timeline Tab -------------
+
+const TimelinePhase = ({ index, phase, duration, keyActivities }) => (
+  <div className="relative pl-10">
+    {/* vertical line */}
+    <span className="absolute top-0 left-4 w-px h-full bg-secondary-200 dark:bg-secondary-700" />
+    {/* number circle */}
+    <span className="absolute -left-0.5 top-0 flex items-center justify-center w-7 h-7 rounded-full bg-primary-600 text-white text-sm font-semibold">
+      {index + 1}
+    </span>
+
+    <div className="bg-secondary-50 dark:bg-secondary-800/40 rounded-lg p-5">
+      <div className="flex items-start justify-between">
+        <h5 className="font-semibold text-secondary-900 dark:text-white">{phase}</h5>
+        {duration && (
+          <Badge variant="default" size="sm" className="whitespace-nowrap">
+            {duration}
+          </Badge>
+        )}
+      </div>
+      <p className="text-sm font-semibold mt-3">Key Activities:</p>
+      <ul className="list-disc pl-5 mt-1 space-y-0.5 text-sm text-secondary-700 dark:text-secondary-300">
+        {keyActivities.map((act, i) => (
+          <li key={i}>{act}</li>
+        ))}
+      </ul>
+    </div>
+  </div>
+);
+
+const TimelineTab = ({ plan }) => (
+  <div className="dashboard-card p-6 space-y-6">
+    <h3 className="text-lg font-semibold mb-2">High-Level Implementation Plan</h3>
+    {plan.implementationPlan && plan.implementationPlan.length > 0 ? (
+      <div className="space-y-10">
+        {plan.implementationPlan.map((p, idx) => (
+          <TimelinePhase
+            key={idx}
+            index={idx}
+            phase={p.phase}
+            duration={p.duration}
+            keyActivities={p.keyActivities}
+          />
+        ))}
+      </div>
+    ) : (
+      <p className="text-secondary-500">Timeline details have not been provided for this plan.</p>
+    )}
+  </div>
+);
+
 // --- Main Page Component ---
 
 const BusinessPlanPage = () => {
@@ -358,6 +452,7 @@ const BusinessPlanPage = () => {
       case 'details': return <DetailsTab plan={selectedPlan} />;
       case 'financials': return <FinancialsTab plan={selectedPlan} />;
       case 'risks': return <RisksTab plan={selectedPlan} />;
+      case 'timeline': return <TimelineTab plan={selectedPlan} />;
       default: return <div className="p-4 text-secondary-500">This section is under construction.</div>;
     }
   };
