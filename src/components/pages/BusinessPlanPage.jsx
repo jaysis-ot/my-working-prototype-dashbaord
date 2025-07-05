@@ -30,6 +30,7 @@ import {
   Lightbulb,
   Replace,
   Server,
+  Calculator, // <-- NEW ICON
 } from 'lucide-react';
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
@@ -240,6 +241,34 @@ security manager, and passive monitoring for anomaly detection.`,
       { item: 'Contingency', amount: 50000 },
     ],
     linkedCapabilities: ['CAP-001', 'CAP-003'],
+    /* ---------------- NEW: CALCULATIONS DATA ---------------- */
+    calculations: {
+      equipmentCosts: [
+        { item: 'Next-Gen Firewalls (HA Pair)', quantity: 5, unitCost: 30000 },
+        { item: 'Managed Switches (48-port)', quantity: 20, unitCost: 4000 },
+        { item: 'Monitoring Sensors', quantity: 100, unitCost: 1200 },
+      ],
+      resourceCosts: [
+        { role: 'Project Manager', hours: 1500, rate: 55 },
+        { role: 'Lead Architect', hours: 1200, rate: 70 },
+        { role: 'Security Engineer', hours: 2000, rate: 60 },
+        { role: 'Network Engineer', hours: 2500, rate: 55 },
+      ],
+      consultancyCosts: [
+        { service: 'Initial Design & Architecture Review', vendor: 'SecureNet Consulting', cost: 45000 },
+        { service: 'Implementation Support & QA', vendor: 'SecureNet Consulting', cost: 75000 },
+      ],
+      softwareCosts: [
+        { item: 'Centralized Firewall Manager', subscription: 'Annual', cost: 25000 },
+        { item: 'SIEM Log Collector Licenses', subscription: 'Annual', cost: 15000 },
+        { item: 'Vulnerability Management Platform', subscription: '3-Year', cost: 40000 },
+      ],
+      trainingCosts: [
+        { course: 'Advanced Firewall Configuration', attendees: 4, cost: 12000 },
+        { course: 'OT Security Monitoring Training', attendees: 8, cost: 18000 },
+      ],
+      notes: `All costs are estimates. Resource costs are based on blended internal rates. Consultancy costs are based on a fixed-price statement of work. Contingency is calculated at 10% of initial CAPEX.`,
+    },
   },
   'BP-IAM-002': {
     title: 'Identity & Access Management Overhaul',
@@ -826,6 +855,179 @@ const ResourcesTab = ({ plan }) => {
   );
 };
 
+// ---------- Calculations Tab --------------
+
+const CalculationsTab = ({ plan }) => {
+  if (!plan.calculations) {
+    return (
+      <p className="text-secondary-500">
+        Calculation details have not been provided for this plan.
+      </p>
+    );
+  }
+
+  const {
+    equipmentCosts = [],
+    resourceCosts = [],
+    consultancyCosts = [],
+    softwareCosts = [],
+    trainingCosts = [],
+    notes,
+  } = plan.calculations;
+
+  // helpers
+  const money = (n) => `£${n.toLocaleString()}`;
+  const eqTotal = equipmentCosts.reduce((s, i) => s + i.quantity * i.unitCost, 0);
+  const resTotal = resourceCosts.reduce((s, i) => s + i.hours * i.rate, 0);
+  const conTotal = consultancyCosts.reduce((s, i) => s + i.cost, 0);
+  const swTotal = softwareCosts.reduce((s, i) => s + i.cost, 0);
+  const trTotal = trainingCosts.reduce((s, i) => s + i.cost, 0);
+  const grandTotal = eqTotal + resTotal + conTotal + swTotal + trTotal;
+
+  const Table = ({ head, rows, footerLabel, footerVal }) => (
+    <div className="dashboard-card overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-sm">
+          <thead className="bg-secondary-50 dark:bg-secondary-700/50">
+            <tr>
+              {head.map((h) => (
+                <th key={h} className="p-3 text-left font-semibold">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-secondary-200 dark:divide-secondary-700">
+            {rows}
+            <tr className="bg-secondary-50 dark:bg-secondary-800">
+              <td
+                className="p-3 font-bold"
+                colSpan={head.length - 1}
+              >
+                {footerLabel}
+              </td>
+              <td className="p-3 font-bold">{money(footerVal)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-8">
+      {/* Equipment */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Equipment Costs</h3>
+        <Table
+          head={['Item', 'Qty', 'Unit (£)', 'Total (£)']}
+          rows={equipmentCosts.map((e, i) => (
+            <tr key={i}>
+              <td className="p-3 font-medium">{e.item}</td>
+              <td className="p-3">{e.quantity}</td>
+              <td className="p-3">{money(e.unitCost)}</td>
+              <td className="p-3 font-semibold">
+                {money(e.quantity * e.unitCost)}
+              </td>
+            </tr>
+          ))}
+          footerLabel="Equipment Sub-Total"
+          footerVal={eqTotal}
+        />
+      </div>
+
+      {/* Resources */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Resource Costs</h3>
+        <Table
+          head={['Role', 'Hours', 'Rate (£/hr)', 'Total (£)']}
+          rows={resourceCosts.map((r, i) => (
+            <tr key={i}>
+              <td className="p-3 font-medium">{r.role}</td>
+              <td className="p-3">{r.hours.toLocaleString()}</td>
+              <td className="p-3">{money(r.rate)}</td>
+              <td className="p-3 font-semibold">
+                {money(r.hours * r.rate)}
+              </td>
+            </tr>
+          ))}
+          footerLabel="Resource Sub-Total"
+          footerVal={resTotal}
+        />
+      </div>
+
+      {/* Consultancy */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Consultancy Costs</h3>
+        <Table
+          head={['Service', 'Vendor', 'Cost (£)']}
+          rows={consultancyCosts.map((c, i) => (
+            <tr key={i}>
+              <td className="p-3 font-medium">{c.service}</td>
+              <td className="p-3">{c.vendor}</td>
+              <td className="p-3 font-semibold">{money(c.cost)}</td>
+            </tr>
+          ))}
+          footerLabel="Consultancy Sub-Total"
+          footerVal={conTotal}
+        />
+      </div>
+
+      {/* Software & Training two-column */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h3 className="text-lg font-semibold mb-4">
+            Software &amp; Licensing
+          </h3>
+          <Table
+            head={['Item', 'Type', 'Cost (£)']}
+            rows={softwareCosts.map((s, i) => (
+              <tr key={i}>
+                <td className="p-3 font-medium">{s.item}</td>
+                <td className="p-3">{s.subscription}</td>
+                <td className="p-3 font-semibold">{money(s.cost)}</td>
+              </tr>
+            ))}
+            footerLabel="Software Sub-Total"
+            footerVal={swTotal}
+          />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold mb-4">
+            Training &amp; Certification
+          </h3>
+          <Table
+            head={['Course', 'Attendees', 'Cost (£)']}
+            rows={trainingCosts.map((t, i) => (
+              <tr key={i}>
+                <td className="p-3 font-medium">{t.course}</td>
+                <td className="p-3">{t.attendees}</td>
+                <td className="p-3 font-semibold">{money(t.cost)}</td>
+              </tr>
+            ))}
+            footerLabel="Training Sub-Total"
+            footerVal={trTotal}
+          />
+        </div>
+      </div>
+
+      {/* Grand Total */}
+      <div className="dashboard-card p-6 bg-primary-50 dark:bg-primary-900/20">
+        <h3 className="text-lg font-semibold mb-4">Grand Total</h3>
+        <div className="text-center text-3xl font-bold text-primary-600">
+          {money(grandTotal)}
+        </div>
+      </div>
+
+      {notes && (
+        <InfoSection title="Notes & Assumptions">
+          <p>{notes}</p>
+        </InfoSection>
+      )}
+    </div>
+  );
+};
+
 // --- Main Page Component ---
 
 const BusinessPlanPage = () => {
@@ -841,6 +1043,7 @@ const BusinessPlanPage = () => {
     { id: 'timeline', label: 'Timeline', icon: Calendar },
     { id: 'resources', label: 'Resources', icon: Users },
     { id: 'risks', label: 'Risks', icon: AlertTriangle },
+    { id: 'calculations', label: 'Calculations', icon: Calculator },
   ];
 
   const renderTabContent = () => {
@@ -852,6 +1055,7 @@ const BusinessPlanPage = () => {
       case 'risks': return <RisksTab plan={selectedPlan} />;
       case 'timeline': return <TimelineTab plan={selectedPlan} />;
       case 'resources': return <ResourcesTab plan={selectedPlan} />;
+      case 'calculations': return <CalculationsTab plan={selectedPlan} />;
       default: return <div className="p-4 text-secondary-500">This section is under construction.</div>;
     }
   };
