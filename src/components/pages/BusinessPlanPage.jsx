@@ -1,3 +1,4 @@
+// Updated: July 5, 2025
 import React, { useState, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import {
@@ -31,10 +32,18 @@ const mockBusinessPlans = {
     sponsor: 'Jane Smith',
     executiveSummary: {
       objective: 'To isolate critical OT assets from IT networks to reduce attack surface and mitigate risks of lateral movement, ensuring operational continuity.',
+      businessOutcomes: [
+        'Reduce attack surface by over 90% by preventing unauthorized cross-zone communication.',
+        'Achieve compliance with ISA/IEC 62443 standards for network segmentation.',
+        'Improve incident response time by containing threats within isolated network zones.',
+        'Ensure operational continuity and enhance the safety of plant floor operations.',
+      ],
+      needsCase: 'The current flat network architecture poses a significant security risk, allowing for potential lateral movement of threats from the IT network to the critical OT environment. A recent audit identified this as a high-priority vulnerability that could lead to production downtime and safety incidents.',
+      highLevelProjectScope: 'This project will implement a multi-layered network segmentation strategy based on the Purdue Model. It involves deploying new firewalls, configuring VLANs, and establishing a secure DMZ between IT and OT networks. The scope covers all assets within the primary manufacturing plant\'s control network (Levels 0-3).',
       totalBudget: 750000,
       estimatedROI: 180,
       timeline: '18 Months',
-      keyRisks: 'Project delays, budget overruns, operational disruption during implementation.',
+      keyRisks: 'Project delays due to supply chain issues, budget overruns from unforeseen complexities, and potential for minor operational disruption during implementation.',
     },
     projectDetails: {
       startDate: '2024-08-01',
@@ -75,10 +84,18 @@ const mockBusinessPlans = {
     sponsor: 'Bob Williams',
     executiveSummary: {
       objective: 'To enforce least-privilege access and establish strong authentication for all users and systems within the OT network.',
+      businessOutcomes: [
+        'Enforce least-privilege access across the entire OT environment.',
+        'Automate user access reviews to simplify and improve compliance audits.',
+        'Reduce risk of credential compromise through Multi-Factor Authentication (MFA).',
+        'Centralize and streamline user access management, reducing administrative overhead.',
+      ],
+      needsCase: 'The lack of centralized identity and access management leads to inconsistent access controls, orphaned accounts, and significant difficulty in auditing user permissions. This increases the risk of unauthorized access and fails to meet compliance requirements for user access reviews.',
+      highLevelProjectScope: 'Deploy a centralized Identity and Access Management (IAM) solution for all OT systems. This project includes integrating with the corporate Active Directory, implementing role-based access control (RBAC) for all personnel and contractors, and enforcing MFA for remote and privileged access.',
       totalBudget: 420000,
       estimatedROI: 150,
       timeline: '12 Months',
-      keyRisks: 'User adoption challenges, integration complexity with legacy systems.',
+      keyRisks: 'User adoption challenges, integration complexity with legacy systems, and potential for disruption if roles are not correctly defined.',
     },
     projectDetails: {
       startDate: '2025-01-01',
@@ -133,6 +150,13 @@ const DetailItem = ({ label, children }) => (
   </div>
 );
 
+const InfoSection = ({ title, children }) => (
+  <div>
+    <h4 className="font-semibold mb-2 text-secondary-800 dark:text-secondary-100">{title}</h4>
+    <div className="text-sm text-secondary-600 dark:text-secondary-300 space-y-2">{children}</div>
+  </div>
+);
+
 // --- Tab Content Components ---
 
 const OverviewTab = ({ plan }) => (
@@ -143,13 +167,24 @@ const OverviewTab = ({ plan }) => (
       <StatCard title="Timeline" value={plan.executiveSummary.timeline} icon={Calendar} />
       <StatCard title="Linked Capabilities" value={plan.linkedCapabilities.length} icon={Shield} />
     </div>
-    <div>
-      <h4 className="font-semibold mb-2">Objective</h4>
-      <p className="text-sm text-secondary-600 dark:text-secondary-300">{plan.executiveSummary.objective}</p>
-    </div>
-    <div>
-      <h4 className="font-semibold mb-2">Key Risks</h4>
-      <p className="text-sm text-secondary-600 dark:text-secondary-300">{plan.executiveSummary.keyRisks}</p>
+    <div className="dashboard-card p-6 space-y-6">
+      <InfoSection title="Objective">
+        <p>{plan.executiveSummary.objective}</p>
+      </InfoSection>
+      <InfoSection title="Business Outcomes">
+        <ul className="list-disc pl-5 space-y-1">
+          {plan.executiveSummary.businessOutcomes.map((outcome, i) => <li key={i}>{outcome}</li>)}
+        </ul>
+      </InfoSection>
+      <InfoSection title="Needs Case">
+        <p>{plan.executiveSummary.needsCase}</p>
+      </InfoSection>
+      <InfoSection title="High-level Project Scope">
+        <p>{plan.executiveSummary.highLevelProjectScope}</p>
+      </InfoSection>
+      <InfoSection title="Key Risks">
+        <p>{plan.executiveSummary.keyRisks}</p>
+      </InfoSection>
     </div>
   </div>
 );
