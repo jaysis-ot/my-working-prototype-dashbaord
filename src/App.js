@@ -25,6 +25,7 @@ const ResourcePlanningPage = lazy(() => import('./components/pages/ResourcePlann
 const MitreAttackPage = lazy(() => import('./components/pages/MitreAttackPage'));
 const ThreatIntelligencePage = lazy(() => import('./components/pages/ThreatIntelligencePage'));
 const RiskManagementPage = lazy(() => import('./components/pages/RiskManagementPage'));
+const StandardsFrameworksPage = lazy(() => import('./components/pages/StandardsFrameworksPage'));
 
 // NOTE:
 // The following pages are referenced only as placeholder <div> routes
@@ -109,6 +110,7 @@ function App() {
                     <Route path="maturity-analysis" element={<div className="text-2xl font-bold">Maturity Analysis Page</div>} />
                     <Route path="threat-intelligence" element={<ThreatIntelligencePage />} />
                     <Route path="risk-management" element={<RiskManagementPage />} />
+                    <Route path="standards-frameworks" element={<StandardsFrameworksPage />} />
                     <Route path="analytics" element={<div className="text-2xl font-bold">Analytics Page</div>} />
                     <Route path="pcd-breakdown" element={<div className="text-2xl font-bold">PCD Breakdown Page</div>} />
                     
