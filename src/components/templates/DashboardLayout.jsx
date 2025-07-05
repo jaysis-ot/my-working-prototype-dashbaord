@@ -15,6 +15,8 @@ import {
   AlertTriangle,
   Target,
   Layers,
+  BookOpen,
+  Building2,
   Settings as SettingsIcon,
 } from 'lucide-react';
 import { useDashboardUI } from '../../contexts/DashboardUIContext';
@@ -53,6 +55,8 @@ const DashboardLayout = ({ children }) => {
     AlertTriangle,
     Target,
     Layers,
+    BookOpen,
+    Building2,
     Settings: SettingsIcon,
   };
 
@@ -71,6 +75,7 @@ const DashboardLayout = ({ children }) => {
     { id: 'pcd-breakdown', label: 'PCD Breakdown', icon: 'PieChart' },
     { id: 'maturity-analysis', label: 'Maturity Analysis', icon: 'TrendingUp' },
     { id: 'mitre-attack', label: 'MITRE ATT&CK', icon: 'Layers' },
+    { id: 'standards-frameworks', label: 'Standards & Frameworks', icon: 'BookOpen' },
     { id: 'threat-intelligence', label: 'Threat Intelligence', icon: 'AlertTriangle' },
     { id: 'risk-management', label: 'Risk Management', icon: 'Target' },
     { id: 'settings', label: 'Settings', icon: 'Settings' },
@@ -100,16 +105,7 @@ const DashboardLayout = ({ children }) => {
             </span>
           </div>
         </div>
-        
-        {/* Desktop sidebar toggle */}
-        <button 
-          className="hidden md:flex p-2 rounded-md text-secondary-500 hover:bg-secondary-100 dark:hover:bg-secondary-700"
-          onClick={handleSidebarToggle}
-          aria-label={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
-        >
-          {sidebarExpanded ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
-        </button>
-        
+
         {/* Header right section - placeholder for user menu, notifications, etc. */}
         <div className="flex items-center space-x-4">
           {/* These will be replaced with actual components later */}
