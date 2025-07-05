@@ -45,6 +45,62 @@ const mockBusinessPlans = {
       timeline: '18 Months',
       keyRisks: 'Project delays due to supply chain issues, budget overruns from unforeseen complexities, and potential for minor operational disruption during implementation.',
     },
+    /* ---------------- NEW: BUSINESS-PLAN META DATA ---------------- */
+    projectBackground: `The manufacturing sector is experiencing increased cyber-physical
+risks as IT and OT networks converge. Recent industry reports indicate a 35% year-on-year
+increase in ransomware targeting industrial plants. A segmented architecture is considered a
+market differentiator for safety-critical production facilities, reducing downtime costs that
+average £120,000 per hour.`,
+
+    stakeholders: [
+      { name: 'Jane Smith', role: 'Executive Sponsor', interest: 'Strategic risk reduction & compliance' },
+      { name: 'John Doe', role: 'Project Manager', interest: 'On-time, on-budget delivery' },
+      { name: 'Plant Operations', role: 'End-User', interest: 'Minimal production disruption' },
+      { name: 'IT Security', role: 'Control Owner', interest: 'Alignment with enterprise standards' },
+    ],
+
+    benefits: {
+      quantitative: [
+        '£1.2M annual reduction in potential outage costs',
+        '60% decrease in Mean-Time-To-Detect (MTTD)',
+        '40% faster Mean-Time-To-Respond (MTTR)',
+      ],
+      qualitative: [
+        'Improved safety culture and stakeholder confidence',
+        'Foundation for future zero-trust initiatives',
+        'Enhanced regulatory audit readiness',
+      ],
+    },
+
+    constraints: [
+      'Capital budget capped at £800k for FY-24',
+      'Change freeze during peak production (Nov-Dec)',
+      'Limited OT firewall vendor support windows',
+    ],
+
+    dependencies: [
+      'Completion of asset inventory project',
+      'Corporate IAM upgrade for centralised authentication',
+      '3rd-party vendor delivery of NGFW hardware',
+    ],
+
+    governanceStructure: {
+      board: 'OT Cyber Steering Committee',
+      reporting: 'Monthly status to CIO & COO',
+      decisionProcess: 'Stage-gate approvals at end of each project phase',
+    },
+
+    technicalApproach: `Adopt a layered Purdue Model segmentation using NGFWs with deep-packet
+inspection. VLAN segregation for level 2/3 assets, policy enforcement via centralised
+security manager, and passive monitoring for anomaly detection.`,
+
+    assumptions: [
+      'All production lines remain within current throughput during rollout',
+      'Skilled resources are available 4 weeks before pilot go-live',
+      'No significant changes in regulatory landscape within next 18 months',
+    ],
+    /* ---------------------------------------------------------------- */
+
     keyRisksAndOpportunities: [
         { type: 'Risk', description: 'Implementation could disrupt critical operations during deployment.', approach: 'Phased implementation during planned maintenance windows with comprehensive rollback procedures.', impact: 'High' },
         { type: 'Risk', description: 'Legacy system compatibility issues may require additional integration work.', approach: 'Comprehensive compatibility assessment and dedicated integration testing phase.', impact: 'Medium' },
@@ -323,6 +379,89 @@ const DetailsTab = ({ plan }) => (
         </ul>
       </DetailItem>
     </div>
+    {/* ---------- ENHANCED PROJECT DETAILS ---------- */}
+    <div className="md:col-span-2 lg:col-span-3">
+      <InfoSection title="Project Background">
+        <p>{plan.projectBackground}</p>
+      </InfoSection>
+    </div>
+
+    {/* Stakeholder Analysis */}
+    {plan.stakeholders && plan.stakeholders.length > 0 && (
+      <div className="md:col-span-2 lg:col-span-3">
+        <h4 className="font-semibold mb-2 text-secondary-800 dark:text-secondary-100">Stakeholder Analysis</h4>
+        <div className="dashboard-card overflow-x-auto">
+          <table className="min-w-full text-xs">
+            <thead className="bg-secondary-50 dark:bg-secondary-700/50">
+              <tr>
+                <th className="p-2 text-left font-semibold">Name</th>
+                <th className="p-2 text-left font-semibold">Role</th>
+                <th className="p-2 text-left font-semibold">Interest</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-secondary-200 dark:divide-secondary-700">
+              {plan.stakeholders.map((s, i) => (
+                <tr key={i}>
+                  <td className="p-2">{s.name}</td>
+                  <td className="p-2">{s.role}</td>
+                  <td className="p-2">{s.interest}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )}
+
+    {/* Benefits */}
+    <div className="md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <InfoSection title="Quantitative Benefits">
+        <ul className="list-disc pl-5 space-y-1">
+          {plan.benefits.quantitative.map((b, i) => <li key={i}>{b}</li>)}
+        </ul>
+      </InfoSection>
+      <InfoSection title="Qualitative Benefits">
+        <ul className="list-disc pl-5 space-y-1">
+          {plan.benefits.qualitative.map((b, i) => <li key={i}>{b}</li>)}
+        </ul>
+      </InfoSection>
+    </div>
+
+    {/* Constraints & Dependencies */}
+    <div className="md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <InfoSection title="Project Constraints">
+        <ul className="list-disc pl-5 space-y-1">
+          {plan.constraints.map((c, i) => <li key={i}>{c}</li>)}
+        </ul>
+      </InfoSection>
+      <InfoSection title="Dependencies">
+        <ul className="list-disc pl-5 space-y-1">
+          {plan.dependencies.map((d, i) => <li key={i}>{d}</li>)}
+        </ul>
+      </InfoSection>
+    </div>
+
+    {/* Governance & Technical Approach */}
+    <div className="md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <InfoSection title="Governance & Decision Making">
+        <p><strong>Governance Board:</strong> {plan.governanceStructure.board}</p>
+        <p><strong>Reporting:</strong> {plan.governanceStructure.reporting}</p>
+        <p><strong>Decision Process:</strong> {plan.governanceStructure.decisionProcess}</p>
+      </InfoSection>
+      <InfoSection title="Technical Approach">
+        <p>{plan.technicalApproach}</p>
+      </InfoSection>
+    </div>
+
+    {/* Assumptions */}
+    <div className="md:col-span-2 lg:col-span-3">
+      <InfoSection title="Assumptions & Prerequisites">
+        <ul className="list-disc pl-5 space-y-1">
+          {plan.assumptions.map((a, i) => <li key={i}>{a}</li>)}
+        </ul>
+      </InfoSection>
+    </div>
+    {/* --------------------------------------------- */}
   </div>
 );
 
