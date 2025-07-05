@@ -16,6 +16,9 @@ import {
   MapPin,
   CheckCircle,
   AlertTriangle,
+  Plus,
+  X,
+  Save,
 } from 'lucide-react';
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
@@ -110,18 +113,27 @@ const mockResources = [
 const FilterToolbar = ({ view, setView, sortConfig, setSortConfig, teamFilter, setTeamFilter }) => (
   <div className="dashboard-card p-4 mb-6">
     <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm font-medium">View:</span>
         <Button variant={view === 'swimlane' ? 'primary' : 'secondary'} size="sm" onClick={() => setView('swimlane')} leadingIcon={LayoutGrid}>Swimlane</Button>
         <Button variant={view === 'timeline' ? 'primary' : 'secondary'} size="sm" onClick={() => setView('timeline')} leadingIcon={GanttChartSquare}>Timeline</Button>
-        {/* NEW Details view button */}
+        {/* Directory view button */}
         <Button
           variant={view === 'details' ? 'primary' : 'secondary'}
           size="sm"
           onClick={() => setView('details')}
           leadingIcon={Users}
         >
-          Details
+          Directory
+        </Button>
+        {/* NEW Resources summary button */}
+        <Button
+          variant={view === 'resources' ? 'primary' : 'secondary'}
+          size="sm"
+          onClick={() => setView('resources')}
+          leadingIcon={Briefcase}
+        >
+          Resources
         </Button>
       </div>
       <div className="flex items-center gap-4">
@@ -245,17 +257,30 @@ const ResourceDetailsView = ({ resources, filter = '' }) => {
 
   return (
     <div className="space-y-6">
-      {/* Search bar */}
-      <div className="dashboard-card p-4">
-        <div className="relative">
-          <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-secondary-400" />
-          <input
-            type="text"
-            placeholder="Search resources by name, company, role, or department…"
-            className="w-full pl-10 pr-4 py-2 border border-secondary-300 dark:border-secondary-600 rounded-md bg-white dark:bg-secondary-800 text-sm"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      {/* Action bar with search and create */}
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+        {/* Search */}
+        <div className="dashboard-card p-4 flex-1">
+          <div className="relative">
+            <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-secondary-400" />
+            <input
+              type="text"
+              placeholder="Search resources by name, company, role, or department…"
+              className="w-full pl-10 pr-4 py-2 border border-secondary-300 dark:border-secondary-600 rounded-md bg-white dark:bg-secondary-800 text-sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+        {/* Create button */}
+        <div>
+          <Button
+            variant="primary"
+            leadingIcon={Plus}
+            onClick={() => alert('Coming soon: Create Resource functionality')}
+          >
+            Create Resource
+          </Button>
         </div>
       </div>
 
@@ -311,6 +336,104 @@ const ResourceDetailsView = ({ resources, filter = '' }) => {
           </p>
         )}
       </div>
+    </div>
+  );
+};
+
+/* ---------- Resources Tab (summary & matrix) ---------- */
+const ResourcesView = ({ resources }) => {
+  // aggregate skills for the matrix
+  const allSkills = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          resources
+            .flatMap((r) => r.skills || [])
+            .filter(Boolean),
+        ),
+      ),
+    [resources],
+  );
+
+  return (
+    <div className="space-y-8">
+      {/* Action bar */}
+      <div className="flex justify-end">
+        <Button
+          variant="primary"
+          leadingIcon={Plus}
+          onClick={() => alert('Coming soon: Create Resource functionality')}
+        >
+          Create Resource
+        </Button>
+      </div>
+
+      {/* Allocation table */}
+      <div className="dashboard-card p-6 overflow-x-auto">
+        <h3 className="text-lg font-semibold mb-3">Resource Allocation</h3>
+        <table className="min-w-full text-sm">
+          <thead className="bg-secondary-50 dark:bg-secondary-700/50">
+            <tr>
+              <th className="p-3 text-left font-semibold">Role</th>
+              <th className="p-3 text-left font-semibold">Name</th>
+              <th className="p-3 text-left font-semibold">Team</th>
+              <th className="p-3 text-left font-semibold">Department</th>
+              <th className="p-3 text-left font-semibold">Location</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-secondary-200 dark:divide-secondary-700">
+            {resources.map((res) => (
+              <tr key={res.id}>
+                <td className="p-3 font-medium">{res.role}</td>
+                <td className="p-3">{res.name}</td>
+                <td className="p-3">
+                  {mockTeams.find((t) => t.id === res.teamId)?.name || '-'}
+                </td>
+                <td className="p-3">{res.department || '-'}</td>
+                <td className="p-3">{res.location || '-'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Skills matrix */}
+      {allSkills.length > 0 && (
+        <div className="dashboard-card p-6 overflow-x-auto">
+          <h3 className="text-lg font-semibold mb-3">Skills Matrix</h3>
+          <table className="min-w-full text-xs">
+            <thead className="bg-secondary-50 dark:bg-secondary-700/50">
+              <tr>
+                <th className="p-2 text-left font-semibold">Skill</th>
+                {resources.map((r) => (
+                  <th
+                    key={r.id}
+                    className="p-2 text-center font-semibold whitespace-nowrap"
+                  >
+                    {r.name.split(' ')[0]}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-secondary-200 dark:divide-secondary-700">
+              {allSkills.map((skill) => (
+                <tr key={skill}>
+                  <td className="p-2 font-medium">{skill}</td>
+                  {resources.map((r) => (
+                    <td key={r.id} className="p-2 text-center">
+                      {r.skills && r.skills.includes(skill) ? (
+                        <CheckCircle className="w-4 h-4 text-green-500 mx-auto" />
+                      ) : (
+                        <AlertTriangle className="w-4 h-4 text-secondary-400 mx-auto" />
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };
@@ -379,6 +502,9 @@ const ResourcePlanningPage = () => {
         {view === 'timeline' && <TimelineView />}
         {view === 'details' && (
           <ResourceDetailsView resources={filteredAndSortedResources} />
+        )}
+        {view === 'resources' && (
+          <ResourcesView resources={filteredAndSortedResources} />
         )}
       </div>
     </div>
