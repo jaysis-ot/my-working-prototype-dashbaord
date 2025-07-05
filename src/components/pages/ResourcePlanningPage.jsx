@@ -202,7 +202,6 @@ const ResourceLane = ({ resource, tasks }) => {
     if (u > 80) return 'bg-yellow-500';
     return 'bg-green-500';
   };
-
   return (
     <div className="flex-shrink-0 w-80 bg-secondary-50 dark:bg-secondary-900/50 rounded-lg p-3">
       <div className="flex items-center justify-between mb-3">
@@ -368,7 +367,12 @@ const TimelineView = ({ resources, assignments, capabilities }) => {
     return 'bg-blue-500';
   };
 
-  const cellW = 25; // px
+  /* ------------------------------------------------------------------
+     Keep day-cell width consistent with ResourceLane so bars render
+     across the correct span.  This was previously 25 px which caused
+     assignments to appear only half-width.  Aligning to 35 px fixes
+     the truncation issue. */
+  const cellW = 35; // px
   const goMonth = (delta) =>
     setCurrentMonth(
       new Date(currentMonth.getFullYear(), currentMonth.getMonth() + delta, 1),
@@ -400,9 +404,12 @@ const TimelineView = ({ resources, assignments, capabilities }) => {
       </div>
 
       {/* grid */}
-      <div className="min-w-[800px]">
+      {/* widen the minimum container to accommodate 35-px cells
+          for 31 days → 1085px plus resource column & paddings   */}
+      <div className="min-w-[1200px] relative">
         {/* days header */}
-        <div className="grid grid-cols-[150px_repeat(31,minmax(25px,1fr))] border-b dark:border-secondary-700">
+        {/* use 35-px wide day cells so bars stretch the full visible month */}
+        <div className="grid grid-cols-[150px_repeat(31,minmax(35px,1fr))] border-b dark:border-secondary-700">
           <div className="p-2 font-semibold border-r dark:border-secondary-700">
             Resource
           </div>
@@ -432,7 +439,7 @@ const TimelineView = ({ resources, assignments, capabilities }) => {
         {resources.map((res) => (
           <div
             key={res.id}
-            className="relative grid grid-cols-[150px_repeat(31,minmax(25px,1fr))] border-b dark:border-secondary-700"
+            className="relative grid grid-cols-[150px_repeat(31,minmax(35px,1fr))] border-b dark:border-secondary-700"
           >
             <div className="p-2 font-medium border-r dark:border-secondary-700 flex items-center">
               {res.name}
