@@ -45,6 +45,23 @@ const mockBusinessPlans = {
       timeline: '18 Months',
       keyRisks: 'Project delays due to supply chain issues, budget overruns from unforeseen complexities, and potential for minor operational disruption during implementation.',
     },
+    keyRisksAndOpportunities: [
+        { type: 'Risk', description: 'Implementation could disrupt critical operations during deployment.', approach: 'Phased implementation during planned maintenance windows with comprehensive rollback procedures.', impact: 'High' },
+        { type: 'Risk', description: 'Legacy system compatibility issues may require additional integration work.', approach: 'Comprehensive compatibility assessment and dedicated integration testing phase.', impact: 'Medium' },
+        { type: 'Opportunity', description: 'Enhanced monitoring capabilities enable advanced analytics and predictive maintenance.', approach: 'Implement AI-driven threat detection and operational optimization capabilities.', impact: 'Medium' },
+        { type: 'Opportunity', description: 'Network segmentation provides foundation for zero-trust architecture.', approach: 'Develop comprehensive zero-trust roadmap leveraging segmentation infrastructure.', impact: 'High' },
+    ],
+    cafAlignment: [
+        { nist: 'Identify', caf: 'Asset Management', gaps: 'Incomplete OT asset inventory and classification', improvement: 'Implement automated asset discovery and comprehensive classification system', contribution: 'Enhanced visibility of all network connected devices and systems' },
+        { nist: 'Protect', caf: 'Access Control', gaps: 'Insufficient network segmentation and access controls', improvement: 'Deploy microsegmentation with zero-trust access principles', contribution: 'Significantly reduced attack surface and prevention of lateral movement' },
+        { nist: 'Detect', caf: 'Security Monitoring', gaps: 'Limited visibility into network traffic and anomalies', improvement: 'Comprehensive network monitoring with behavioral analysis', contribution: 'Real-time threat detection and automated incident response' },
+        { nist: 'Respond', caf: 'Incident Response', gaps: 'Slow incident containment due to network visibility limitations', improvement: 'Automated containment and rapid response capabilities', contribution: 'Reduced incident response time from hours to minutes' },
+    ],
+    riskAssessmentTable: [
+        { risk: 'Cyber Attack via IT/OT Bridge', family: 'Advanced Persistent Threat', scenario: 'External attacker compromises IT network and attempts to pivot to OT systems for operational disruption.', narrative: 'Network segmentation with deep packet inspection, behavioral monitoring, and automated containment.', reduction: 'High - 70% reduction in successful attack probability and 90% reduction in impact scope' },
+        { risk: 'Insider Threat - Malicious Access', family: 'Insider Threat', scenario: 'Authorized user attempts unauthorized access to critical OT systems beyond their role requirements.', narrative: 'Role-based access controls with network-level enforcement and comprehensive activity monitoring.', reduction: 'Medium - 60% reduction in unauthorized access capability and 100% improvement in detection time' },
+        { risk: 'Operational System Failure', family: 'System Failure', scenario: 'Critical operational system failure causing cascading impacts across the production line.', narrative: 'Network isolation and redundancy ensuring failure in one zone does not impact others.', reduction: 'Medium - 90% reduction in cascading failure probability' },
+    ],
     projectDetails: {
       startDate: '2024-08-01',
       endDate: '2026-02-01',
@@ -69,11 +86,6 @@ const mockBusinessPlans = {
       { item: 'Professional Services (Implementation)', amount: 200000 },
       { item: 'Contingency', amount: 50000 },
     ],
-    risks: [
-      { id: 'R-01', description: 'Vendor delivery delays impacting timeline.', probability: 'Medium', impact: 'High' },
-      { id: 'R-02', description: 'Incompatibility with legacy OT equipment.', probability: 'Low', impact: 'Critical' },
-      { id: 'R-03', description: 'Insufficient staff training on new systems.', probability: 'Medium', impact: 'Medium' },
-    ],
     linkedCapabilities: ['CAP-001', 'CAP-003'],
   },
   'BP-IAM-002': {
@@ -97,6 +109,9 @@ const mockBusinessPlans = {
       timeline: '12 Months',
       keyRisks: 'User adoption challenges, integration complexity with legacy systems, and potential for disruption if roles are not correctly defined.',
     },
+    keyRisksAndOpportunities: [],
+    cafAlignment: [],
+    riskAssessmentTable: [],
     projectDetails: {
       startDate: '2025-01-01',
       endDate: '2025-12-31',
@@ -111,7 +126,6 @@ const mockBusinessPlans = {
     ],
     resources: [],
     costs: [],
-    risks: [],
     linkedCapabilities: ['CAP-002'],
   },
 };
@@ -244,6 +258,82 @@ const FinancialsTab = ({ plan }) => (
   </div>
 );
 
+const RisksTab = ({ plan }) => (
+  <div className="space-y-6">
+    <div className="dashboard-card p-6">
+      <h3 className="text-lg font-semibold mb-4">Key Risks & Opportunities</h3>
+      <div className="space-y-4">
+        {plan.keyRisksAndOpportunities.map((item, index) => (
+          <div key={index} className={`p-4 rounded-lg border-l-4 ${item.type === 'Risk' ? 'bg-red-50 border-red-400' : 'bg-green-50 border-green-400'}`}>
+            <div className="flex justify-between items-start">
+              <div>
+                <Badge variant={item.type === 'Risk' ? 'error' : 'success'}>{item.type}</Badge>
+                <p className="font-medium mt-1">{item.description}</p>
+              </div>
+              <Badge variant={item.impact === 'High' ? 'error' : 'warning'}>{item.impact} Impact</Badge>
+            </div>
+            <p className="text-sm text-secondary-600 mt-2"><strong className="font-semibold">Approach:</strong> {item.approach}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+    <div className="dashboard-card p-6">
+      <h3 className="text-lg font-semibold mb-4">NCSC CAF Alignment</h3>
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-sm">
+          <thead className="bg-secondary-50 dark:bg-secondary-700/50">
+            <tr>
+              <th className="p-3 text-left font-semibold">NIST Function</th>
+              <th className="p-3 text-left font-semibold">CAF Control Area</th>
+              <th className="p-3 text-left font-semibold">Key Control Gaps</th>
+              <th className="p-3 text-left font-semibold">Control Improvement</th>
+              <th className="p-3 text-left font-semibold">Positive Contribution</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-secondary-200 dark:divide-secondary-700">
+            {plan.cafAlignment.map((item, index) => (
+              <tr key={index}>
+                <td className="p-3 font-medium text-primary-600">{item.nist}</td>
+                <td className="p-3">{item.caf}</td>
+                <td className="p-3">{item.gaps}</td>
+                <td className="p-3">{item.improvement}</td>
+                <td className="p-3">{item.contribution}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div className="dashboard-card p-6">
+      <h3 className="text-lg font-semibold mb-4">Risk Assessment Table</h3>
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-sm">
+          <thead className="bg-secondary-50 dark:bg-secondary-700/50">
+            <tr>
+              <th className="p-3 text-left font-semibold">Primary Risk</th>
+              <th className="p-3 text-left font-semibold">Threat Family</th>
+              <th className="p-3 text-left font-semibold">Scenario</th>
+              <th className="p-3 text-left font-semibold">Control Narrative</th>
+              <th className="p-3 text-left font-semibold">Risk Reduction</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-secondary-200 dark:divide-secondary-700">
+            {plan.riskAssessmentTable.map((item, index) => (
+              <tr key={index}>
+                <td className="p-3 font-medium text-red-600">{item.risk}</td>
+                <td className="p-3">{item.family}</td>
+                <td className="p-3">{item.scenario}</td>
+                <td className="p-3">{item.narrative}</td>
+                <td className="p-3 font-medium" style={{ color: item.reduction.startsWith('High') ? '#ef4444' : '#f97316' }}>{item.reduction}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+);
+
 // --- Main Page Component ---
 
 const BusinessPlanPage = () => {
@@ -267,6 +357,7 @@ const BusinessPlanPage = () => {
       case 'overview': return <OverviewTab plan={selectedPlan} />;
       case 'details': return <DetailsTab plan={selectedPlan} />;
       case 'financials': return <FinancialsTab plan={selectedPlan} />;
+      case 'risks': return <RisksTab plan={selectedPlan} />;
       default: return <div className="p-4 text-secondary-500">This section is under construction.</div>;
     }
   };
