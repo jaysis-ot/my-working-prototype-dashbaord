@@ -1,5 +1,17 @@
 import React, { useState, useCallback } from 'react';
-import { Palette, Bell, Link, Database, Zap, Shield, Save, CheckCircle, AlertTriangle, Building2 } from 'lucide-react';
+import {
+  Palette,
+  Bell,
+  Link,
+  Database,
+  Zap,
+  Shield,
+  Save,
+  CheckCircle,
+  AlertTriangle,
+  Building2,
+  Monitor, // icon for system diagnostics
+} from 'lucide-react';
 import Button from '../atoms/Button';
 import AppearanceSettings from '../organisms/AppearanceSettings';
 import NotificationsSettings from '../organisms/NotificationsSettings';
@@ -8,6 +20,7 @@ import DataBackupSettings from '../organisms/DataBackupSettings';
 import PerformanceSettings from '../organisms/PerformanceSettings';
 import ComplianceSettings from '../organisms/ComplianceSettings';
 import CompanyProfileSettings from '../organisms/CompanyProfileSettings';
+import SystemDiagnosticsSettings from '../organisms/SystemDiagnosticsSettings'; // <- NEW
 
 // --- Organisms (Internal to SettingsPage for now) ---
 
@@ -127,8 +140,10 @@ const SettingsPage = () => {
     { id: 'integrations', label: 'Integrations', icon: Link, component: IntegrationsSettings },
     { id: 'backup', label: 'Data & Backup', icon: Database, component: DataBackupSettings },
     { id: 'performance', label: 'Performance', icon: Zap, component: PerformanceSettings },
-    { id: 'compliance', label: 'Compliance', icon: Shield, component: ComplianceSettings },
     { id: 'company-profile', label: 'Company Profile', icon: Building2, component: CompanyProfileSettings },
+    // New tab placed between Company Profile and Compliance
+    { id: 'system-diagnostics', label: 'System Diagnostics', icon: Monitor, component: SystemDiagnosticsSettings },
+    { id: 'compliance', label: 'Compliance', icon: Shield, component: ComplianceSettings },
   ];
 
   const CurrentTabComponent = tabs.find(tab => tab.id === activeTab)?.component;

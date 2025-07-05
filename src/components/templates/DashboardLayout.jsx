@@ -156,7 +156,7 @@ const DashboardLayout = ({ children }) => {
                     const Icon = iconMap[item.icon];
                     return (
                       <Icon
-                        className={`w-5 h-5 flex-shrink-0 ${
+                        className={`w-6 h-6 flex-shrink-0 ${
                           !sidebarExpanded ? '' : 'mr-3'
                         }`}
                         aria-hidden="true"
@@ -165,12 +165,35 @@ const DashboardLayout = ({ children }) => {
                   })()}
                   
                   {sidebarExpanded && (
-                    <span className="truncate">{item.label}</span>
+                    <span className="truncate text-base">{item.label}</span>
                   )}
                 </button>
               ))}
             </nav>
             
+            {/* Sidebar collapse/expand toggle */}
+            <div className="mt-2 border-t border-secondary-700/20 dark:border-secondary-700 pt-2">
+              <button
+                onClick={handleSidebarToggle}
+                aria-label={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+                className={`
+                  w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors
+                  text-secondary-600 dark:text-secondary-300
+                  hover:bg-secondary-100 dark:hover:bg-secondary-700
+                  ${sidebarExpanded ? '' : 'justify-center'}
+                `}
+              >
+                {sidebarExpanded ? (
+                  <>
+                    <ChevronLeft className="w-6 h-6 flex-shrink-0" />
+                    <span className="truncate text-base">Collapse</span>
+                  </>
+                ) : (
+                  <ChevronRight className="w-6 h-6 flex-shrink-0" />
+                )}
+              </button>
+            </div>
+
             {/* Sidebar footer - Trust Score indicator placeholder */}
             {sidebarExpanded && (
               <div className="px-4 py-3 mt-auto">
