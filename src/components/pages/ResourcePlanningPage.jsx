@@ -171,7 +171,16 @@ const TaskCard = ({ req }) => {
     return 'default';
   };
   return (
-    <div className="dashboard-card p-3 mb-2 border-l-4" style={{ borderColor: `var(--maturity-${req.maturityLevel.score})` }}>
+    <div
+      className={`dashboard-card p-3 mb-2 border-l-4 ${
+        req.isAssignment ? 'bg-primary-50 dark:bg-primary-900/20' : ''
+      }`}
+      style={{
+        borderColor: req.isAssignment
+          ? 'var(--color-primary-500)'
+          : `var(--maturity-${req.maturityLevel?.score || 1})`,
+      }}
+    >
       <div className="flex justify-between items-start">
         <p className="text-sm font-semibold text-secondary-800 dark:text-secondary-100 line-clamp-2">{req.description}</p>
         <Badge variant={getPriorityVariant(req.priority)}>{req.priority}</Badge>
@@ -222,30 +231,216 @@ const ResourceLane = ({ resource, tasks }) => {
   );
 };
 
-const SwimlaneView = ({ resources, requirements }) => (
-  <div className="flex gap-4 overflow-x-auto pb-4">
-    {resources.map(resource => (
-      <ResourceLane
-        key={resource.id}
-        resource={resource}
-        tasks={requirements.filter(req => req.assignee === resource.name)} // Simple name matching for mock
-      />
-    ))}
-  </div>
-);
+const SwimlaneView = ({
+  resources,
+  requirements,
+  assignments,
+  capabilities,
+}) => {
+  // Build a map of tasks per resource combining requirements + assignments
+  const resourceTasks = useMemo(() => {
+    const map = {};
+    resources.forEach((r) => {
+      map[r.id] = requirements.filter((req) => req.assignee === r.name);
+    });
 
-const TimelineView = () => (
-  <div className="dashboard-card flex items-center justify-center h-96 text-secondary-500">
-    <div className="text-center">
-      <GanttChartSquare className="w-12 h-12 mx-auto mb-4" />
-      <h3 className="text-lg font-semibold">Timeline View</h3>
-      <p>This feature is coming soon!</p>
+    assignments.forEach((a) => {
+      const cap = capabilities.find((c) => c.id === a.capabilityId);
+      if (!map[a.resourceId]) map[a.resourceId] = [];
+      map[a.resourceId].push({
+        id: a.id,
+        description: `${cap ? cap.name : a.capabilityId} (${a.timeAllocation})`,
+        priority: a.priority || 'Medium',
+        dueDate: a.endDate,
+        capabilityId: a.capabilityId,
+        estimatedHours:
+          a.timeAllocation === 'Full time'
+            ? 40
+            : a.timeAllocation.includes('%')
+            ? (parseInt(a.timeAllocation) / 100) * 40
+            : a.timeAllocation.startsWith('4')
+            ? 32
+            : a.timeAllocation.startsWith('3')
+            ? 24
+            : a.timeAllocation.startsWith('2')
+            ? 16
+            : 8,
+        isAssignment: true,
+        maturityLevel: { score: 3 },
+      });
+    });
+
+    return map;
+  }, [resources, requirements, assignments, capabilities]);
+
+  return (
+    <div className="flex gap-4 overflow-x-auto pb-4">
+      {resources.map((resource) => (
+        <ResourceLane
+          key={resource.id}
+          resource={resource}
+          tasks={resourceTasks[resource.id] || []}
+        />
+      ))}
     </div>
-  </div>
-);
+  );
+};
+
+/* ------------------------------------------------------------------ */
+/* TimelineView – capacity-planner style Gantt view                  */
+/* ------------------------------------------------------------------ */
+const TimelineView = ({ resources, assignments, capabilities }) => {
+  /* month navigation */
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const daysInMonth = new Date(
+    currentMonth.getFullYear(),
+    currentMonth.getMonth() + 1,
+    0,
+  ).getDate();
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  const monthName = currentMonth.toLocaleString('default', {
+    month: 'long',
+    year: 'numeric',
+  });
+
+  /* build assignment map per resource for this month */
+  const resourceAssignments = useMemo(() => {
+    const map = {};
+    resources.forEach((r) => (map[r.id] = []));
+
+    const monthStart = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth(),
+      1,
+    );
+    const monthEnd = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth() + 1,
+      0,
+    );
+
+    assignments.forEach((a) => {
+      if (!map[a.resourceId]) return;
+      const start = new Date(a.startDate);
+      const end = new Date(a.endDate);
+      if (start > monthEnd || end < monthStart) return; // outside month
+
+      const capabilityName =
+        capabilities.find((c) => c.id === a.capabilityId)?.name ||
+        a.capabilityId;
+
+      map[a.resourceId].push({
+        ...a,
+        capabilityName,
+        startDay: Math.max(1, start.getDate()),
+        endDay: Math.min(daysInMonth, end.getDate()),
+      });
+    });
+    return map;
+  }, [resources, assignments, capabilities, currentMonth, daysInMonth]);
+
+  /* colour helper */
+  const getColor = (alloc) => {
+    if (alloc === 'Full time') return 'bg-red-500';
+    if (alloc === '75%' || alloc === '4 days per week') return 'bg-orange-500';
+    if (alloc === '50%' || alloc === '3 days per week') return 'bg-yellow-500';
+    if (alloc === '2 days per week') return 'bg-green-500';
+    return 'bg-blue-500';
+  };
+
+  const cellW = 25; // px
+  const goMonth = (delta) =>
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + delta, 1),
+    );
+
+  return (
+    <div className="dashboard-card p-4 overflow-x-auto">
+      {/* header */}
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold">Resource Timeline</h3>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={() => goMonth(-1)}>
+            Previous
+          </Button>
+          <span className="font-medium text-secondary-700 dark:text-secondary-300">
+            {monthName}
+          </span>
+          <Button variant="secondary" size="sm" onClick={() => goMonth(1)}>
+            Next
+          </Button>
+        </div>
+      </div>
+
+      {/* grid */}
+      <div className="min-w-[800px]">
+        {/* days header */}
+        <div className="grid grid-cols-[150px_repeat(31,minmax(25px,1fr))] border-b dark:border-secondary-700">
+          <div className="p-2 font-semibold border-r dark:border-secondary-700">
+            Resource
+          </div>
+          {days.map((d) => (
+            <div
+              key={d}
+              className="p-2 text-center text-xs font-medium border-r dark:border-secondary-700"
+            >
+              {d}
+            </div>
+          ))}
+        </div>
+
+        {/* resource rows */}
+        {resources.map((res) => (
+          <div
+            key={res.id}
+            className="relative grid grid-cols-[150px_repeat(31,minmax(25px,1fr))] border-b dark:border-secondary-700"
+          >
+            <div className="p-2 font-medium border-r dark:border-secondary-700 flex items-center">
+              {res.name}
+            </div>
+            {days.map((d) => (
+              <div
+                key={d}
+                className="border-r dark:border-secondary-700 h-10 relative"
+              />
+            ))}
+
+            {/* bars */}
+            {resourceAssignments[res.id].map((a, idx) => {
+              const duration = a.endDay - a.startDay + 1;
+              const left = (a.startDay - 1) * cellW + 150;
+              return (
+                <div
+                  key={a.id}
+                  className={`absolute rounded-full ${getColor(
+                    a.timeAllocation,
+                  )} text-white text-[10px] overflow-hidden px-2 flex items-center`}
+                  style={{
+                    left,
+                    width: duration * cellW,
+                    top: 8 + idx * 18,
+                    height: 16,
+                  }}
+                  title={`${a.capabilityName} (${a.timeAllocation})`}
+                >
+                  {duration * cellW > 80 ? a.capabilityName : ''}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 /* ---------- Resource Details (Contact Directory) ---------- */
-const ResourceDetailsView = ({ resources, capabilities, filter = '' }) => {
+const ResourceDetailsView = ({
+  resources,
+  capabilities,
+  filter = '',
+  onAssignWork,
+}) => {
   const [searchTerm, setSearchTerm] = useState(filter);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [selectedResource, setSelectedResource] = useState(null);
@@ -366,6 +561,7 @@ const ResourceDetailsView = ({ resources, capabilities, filter = '' }) => {
           onClose={() => setIsAssignModalOpen(false)}
           resource={selectedResource}
           capabilities={capabilities}
+          onAssignWork={onAssignWork}
         />
       )}
     </div>
@@ -373,7 +569,7 @@ const ResourceDetailsView = ({ resources, capabilities, filter = '' }) => {
 };
 
 /* ---------- Resources Tab (summary & matrix) ---------- */
-const ResourcesView = ({ resources, capabilities }) => {
+const ResourcesView = ({ resources, capabilities, onAssignWork }) => {
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [selectedResource, setSelectedResource] = useState(null);
 
@@ -492,6 +688,7 @@ const ResourcesView = ({ resources, capabilities }) => {
           onClose={() => setIsAssignModalOpen(false)}
           resource={selectedResource}
           capabilities={capabilities}
+          onAssignWork={onAssignWork}
         />
       )}
     </div>
@@ -499,7 +696,7 @@ const ResourcesView = ({ resources, capabilities }) => {
 };
 
 /* ---------- Assign Work Modal ---------- */
-const AssignWorkModal = ({ isOpen, onClose, resource, capabilities }) => {
+const AssignWorkModal = ({ isOpen, onClose, resource, capabilities, onAssignWork }) => {
   const [formData, setFormData] = useState({
     capabilityId: '',
     timeAllocation: '2 days per week',
@@ -518,14 +715,18 @@ const AssignWorkModal = ({ isOpen, onClose, resource, capabilities }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Placeholder – replace with actual save logic
-    alert(
-      `Work assignment data for ${resource.name}:\n${JSON.stringify(
-        formData,
-        null,
-        2,
-      )}`,
-    );
+    if (onAssignWork) {
+      onAssignWork(resource.id, formData);      // propagate to parent
+    } else {
+      // fallback alert for backward-compatibility
+      alert(
+        `Work assignment data for ${resource.name}:\n${JSON.stringify(
+          formData,
+          null,
+          2,
+        )}`,
+      );
+    }
     onClose();
   };
 
@@ -659,6 +860,30 @@ const ResourcePlanningPage = () => {
   const [teamFilter, setTeamFilter] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
 
+  /* ------------------------------------------------------------------ */
+  /* NEW: Assignment state – stores all work assignments for resources  */
+  /* ------------------------------------------------------------------ */
+  const [assignments, setAssignments] = useState([]);
+
+  /**
+   * Callback used by child components (e.g. AssignWorkModal) to create a
+   * new work-assignment record.  This can later be consumed by the swimlane
+   * and timeline views to visualise capacity and allocation.
+   *
+   * @param {string} resourceId – ID of the resource the work is assigned to
+   * @param {Object} assignmentData – Payload returned from the modal form
+   */
+  const handleAssignWork = useCallback((resourceId, assignmentData) => {
+    const newAssignment = {
+      id: `assign-${Date.now()}`,
+      resourceId,
+      ...assignmentData,
+    };
+    setAssignments(prev => [...prev, newAssignment]);
+    /* eslint-disable no-console */
+    console.log('📌 New assignment added', newAssignment);
+  }, []);
+
   // Using real data hooks
   const { requirements, loading: reqsLoading, error: reqsError } = useRequirementsData();
   const { capabilities, loading: capsLoading, error: capsError } = useCapabilitiesData();
@@ -711,19 +936,29 @@ const ResourcePlanningPage = () => {
           <SwimlaneView
             resources={filteredAndSortedResources}
             requirements={requirements}
+            assignments={assignments}
+            capabilities={capabilities}
           />
         )}
-        {view === 'timeline' && <TimelineView />}
+        {view === 'timeline' && (
+          <TimelineView
+            resources={filteredAndSortedResources}
+            assignments={assignments}
+            capabilities={capabilities}
+          />
+        )}
         {view === 'details' && (
           <ResourceDetailsView
             resources={filteredAndSortedResources}
             capabilities={capabilities}
+            onAssignWork={handleAssignWork}
           />
         )}
         {view === 'resources' && (
           <ResourcesView
             resources={filteredAndSortedResources}
             capabilities={capabilities}
+            onAssignWork={handleAssignWork}
           />
         )}
       </div>
