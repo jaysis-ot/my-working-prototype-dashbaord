@@ -14,7 +14,9 @@ import {
   GanttChartSquare,
   Network,
   Workflow,
-  BarChart3
+  BarChart3,
+  AlertTriangle,
+  BookOpen
 } from 'lucide-react';
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
@@ -131,11 +133,10 @@ const FilterToolbar = ({ threatGroups, filters, onFilterChange }) => {
  */
 const MatrixCell = ({ technique, highlightColor, onSelect }) => {
   const getSeverityPastelColor = (severity) => {
-    // Using pastel colors with some transparency
     switch (severity) {
-      case 'Critical': return '#ef44444D'; // Red @ 30%
-      case 'High': return '#f973164D';     // Orange @ 30%
-      case 'Medium': return '#eab3084D';   // Yellow @ 30%
+      case 'Critical': return '#ef44444D';
+      case 'High': return '#f973164D';
+      case 'Medium': return '#eab3084D';
       default: return 'transparent';
     }
   };
@@ -218,6 +219,135 @@ const PlaceholderView = ({ title, icon: Icon }) => (
   </div>
 );
 
+/**
+ * DashboardView: High-level summary view shown in the screenshot.
+ */
+const DashboardView = ({
+  threatGroups,
+  filters,
+  onFilterChange,
+  tactics
+}) => {
+  const metrics = [
+    { label: 'Active Groups', value: filters.selectedGroups.length, icon: Users },
+    { label: 'Total TTPs', value: 25, icon: Target },
+    { label: 'Tactics Used', value: 11, icon: Shield },
+    { label: 'Avg Risk', value: 2.6, icon: AlertTriangle },
+  ];
+
+  const tacticAnalysisData = tactics.map(t => ({
+    name: t.name,
+    techniques: Math.floor(Math.random() * 4) + 1,
+    avgSeverity: parseFloat((Math.random() * 2 + 2).toFixed(1)),
+    color: ['#ef4444', '#10b981', '#a855f7', '#f97316', '#3b82f6', '#eab308', '#6366f1', '#ec4899', '#14b8a6', '#f43f5e', '#d946ef'][tactics.findIndex(i => i.id === t.id)] || '#6b7280',
+  }));
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full overflow-hidden">
+      {/* Left Control Panel */}
+      <div className="lg:col-span-1 space-y-6 h-full overflow-y-auto pr-2">
+        <div className="dashboard-card p-4">
+          <h3 className="font-semibold mb-2">Controls</h3>
+          <label className="text-sm font-medium">Target Sector</label>
+          <select className="w-full text-sm mt-1 border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600">
+            <option>All Sectors</option>
+            <option>Finance</option>
+            <option>Healthcare</option>
+            <option>Energy</option>
+          </select>
+        </div>
+        <div className="dashboard-card p-4">
+          <h3 className="font-semibold mb-2">Threat Groups</h3>
+          <div className="space-y-2">
+            {threatGroups.map(group => (
+              <label key={group.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.selectedGroups.includes(group.id)}
+                  onChange={() => {
+                    const newSelection = new Set(filters.selectedGroups);
+                    if (newSelection.has(group.id)) newSelection.delete(group.id);
+                    else newSelection.add(group.id);
+                    onFilterChange('selectedGroups', Array.from(newSelection));
+                  }}
+                  className="rounded text-primary-600 focus:ring-primary-500"
+                />
+                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: group.color }}></div>
+                <span>{group.name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className="dashboard-card p-4 bg-blue-50 dark:bg-blue-500/10">
+          <h3 className="font-semibold mb-2 text-blue-800 dark:text-blue-200">Current View</h3>
+          <p className="text-sm text-blue-700 dark:text-blue-300">Executive summary with key metrics and threat group profiles.</p>
+        </div>
+        <div className="dashboard-card p-4">
+           <div className="flex items-start gap-3">
+             <Info className="w-5 h-5 text-primary-500 mt-0.5" />
+             <div>
+               <h4 className="font-semibold">Hover Tips Available</h4>
+               <p className="text-xs text-secondary-500 mt-1">Hover over any threat group, tactic, or technique for detailed intelligence.</p>
+             </div>
+           </div>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="lg:col-span-3 space-y-6 h-full overflow-y-auto pr-2">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {metrics.map(m => (
+            <div key={m.label} className="dashboard-card p-4 flex items-center gap-4">
+              <m.icon className="w-8 h-8 text-primary-500" />
+              <div>
+                <p className="text-sm text-secondary-500">{m.label}</p>
+                <p className="text-2xl font-bold text-secondary-900 dark:text-white">{m.value}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {threatGroups.filter(g => filters.selectedGroups.includes(g.id)).map(group => (
+            <div key={group.id} className="dashboard-card p-4 border-t-4" style={{ borderColor: group.color }}>
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="font-bold text-secondary-900 dark:text-white">{group.name}</p>
+                  <p className="text-xs text-secondary-500">{group.alias} • {group.country}</p>
+                </div>
+                <Badge>{group.techniques.length} TTPs</Badge>
+              </div>
+              <p className="text-sm mt-2">{group.description}</p>
+            </div>
+          ))}
+        </div>
+        
+        <div className="dashboard-card p-6">
+          <h3 className="text-lg font-semibold mb-4">Tactic Analysis</h3>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            {tacticAnalysisData.map(tactic => (
+              <div key={tactic.name} className="border dark:border-secondary-700 rounded-lg p-3">
+                <p className="font-semibold text-sm">{tactic.name}</p>
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-xs text-secondary-500">Techniques: {tactic.techniques}</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs font-medium text-secondary-500">Avg. Severity:</span>
+                    <span className="font-bold text-sm" style={{ color: tactic.color }}>{tactic.avgSeverity}</span>
+                  </div>
+                </div>
+                <div className="w-full bg-secondary-200 dark:bg-secondary-700 rounded-full h-1 mt-1">
+                  <div className="h-1 rounded-full" style={{ width: `${(tactic.avgSeverity / 5) * 100}%`, backgroundColor: tactic.color }}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 // --- Main Organism Component ---
 
 const MitreAttackNavigator = ({
@@ -230,7 +360,7 @@ const MitreAttackNavigator = ({
   onNavigateBack,
 }) => {
   const [selectedTechnique, setSelectedTechnique] = useState(null);
-  const [activeView, setActiveView] = useState('matrix');
+  const [activeView, setActiveView] = useState('dashboard');
 
   const highlightedTechniques = useMemo(() => {
     if (filters.selectedGroups.length === 0) return {};
@@ -267,36 +397,31 @@ const MitreAttackNavigator = ({
   }, [filters.selectedGroups, threatGroups, highlightedTechniques]);
 
   const viewOptions = [
+    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'matrix', label: 'Matrix View', icon: LayoutGrid },
     { id: 'network', label: 'Network View', icon: Network },
     { id: 'timeline', label: 'Timeline', icon: GanttChartSquare },
     { id: 'flow', label: 'Attack Flow', icon: Workflow },
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
   ];
 
   return (
-    <div className="space-y-6 h-full flex flex-col">
+    <div className="space-y-4 h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={onNavigateBack} className="p-2"><ArrowLeft className="w-5 h-5" /></Button>
           <div>
-            <h1 className="text-2xl font-bold text-secondary-900 dark:text-white">MITRE ATT&CK Navigator</h1>
-            <p className="text-secondary-500 dark:text-secondary-400">Visualize threat actor techniques against the ATT&CK framework.</p>
+            <h1 className="text-2xl font-bold text-secondary-900 dark:text-white">Cyber Trust Portal</h1>
+            <p className="text-secondary-500 dark:text-secondary-400 text-sm">Network Segmentation Project • 75 of 75 requirements • Demo data active</p>
           </div>
         </div>
-        <div className="dashboard-card p-3 flex items-center gap-4">
-          <Target className="w-6 h-6 text-primary-500" />
-          <div>
-            <p className="text-sm font-medium text-secondary-500">Coverage</p>
-            <p className="text-xl font-bold">{coverageStats.percentage.toFixed(1)}%</p>
-          </div>
-          <p className="text-sm text-secondary-600">({coverageStats.covered} / {coverageStats.total} techniques)</p>
+        <div className="flex items-center gap-2">
+            <Button variant="secondary">Test</Button>
+            <Button>Export CSV</Button>
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center border border-secondary-200 dark:border-secondary-700 rounded-lg p-1">
+      <div className="flex items-center justify-between p-1 border-b border-secondary-200 dark:border-secondary-700">
+        <div className="flex items-center rounded-lg p-1">
           {viewOptions.map(option => (
             <Button
               key={option.id}
@@ -309,11 +434,6 @@ const MitreAttackNavigator = ({
             </Button>
           ))}
         </div>
-        <FilterToolbar
-          threatGroups={threatGroups}
-          filters={filters}
-          onFilterChange={onFilterChange}
-        />
       </div>
 
       <div className="flex-grow flex flex-col lg:flex-row gap-6 overflow-hidden">
@@ -346,7 +466,19 @@ const MitreAttackNavigator = ({
             <DetailsPanel item={selectedTechnique} onClose={() => setSelectedTechnique(null)} />
           </>
         ) : (
-          <PlaceholderView title={viewOptions.find(v => v.id === activeView)?.label} icon={viewOptions.find(v => v.id === activeView)?.icon} />
+          activeView === 'dashboard' ? (
+            <DashboardView
+              threatGroups={threatGroups}
+              filters={filters}
+              onFilterChange={onFilterChange}
+              tactics={tactics}
+            />
+          ) : (
+            <PlaceholderView
+              title={viewOptions.find(v => v.id === activeView)?.label}
+              icon={viewOptions.find(v => v.id === activeView)?.icon}
+            />
+          )
         )}
       </div>
     </div>
