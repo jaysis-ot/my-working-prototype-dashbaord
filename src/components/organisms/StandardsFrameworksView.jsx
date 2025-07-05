@@ -1,14 +1,11 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { ShieldCheck, BarChart3, RotateCcw, ChevronDown, Check, X, Minus } from 'lucide-react';
+import { ShieldCheck, BarChart3, RotateCcw, ChevronDown, Check, X, Minus, Info, Download, Eye } from 'lucide-react';
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
 
 // --- Internal Molecules (Components specific to this Organism) ---
 
-/**
- * FrameworkHeader: Displays the main title, description, and overall progress.
- */
 const FrameworkHeader = ({ title, description, progress, onReset }) => (
   <div className="dashboard-card p-6 mb-6">
     <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
@@ -41,17 +38,29 @@ FrameworkHeader.propTypes = {
   onReset: PropTypes.func.isRequired,
 };
 
-/**
- * AssessmentProgressCard: A card showing progress for a single function, also acts as a filter button.
- */
 const AssessmentProgressCard = ({ func, score, isActive, onClick }) => (
   <button
     onClick={onClick}
     className={`dashboard-card p-4 text-left transition-all duration-200 ${isActive ? 'ring-2 ring-primary-500 shadow-lg' : 'hover:shadow-md hover:-translate-y-0.5'}`}
   >
-    <div className="flex justify-between items-center mb-2">
-      <h3 className="font-bold text-secondary-900 dark:text-white">{func.name}</h3>
-      <span className="font-semibold text-sm">{score.percentage.toFixed(0)}%</span>
+    <div className="flex justify-between items-start mb-2">
+      <div>
+        <p className="text-xl font-extrabold leading-none">{func.id}</p>
+        <p className="text-xs text-secondary-500 dark:text-secondary-400">{func.name}</p>
+      </div>
+      <span
+        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+          score.percentage === 0
+            ? 'bg-secondary-200 dark:bg-secondary-700 text-secondary-600'
+            : score.percentage < 50
+            ? 'bg-red-100 text-red-600'
+            : score.percentage < 80
+            ? 'bg-yellow-100 text-yellow-700'
+            : 'bg-green-100 text-green-700'
+        }`}
+      >
+        {score.percentage.toFixed(0)}%
+      </span>
     </div>
     <div className="w-full bg-secondary-200 dark:bg-secondary-700 rounded-full h-1.5">
       <div className="bg-primary-500 h-1.5 rounded-full" style={{ width: `${score.percentage}%` }}></div>
@@ -65,9 +74,6 @@ AssessmentProgressCard.propTypes = {
   onClick: PropTypes.func.isRequired,
 };
 
-/**
- * SubcategoryItem: Renders a single assessment question with response options.
- */
 const SubcategoryItem = ({ subcategory, response, onUpdate }) => {
   const responseOptions = ['Yes', 'Partial', 'No', 'N/A'];
   const responseStyles = {
@@ -76,12 +82,21 @@ const SubcategoryItem = ({ subcategory, response, onUpdate }) => {
     No: 'bg-red-500 hover:bg-red-600',
     'N/A': 'bg-secondary-400 hover:bg-secondary-500',
   };
+  const statusIcons = {
+    Yes: <Check className="w-3 h-3 text-green-700" />,
+    Partial: <Minus className="w-3 h-3 text-yellow-700" />,
+    No: <X className="w-3 h-3 text-red-700" />,
+    'N/A': <Info className="w-3 h-3 text-secondary-500" />,
+  };
 
   return (
     <div className="py-3 px-4 border-b border-secondary-100 dark:border-secondary-700/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-      <div>
-        <p className="font-semibold text-sm text-secondary-800 dark:text-secondary-100">{subcategory.id}</p>
-        <p className="text-sm text-secondary-600 dark:text-secondary-300">{subcategory.description}</p>
+      <div className="flex-1">
+        <p className="font-semibold text-sm text-secondary-800 dark:text-secondary-100 flex items-center">
+          <span className="mr-2">{statusIcons[response] || <Info className="w-3 h-3 text-secondary-400" />}</span>
+          {subcategory.id}
+        </p>
+        <p className="text-sm text-secondary-600 dark:text-secondary-300 pl-7">{subcategory.description}</p>
       </div>
       <div className="flex-shrink-0 flex items-center gap-2">
         {responseOptions.map(option => (
@@ -106,15 +121,69 @@ SubcategoryItem.propTypes = {
 
 // --- Main Organism Component ---
 
-/**
- * StandardsFrameworksView Organism Component
- * 
- * Provides the main user interface for interacting with a cybersecurity framework assessment,
- * specifically tailored for NIST CSF 2.0.
- */
 const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateResponse, onReset }) => {
-  const [activeFunctionId, setActiveFunctionId] = useState(null);
+  const [activeFunctionId, setActiveFunctionId] = useState('GV');
   const [expandedCategories, setExpandedCategories] = useState({});
+
+  const PageHeader = () => (
+    <div className="mb-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-2">
+        <h1 className="text-2xl font-bold text-secondary-900 dark:text-white">
+          Standards &amp; Compliance Framework Assessment
+        </h1>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="secondary">Test</Button>
+          <Button size="sm">Export CSV</Button>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2 text-xs">
+        <Badge variant="primary">NIST CSF {scores.overall.percentage.toFixed(0)}% complete</Badge>
+        <Badge variant="secondary">{Object.keys(framework.functions).length} frameworks available</Badge>
+        <Badge variant="success">Compliance tracking active</Badge>
+      </div>
+    </div>
+  );
+
+  const FrameworkCards = () => (
+    <div className="dashboard-card p-6 mb-6">
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <h2 className="text-lg font-bold text-secondary-900 dark:text-white">Standards &amp; Frameworks</h2>
+          <p className="text-sm text-secondary-500 dark:text-secondary-400">
+            Assess and manage compliance across multiple cybersecurity and governance frameworks
+          </p>
+        </div>
+        <p className="text-sm font-medium text-secondary-600 dark:text-secondary-300">
+          <span className="text-primary-600 dark:text-primary-400 text-xl font-bold">3</span> Frameworks Available
+        </p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="dashboard-card p-4 border-primary-300 ring-1 ring-primary-300">
+          <p className="text-sm font-semibold">NIST CSF 2.0</p>
+          <Badge size="xs" variant="success" className="mt-1">Available</Badge>
+          <p className="text-xs mt-1">
+            National Institute of Standards and Technology Cybersecurity Framework&nbsp;2.0
+          </p>
+          <div className="mt-3 w-full bg-secondary-200 dark:bg-secondary-700 rounded-full h-1.5">
+            <div
+              className="bg-primary-500 h-1.5 rounded-full"
+              style={{ width: `${scores.overall.percentage}%` }}
+            />
+          </div>
+        </div>
+        <div className="dashboard-card p-4">
+          <p className="text-sm font-semibold">ISO&nbsp;27001</p>
+          <Badge size="xs" variant="secondary" className="mt-1">Coming Soon</Badge>
+          <p className="text-xs mt-1">Information Security Management System Standard</p>
+        </div>
+        <div className="dashboard-card p-4">
+          <p className="text-sm font-semibold">SOC 2</p>
+          <Badge size="xs" variant="secondary" className="mt-1">Coming Soon</Badge>
+          <p className="text-xs mt-1">Service Organization Control 2 Type II</p>
+        </div>
+      </div>
+    </div>
+  );
 
   const toggleCategory = useCallback((categoryId) => {
     setExpandedCategories(prev => ({ ...prev, [categoryId]: !prev[categoryId] }));
@@ -133,14 +202,15 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
 
   return (
     <div className="space-y-6">
+      <PageHeader />
+      <FrameworkCards />
       <FrameworkHeader
-        title="NIST CSF 2.0 Assessment"
+        title="NIST Cybersecurity Framework 2.0 Assessment"
         description="Assess your organization's capabilities against the NIST Cybersecurity Framework 2.0."
         progress={scores.overall.percentage}
         onReset={onReset}
       />
 
-      {/* Function Progress Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {framework.functions.map(func => (
           <AssessmentProgressCard
@@ -153,13 +223,28 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
         ))}
       </div>
 
-      {/* Assessment Sections */}
       <div className="space-y-4">
         {functionsToDisplay.map(func => (
           <div key={func.id} className="dashboard-card overflow-hidden">
-            <h2 className="text-xl font-bold p-4 bg-secondary-50 dark:bg-secondary-900/50 border-b border-secondary-200 dark:border-secondary-700">
-              Function: {func.name}
-            </h2>
+            <div className="flex items-center justify-between p-4 bg-secondary-50 dark:bg-secondary-900/50 border-b border-secondary-200 dark:border-secondary-700">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <span className="text-primary-600">{func.id}</span>
+                <span>–</span>
+                <span>{func.name}</span>
+              </h2>
+              <div className="flex items-center gap-2">
+                <Button variant="secondary" size="sm" leadingIcon={Eye}>View Progress</Button>
+                <Button variant="primary" size="sm" leadingIcon={Download}>Export Assessment</Button>
+              </div>
+            </div>
+
+            <div className="px-4 py-2 text-sm text-secondary-600 dark:text-secondary-400">
+              Current Function Score:&nbsp;
+              <span className="font-semibold text-secondary-900 dark:text-white">
+                {scores.byFunction[func.id]?.percentage.toFixed(1) ?? 0}%
+              </span>
+            </div>
+
             <div className="divide-y divide-secondary-200 dark:divide-secondary-700">
               {(framework.categories[func.id] || []).map(cat => (
                 <div key={cat.id}>
@@ -167,30 +252,24 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
                     className="w-full p-4 text-left flex justify-between items-center hover:bg-secondary-50 dark:hover:bg-secondary-700/50"
                     onClick={() => toggleCategory(cat.id)}
                   >
-                    <div>
+                    <div className="flex items-center">
                       <h3 className="font-semibold text-primary-700 dark:text-primary-300">{cat.name} ({cat.id})</h3>
-                      <p className="text-sm text-secondary-500">{cat.description}</p>
+                      <Badge variant="default" size="sm" className="ml-2">
+                        {scores.byCategory[cat.id]?.percentage.toFixed(0) ?? 0}%
+                      </Badge>
                     </div>
                     <ChevronDown className={`w-5 h-5 transition-transform ${expandedCategories[cat.id] ? 'rotate-180' : ''}`} />
                   </button>
                   {expandedCategories[cat.id] && (
                     <div className="bg-white dark:bg-secondary-800">
-                      {/* Placeholder for subcategories - map real data here when available */}
-                      {Array.from({ length: 5 }).map((_, i) => {
-                        const subcatId = `${cat.id}.${i + 1}`;
-                        const subcategory = {
-                          id: subcatId,
-                          description: `This is a placeholder description for subcategory ${subcatId}. In a real application, this would come from the framework data object.`
-                        };
-                        return (
-                          <SubcategoryItem
-                            key={subcatId}
-                            subcategory={subcategory}
-                            response={assessment[subcatId]}
-                            onUpdate={onUpdateResponse}
-                          />
-                        );
-                      })}
+                      {(framework.subcategories[cat.id] || []).map(subcategory => (
+                        <SubcategoryItem
+                          key={subcategory.id}
+                          subcategory={subcategory}
+                          response={assessment[subcategory.id]}
+                          onUpdate={onUpdateResponse}
+                        />
+                      ))}
                     </div>
                   )}
                 </div>

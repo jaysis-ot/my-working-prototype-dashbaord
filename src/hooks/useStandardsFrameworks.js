@@ -6,50 +6,81 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 
 const NIST_CSF_DATA = {
   functions: [
-    { id: 'FV.GV', name: 'Govern', description: 'The organization’s cybersecurity risk management strategy, expectations, and policy are established, communicated, and monitored.' },
-    { id: 'FV.ID', name: 'Identify', description: 'The organization’s current cybersecurity risks are understood.' },
-    { id: 'FV.PR', name: 'Protect', description: 'Safeguards to manage the organization’s cybersecurity risks are used.' },
-    { id: 'FV.DT', name: 'Detect', description: 'Possible cybersecurity attacks and compromises are found and analyzed.' },
-    { id: 'FV.RS', name: 'Respond', description: 'Actions regarding a detected cybersecurity incident are taken.' },
-    { id: 'FV.RC', name: 'Recover', description: 'Assets and operations affected by a cybersecurity incident are restored.' },
+    { id: 'GV', name: 'Govern', description: 'Establish, communicate, and monitor the organization’s cybersecurity risk management strategy, expectations, and policy.' },
+    { id: 'ID', name: 'Identify', description: 'Understand the organization’s environment to manage cybersecurity risk to systems, people, assets, data, and capabilities.' },
+    { id: 'PR', name: 'Protect', description: 'Develop and implement appropriate safeguards to ensure delivery of critical services.' },
+    { id: 'DT', name: 'Detect', description: 'Develop and implement appropriate activities to identify the occurrence of cybersecurity events.' },
+    { id: 'RS', name: 'Respond', description: 'Develop and implement appropriate activities to take action regarding a detected cybersecurity incident.' },
+    { id: 'RC', name: 'Recover', description: 'Develop and implement appropriate activities to maintain plans for resilience and to restore any capabilities or services that were impaired.' },
   ],
   categories: {
-    'FV.GV': [
+    GV: [
       { id: 'GV.OC', name: 'Organizational Context', description: 'The circumstances—mission, stakeholder expectations, and legal, regulatory, and contractual requirements—surrounding the organization’s cybersecurity risk management decisions are understood.' },
       { id: 'GV.RM', name: 'Risk Management Strategy', description: 'The organization’s priorities, constraints, risk tolerance and appetite, and assumptions are established and used to support operational risk decisions.' },
       { id: 'GV.RR', name: 'Roles, Responsibilities, and Authorities', description: 'Cybersecurity roles, responsibilities, and authorities are established and communicated to foster accountability, performance assessment, and continuous improvement.' },
       { id: 'GV.PO', name: 'Policies, Processes, and Procedures', description: 'Organizational policies, processes, and procedures are established, communicated, and enforced to manage cybersecurity risks.' },
       { id: 'GV.SP', name: 'Cybersecurity Supply Chain Risk Management', description: 'Cybersecurity risks in the supply chain are managed.' },
     ],
-    'FV.ID': [
+    ID: [
         { id: 'ID.AM', name: 'Asset Management', description: 'The organization’s assets (e.g., data, hardware, software, systems, facilities, services, people) and their significance are understood.' },
         { id: 'ID.RA', name: 'Risk Assessment', description: 'The organization’s cybersecurity risks are assessed.' },
         { id: 'ID.IM', name: 'Improvement', description: 'Improvements to organizational cybersecurity risk management processes, procedures, and activities are identified.' },
     ],
-    'FV.PR': [
+    PR: [
         { id: 'PR.AA', name: 'Identity Management, Authentication, and Access Control', description: 'Access to physical and logical assets is limited to authorized users, processes, and devices and is managed consistent with the determined risk of organizational operations.' },
         { id: 'PR.AT', name: 'Awareness and Training', description: 'The organization’s personnel and partners are provided cybersecurity awareness education and are trained to perform their cybersecurity-related duties and responsibilities consistent with related policies, procedures, and agreements.' },
         { id: 'PR.DS', name: 'Data Security', description: 'Data is managed consistent with the organization’s risk strategy to protect the confidentiality, integrity, and availability of information.' },
         { id: 'PR.PS', name: 'Platform Security', description: 'Hardware, software, and services of physical and virtual platforms are managed consistent with the organization’s risk strategy to protect their confidentiality, integrity, and availability.' },
         { id: 'PR.IR', name: 'Resilience', description: 'The resilience of platforms and assets is increased by designing and executing contingency planning (e.g., continuity of operations, disaster recovery, and failover).'},
     ],
-    'FV.DT': [
+    DT: [
         { id: 'DT.CM', name: 'Continuous Monitoring', description: 'Assets are monitored to find anomalies, indicators of compromise, and other potentially adverse events.' },
         { id: 'DT.AA', name: 'Adversarial Analysis', description: 'Adversary capabilities and actions are analyzed to inform and improve the other functions.' },
     ],
-    'FV.RS': [
+    RS: [
         { id: 'RS.MA', name: 'Incident Management', description: 'Incidents are managed.' },
         { id: 'RS.AN', name: 'Incident Analysis', description: 'Incidents are analyzed to support response and recovery activities.' },
         { id: 'RS.CO', name: 'Incident Communication', description: 'Response activities are coordinated with internal and external stakeholders as required.' },
         { id: 'RS.MI', name: 'Incident Mitigation', description: 'Actions are taken to prevent expansion of an event, mitigate its effects, and resolve the incident.' },
     ],
-    'FV.RC': [
+    RC: [
         { id: 'RC.RP', name: 'Incident Recovery Plan Execution', description: 'Incident recovery plans are executed.' },
         { id: 'RC.CO', name: 'Incident Recovery Communication', description: 'Recovery activities are coordinated with internal and external parties.' },
     ],
   },
-  // Subcategories are extensive and would be fully populated in a real implementation.
-  // For this hook, we will assume the structure exists and focus on the logic.
+  subcategories: {
+    'GV.OC': [
+      { id: 'GV.OC-01', description: 'The organizational cybersecurity strategy is established, communicated, and used to guide cybersecurity activities.' },
+      { id: 'GV.OC-02', description: 'Internal and external stakeholders are identified, and their needs and expectations regarding cybersecurity are understood and considered.' },
+      { id: 'GV.OC-03', description: 'Legal, regulatory, and contractual requirements regarding cybersecurity are understood and managed.' },
+      { id: 'GV.OC-04', description: 'Critical objectives, capabilities, and services that stakeholders depend on or expect from the organization are understood and communicated.' },
+    ],
+    'GV.RM': [
+      { id: 'GV.RM-01', description: 'The organization’s risk management processes are established and managed.' },
+      { id: 'GV.RM-02', description: 'Organizational risk tolerance is determined and clearly expressed.' },
+      { id: 'GV.RM-03', description: 'The organization’s determination of risk is used to inform and prioritize organizational decisions.' },
+    ],
+    'ID.AM': [
+        { id: 'ID.AM-01', description: 'Assets (e.g., data, hardware, software, systems, services) are identified and inventoried.' },
+        { id: 'ID.AM-02', description: 'The criticality of assets is determined and used to prioritize protection efforts.' },
+    ],
+    'PR.AA': [
+        { id: 'PR.AA-01', description: 'Identities and credentials for authorized users, processes, and devices are managed.' },
+        { id: 'PR.AA-02', description: 'Access to physical and logical assets is managed and enforced.' },
+    ],
+    'DT.CM': [
+        { id: 'DT.CM-01', description: 'Networks, systems, and assets are monitored for anomalies and potential cybersecurity events.' },
+        { id: 'DT.CM-02', description: 'The effectiveness of cybersecurity controls is monitored.' },
+    ],
+    'RS.MA': [
+        { id: 'RS.MA-01', description: 'An incident management process is established and managed.' },
+        { id: 'RS.MA-02', description: 'Incidents are reported and tracked.' },
+    ],
+    'RC.RP': [
+        { id: 'RC.RP-01', description: 'Incident recovery plans are executed.' },
+        { id: 'RC.RP-02', description: 'Recovery activities are improved based on lessons learned.' },
+    ]
+  },
 };
 
 const ASSESSMENT_STORAGE_KEY = 'cyberTrustDashboard.nistCsfAssessment';
@@ -114,7 +145,7 @@ export const useStandardsFrameworks = () => {
   // --- Scoring and Completion Logic ---
   const scores = useMemo(() => {
     const responseValues = { 'Yes': 1, 'Partial': 0.5, 'No': 0, 'N/A': 0 };
-    const totalSubcategories = Object.values(NIST_CSF_DATA.categories).flat().length; // Simplified count
+    const totalSubcategories = Object.values(NIST_CSF_DATA.subcategories).flat().length;
     let completedCount = 0;
     
     const functionScores = {};
@@ -125,30 +156,27 @@ export const useStandardsFrameworks = () => {
       let funcSubcatCount = 0;
 
       NIST_CSF_DATA.categories[func.id]?.forEach(cat => {
-        // This is a simplified placeholder as subcategories are not in the mock data.
-        // In a real implementation, we would iterate through cat.subcategories.
-        const subcatsInCat = 5; // Mock number of subcategories per category
+        const subcatsInCat = NIST_CSF_DATA.subcategories[cat.id] || [];
         let catTotalScore = 0;
         let catAnsweredCount = 0;
 
-        for (let i = 1; i <= subcatsInCat; i++) {
-          const subcatId = `${cat.id}.${i}`;
-          const response = assessment[subcatId];
-          if (response) {
-            catTotalScore += responseValues[response] || 0;
-            if (response !== 'N/A') {
-              catAnsweredCount++;
+        subcatsInCat.forEach(subcat => {
+            const response = assessment[subcat.id];
+            if (response) {
+                catTotalScore += responseValues[response] || 0;
+                if (response !== 'N/A') {
+                    catAnsweredCount++;
+                }
             }
-          }
-        }
+        });
 
         completedCount += Object.keys(assessment).filter(k => k.startsWith(cat.id)).length;
         funcTotalScore += catTotalScore;
-        funcSubcatCount += subcatsInCat;
+        funcSubcatCount += subcatsInCat.length;
         categoryScores[cat.id] = {
           score: catTotalScore,
-          maxScore: subcatsInCat,
-          percentage: subcatsInCat > 0 ? (catTotalScore / subcatsInCat) * 100 : 0,
+          maxScore: subcatsInCat.length,
+          percentage: subcatsInCat.length > 0 ? (catTotalScore / subcatsInCat.length) * 100 : 0,
         };
       });
 
