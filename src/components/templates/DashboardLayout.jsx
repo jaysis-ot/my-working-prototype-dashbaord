@@ -72,7 +72,7 @@ const DashboardLayout = ({ children }) => {
     { id: 'capabilities', label: 'Capabilities', icon: 'Shield' },
     { id: 'resources', label: 'Resource Planning', icon: 'Users' },
     { id: 'analytics', label: 'Analytics', icon: 'BarChart3' },
-    { id: 'pcd-breakdown', label: 'PCD Breakdown', icon: 'PieChart' },
+    { id: 'business-plan', label: 'Business Plan', icon: 'PieChart' },
     { id: 'maturity-analysis', label: 'Maturity Analysis', icon: 'TrendingUp' },
     { id: 'mitre-attack', label: 'MITRE ATT&CK', icon: 'Layers' },
     { id: 'standards-frameworks', label: 'Standards & Frameworks', icon: 'BookOpen' },
