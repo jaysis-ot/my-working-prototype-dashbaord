@@ -1,12 +1,29 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { Users, LayoutGrid, GanttChartSquare, Filter, ArrowDownUp, User, Briefcase, Calendar, Star, Flag } from 'lucide-react';
+import {
+  Users,
+  LayoutGrid,
+  GanttChartSquare,
+  Filter,
+  ArrowDownUp,
+  Briefcase,
+  Calendar,
+  Search,
+  Mail,
+  Phone,
+  Factory,
+  BookUser,
+  MapPin,
+  CheckCircle,
+  AlertTriangle,
+} from 'lucide-react';
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
 import { useRequirementsData } from '../../hooks/useRequirementsData';
 import { useCapabilitiesData } from '../../hooks/useCapabilitiesData';
 import LoadingSpinner from '../atoms/LoadingSpinner';
 import ErrorDisplay from '../molecules/ErrorDisplay';
+import Input from '../atoms/Input';
 
 // --- Mock Data (to be replaced by hooks) ---
 const mockTeams = [
@@ -16,11 +33,76 @@ const mockTeams = [
 ];
 
 const mockResources = [
-  { id: 'user-1', name: 'Alex Johnson', role: 'Security Lead', teamId: 'team-sec', avatar: 'AJ', capacity: 40 },
-  { id: 'user-2', name: 'Brenda Smith', role: 'Network Engineer', teamId: 'team-net', avatar: 'BS', capacity: 40 },
-  { id: 'user-3', name: 'Charles Davis', role: 'Security Analyst', teamId: 'team-sec', avatar: 'CD', capacity: 40 },
-  { id: 'user-4', name: 'Diana Miller', role: 'Operations Specialist', teamId: 'team-ops', avatar: 'DM', capacity: 32 },
-  { id: 'user-5', name: 'Ethan Wilson', role: 'Junior Analyst', teamId: 'team-sec', avatar: 'EW', capacity: 40 },
+  {
+    id: 'user-1',
+    name: 'Alex Johnson',
+    role: 'Security Lead',
+    teamId: 'team-sec',
+    avatar: 'AJ',
+    capacity: 40,
+    company: 'Cyber Solutions Inc.',
+    jobTitle: 'Security Lead',
+    department: 'IT Security',
+    location: 'London, UK',
+    email: 'alex.j@corp.local',
+    phone: '+44 20 7946 0100',
+  },
+  {
+    id: 'user-2',
+    name: 'Brenda Smith',
+    role: 'Network Engineer',
+    teamId: 'team-net',
+    avatar: 'BS',
+    capacity: 40,
+    company: 'Cyber Solutions Inc.',
+    jobTitle: 'Network Engineer',
+    department: 'Engineering',
+    location: 'Manchester, UK',
+    email: 'brenda.s@corp.local',
+    phone: '+44 161 496 0101',
+  },
+  {
+    id: 'user-3',
+    name: 'Charles Davis',
+    role: 'Security Analyst',
+    teamId: 'team-sec',
+    avatar: 'CD',
+    capacity: 40,
+    company: 'Cyber Solutions Inc.',
+    jobTitle: 'Security Analyst',
+    department: 'IT Security',
+    location: 'London, UK',
+    email: 'charles.d@corp.local',
+    phone: '+44 20 7946 0959',
+  },
+  {
+    id: 'user-4',
+    name: 'Diana Miller',
+    role: 'Operations Specialist',
+    teamId: 'team-ops',
+    avatar: 'DM',
+    capacity: 32,
+    company: 'Cyber Solutions Inc.',
+    jobTitle: 'OT Specialist',
+    department: 'Operations',
+    location: 'Plant Floor',
+    email: 'diana.m@corp.local',
+    phone: '+44 161 496 0102',
+  },
+  {
+    id: 'user-5',
+    name: 'Ethan Wilson',
+    role: 'Junior Analyst',
+    teamId: 'team-sec',
+    avatar: 'EW',
+    capacity: 40,
+    company: 'Cyber Solutions Inc.',
+    jobTitle: 'Junior Analyst',
+    department: 'IT Security',
+    location: 'Remote',
+    email: 'ethan.w@corp.local',
+    phone: '+44 20 7946 0961',
+  },
 ];
 
 // --- Reusable Molecules & Organisms (Internal to this page) ---
@@ -32,6 +114,15 @@ const FilterToolbar = ({ view, setView, sortConfig, setSortConfig, teamFilter, s
         <span className="text-sm font-medium">View:</span>
         <Button variant={view === 'swimlane' ? 'primary' : 'secondary'} size="sm" onClick={() => setView('swimlane')} leadingIcon={LayoutGrid}>Swimlane</Button>
         <Button variant={view === 'timeline' ? 'primary' : 'secondary'} size="sm" onClick={() => setView('timeline')} leadingIcon={GanttChartSquare}>Timeline</Button>
+        {/* NEW Details view button */}
+        <Button
+          variant={view === 'details' ? 'primary' : 'secondary'}
+          size="sm"
+          onClick={() => setView('details')}
+          leadingIcon={Users}
+        >
+          Details
+        </Button>
       </div>
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
@@ -138,6 +229,92 @@ const TimelineView = () => (
   </div>
 );
 
+/* ---------- Resource Details (Contact Directory) ---------- */
+const ResourceDetailsView = ({ resources, filter = '' }) => {
+  const [searchTerm, setSearchTerm] = useState(filter);
+
+  const filteredResources = useMemo(() => {
+    if (!searchTerm) return resources;
+    const q = searchTerm.toLowerCase();
+    return resources.filter((r) =>
+      [r.name, r.company, r.jobTitle, r.department]
+        .filter(Boolean)
+        .some((field) => field.toLowerCase().includes(q))
+    );
+  }, [resources, searchTerm]);
+
+  return (
+    <div className="space-y-6">
+      {/* Search bar */}
+      <div className="dashboard-card p-4">
+        <div className="relative">
+          <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-secondary-400" />
+          <input
+            type="text"
+            placeholder="Search resources by name, company, role, or department…"
+            className="w-full pl-10 pr-4 py-2 border border-secondary-300 dark:border-secondary-600 rounded-md bg-white dark:bg-secondary-800 text-sm"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Directory cards */}
+      <div className="dashboard-card p-6">
+        <h3 className="text-lg font-semibold mb-4">Resource Directory</h3>
+        {filteredResources.length ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredResources.map((r) => (
+              <div
+                key={r.id}
+                className="bg-secondary-50 dark:bg-secondary-800/50 p-4 rounded-lg space-y-1 text-xs"
+              >
+                <p className="font-bold text-secondary-900 dark:text-white text-sm">
+                  {r.name}
+                </p>
+                {r.company && (
+                  <p className="flex items-center gap-2 text-secondary-600 dark:text-secondary-400">
+                    <Factory className="w-3 h-3" /> {r.company}
+                  </p>
+                )}
+                {r.jobTitle && (
+                  <p className="flex items-center gap-2">
+                    <BookUser className="w-3 h-3" /> {r.jobTitle}
+                  </p>
+                )}
+                {r.department && (
+                  <p className="flex items-center gap-2">
+                    <Briefcase className="w-3 h-3" /> {r.department}
+                  </p>
+                )}
+                {r.email && (
+                  <p className="flex items-center gap-2">
+                    <Mail className="w-3 h-3" /> {r.email}
+                  </p>
+                )}
+                {r.phone && (
+                  <p className="flex items-center gap-2">
+                    <Phone className="w-3 h-3" /> {r.phone}
+                  </p>
+                )}
+                {r.location && (
+                  <p className="flex items-center gap-2">
+                    <MapPin className="w-3 h-3" /> {r.location}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-center text-secondary-500 py-8">
+            No resources match your search criteria.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // --- Main Page Component ---
 
 const ResourcePlanningPage = () => {
@@ -193,10 +370,15 @@ const ResourcePlanningPage = () => {
       />
 
       <div className="flex-1 overflow-hidden">
-        {view === 'swimlane' ? (
-          <SwimlaneView resources={filteredAndSortedResources} requirements={requirements} />
-        ) : (
-          <TimelineView />
+        {view === 'swimlane' && (
+          <SwimlaneView
+            resources={filteredAndSortedResources}
+            requirements={requirements}
+          />
+        )}
+        {view === 'timeline' && <TimelineView />}
+        {view === 'details' && (
+          <ResourceDetailsView resources={filteredAndSortedResources} />
         )}
       </div>
     </div>
