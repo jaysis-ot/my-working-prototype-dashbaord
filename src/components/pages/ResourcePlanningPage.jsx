@@ -308,33 +308,39 @@ const TimelineView = ({ resources, assignments, capabilities }) => {
     const map = {};
     resources.forEach((r) => (map[r.id] = []));
 
+    // Current month range
     const monthStart = new Date(
       currentMonth.getFullYear(),
       currentMonth.getMonth(),
-      1,
+      1
     );
     const monthEnd = new Date(
       currentMonth.getFullYear(),
       currentMonth.getMonth() + 1,
-      0,
+      0
     );
 
     assignments.forEach((a) => {
       if (!map[a.resourceId]) return;
 
-      // ensure valid date objects
-      const start = new Date(a.startDate);
-      const end = new Date(a.endDate);
-      if (isNaN(start) || isNaN(end)) return;
+      /* ---------- robust date parsing ---------- */
+      let start, end;
+      try {
+        start = new Date(a.startDate);
+        end = new Date(a.endDate);
+      } catch {
+        return; // skip invalid dates
+      }
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) return;
 
-      // skip if completely outside current month
+      /* ---------- skip if completely outside current month ---------- */
       if (start > monthEnd || end < monthStart) return;
 
       const capabilityName =
         capabilities.find((c) => c.id === a.capabilityId)?.name ||
         a.capabilityId;
 
-      // visible portion inside current month
+      /* ---------- calculate visible portion within this month ---------- */
       const visibleStart = start < monthStart ? monthStart : start;
       const visibleEnd = end > monthEnd ? monthEnd : end;
 
@@ -345,10 +351,13 @@ const TimelineView = ({ resources, assignments, capabilities }) => {
         endDay: visibleEnd.getDate(),
         continuesBefore: start < monthStart,
         continuesAfter: end > monthEnd,
+        visibleStartDate: visibleStart,
+        visibleEndDate: visibleEnd,
       });
     });
+
     return map;
-  }, [resources, assignments, capabilities, currentMonth, daysInMonth]);
+  }, [resources, assignments, capabilities, currentMonth]);
 
   /* colour helper */
   const getColor = (alloc) => {
@@ -374,7 +383,14 @@ const TimelineView = ({ resources, assignments, capabilities }) => {
           <Button variant="secondary" size="sm" onClick={() => goMonth(-1)}>
             Previous
           </Button>
-          <span className="font-medium text-secondary-700 dark:text-secondary-300">
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setCurrentMonth(new Date())}
+          >
+            Today
+          </Button>
+          <span className="font-medium text-secondary-700 dark:text-secondary-300 px-2 min-w-[120px] text-center">
             {monthName}
           </span>
           <Button variant="secondary" size="sm" onClick={() => goMonth(1)}>
@@ -431,7 +447,8 @@ const TimelineView = ({ resources, assignments, capabilities }) => {
             {/* bars */}
             {resourceAssignments[res.id].map((a, idx) => {
               const duration = a.endDay - a.startDay + 1;
-              const left = (a.startDay - 1) * cellW + 150;
+              if (duration <= 0) return null; // skip invalid durations
+              const leftPos = (a.startDay - 1) * cellW + 150; // 150px resource column
               return (
                 <div
                   key={a.id}
@@ -439,7 +456,7 @@ const TimelineView = ({ resources, assignments, capabilities }) => {
                     a.timeAllocation,
                   )} text-white text-[10px] overflow-hidden px-2 flex items-center`}
                   style={{
-                    left,
+                    left: `${leftPos}px`,
                     width: duration * cellW,
                     top: 8 + idx * 18,
                     height: 16,
@@ -451,16 +468,17 @@ const TimelineView = ({ resources, assignments, capabilities }) => {
                   title={`${a.capabilityName} (${a.timeAllocation})\n${a.startDate} → ${a.endDate}`}
                 >
                   {duration * cellW > 80 ? (
-                    <>
-                      {a.continuesBefore && '◄'}
-                      {a.capabilityName}
-                      {a.continuesAfter && '►'}
-                    </>
+                    <div className="flex items-center space-x-1 whitespace-nowrap w-full">
+                      {a.continuesBefore && <span>◄</span>}
+                      <span className="truncate">{a.capabilityName}</span>
+                      {a.continuesAfter && <span>►</span>}
+                    </div>
                   ) : (
-                    <>
+                    <div className="flex items-center justify-center w-full">
                       {a.continuesBefore && '◄'}
+                      {!a.continuesBefore && !a.continuesAfter && '·'}
                       {a.continuesAfter && '►'}
-                    </>
+                    </div>
                   )}
                 </div>
               );
