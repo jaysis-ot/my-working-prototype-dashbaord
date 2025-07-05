@@ -1,6 +1,6 @@
 import React, { forwardRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, X } from 'lucide-react';
 
 /**
  * Input component for the Cyber Trust Sensor Dashboard
@@ -31,6 +31,7 @@ const Input = forwardRef(({
   onChange,
   onBlur,
   onFocus,
+  onClear,
   ...props
 }, ref) => {
   // For password type, manage visibility toggle
@@ -40,6 +41,8 @@ const Input = forwardRef(({
   // Determine actual input type (for password visibility toggle)
   const inputType = type === 'password' && showPassword ? 'text' : type;
   
+  const showClearButton = onClear && value && !disabled && !readOnly;
+
   // Base input classes
   const baseClasses = 'block rounded-md border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50';
   
@@ -71,11 +74,12 @@ const Input = forwardRef(({
   
   // Determine icon padding
   let iconPadding = '';
-  if (LeadingIcon && (TrailingIcon || type === 'password' || error)) {
+  const hasTrailingIcon = TrailingIcon || type === 'password' || error || showClearButton;
+  if (LeadingIcon && hasTrailingIcon) {
     iconPadding = iconPaddingClasses[size]?.both || '';
   } else if (LeadingIcon) {
     iconPadding = iconPaddingClasses[size]?.leading || '';
-  } else if (TrailingIcon || type === 'password' || error) {
+  } else if (hasTrailingIcon) {
     iconPadding = iconPaddingClasses[size]?.trailing || '';
   }
   
@@ -176,6 +180,19 @@ const Input = forwardRef(({
           {/* Error icon if error exists */}
           {error && (
             <AlertCircle size={getIconSize(size)} className="text-status-error" aria-hidden="true" />
+          )}
+
+          {/* Clear button */}
+          {showClearButton && (
+            <button
+              type="button"
+              onClick={onClear}
+              className="focus:outline-none text-secondary-500 hover:text-secondary-700 dark:hover:text-secondary-300"
+              aria-label="Clear input"
+              tabIndex="-1"
+            >
+              <X size={getIconSize(size)} />
+            </button>
           )}
 
           {/* Trailing icon if provided */}
@@ -345,7 +362,12 @@ Input.propTypes = {
   /**
    * Focus handler
    */
-  onFocus: PropTypes.func
+  onFocus: PropTypes.func,
+
+  /**
+   * Callback function to clear the input. If provided, a clear button will be shown.
+   */
+  onClear: PropTypes.func
 };
 
 export default Input;

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 import {
   Shield,
@@ -9,13 +9,61 @@ import {
   ChevronDown,
   ArrowLeft,
   Target,
-  Globe
+  Globe,
+  LayoutGrid,
+  GanttChartSquare,
+  Network,
+  Workflow,
+  BarChart3
 } from 'lucide-react';
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
 import Input from '../atoms/Input';
 
 // --- Internal Molecules (Components specific to this organism) ---
+
+/**
+ * Tooltip: An enhanced tooltip component for showing details on hover.
+ */
+const Tooltip = ({ children, content, position = 'top' }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const timeoutRef = useRef(null);
+
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setIsVisible(true);
+  };
+
+  const handleMouseLeave = () => {
+    timeoutRef.current = setTimeout(() => setIsVisible(false), 200);
+  };
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      {children}
+      {isVisible && content && (
+        <div
+          className={`absolute z-30 p-3 bg-secondary-900 text-white text-xs rounded-lg shadow-xl border border-secondary-700 w-64
+            ${position === 'top' ? 'bottom-full mb-2' : 'top-full mt-2'}
+            left-1/2 -translate-x-1/2
+            animate-in fade-in-0 zoom-in-95 duration-200
+          `}
+        >
+          {content}
+        </div>
+      )}
+    </div>
+  );
+};
+Tooltip.propTypes = {
+  children: PropTypes.node.isRequired,
+  content: PropTypes.node,
+  position: PropTypes.oneOf(['top', 'bottom']),
+};
 
 /**
  * FilterToolbar: A dedicated component for all filtering and search controls.
@@ -37,9 +85,10 @@ const FilterToolbar = ({ threatGroups, filters, onFilterChange }) => {
     <div className="dashboard-card p-4 mb-6">
       <div className="flex flex-col md:flex-row items-center gap-4">
         <Input
-          placeholder="Search techniques (e.g., T1566.001)"
+          placeholder="Search techniques (e.g., T1566.001, Phishing)"
           value={filters.search}
           onChange={(e) => onFilterChange('search', e.target.value)}
+          onClear={() => onFilterChange('search', '')}
           leadingIcon={Search}
           className="flex-grow"
         />
@@ -81,20 +130,47 @@ const FilterToolbar = ({ threatGroups, filters, onFilterChange }) => {
  * MatrixCell: Represents a single technique in the ATT&CK matrix.
  */
 const MatrixCell = ({ technique, highlightColor, onSelect }) => {
-  return (
-    <div
-      className="p-2 text-xs border-b border-secondary-200 dark:border-secondary-700 hover:bg-primary-100 dark:hover:bg-primary-500/20 cursor-pointer transition-colors"
-      style={{ backgroundColor: highlightColor ? `${highlightColor}33` : 'transparent' }} // 20% opacity
-      onClick={() => onSelect(technique)}
-      role="button"
-      tabIndex={0}
-      onKeyPress={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect(technique)}
-    >
-      <p className="font-medium text-secondary-800 dark:text-secondary-200 truncate" title={technique.name}>
-        {technique.name}
-      </p>
-      <p className="text-secondary-500 dark:text-secondary-400">{technique.id}</p>
+  const getSeverityPastelColor = (severity) => {
+    // Using pastel colors with some transparency
+    switch (severity) {
+      case 'Critical': return '#ef44444D'; // Red @ 30%
+      case 'High': return '#f973164D';     // Orange @ 30%
+      case 'Medium': return '#eab3084D';   // Yellow @ 30%
+      default: return 'transparent';
+    }
+  };
+  
+  const cellStyle = {
+    backgroundColor: highlightColor ? `${highlightColor}33` : getSeverityPastelColor(technique.severity),
+  };
+
+  const tooltipContent = (
+    <div className="space-y-1">
+      <p className="font-bold">{technique.id}: {technique.name}</p>
+      <p className="text-secondary-300">{technique.description}</p>
+      <div className="pt-1">
+        <p><span className="font-semibold">Platforms:</span> {technique.platforms.join(', ')}</p>
+        <p><span className="font-semibold">Severity:</span> {technique.severity}</p>
+      </div>
     </div>
+  );
+
+  return (
+    <Tooltip content={tooltipContent}>
+      <div
+        className="p-2 text-xs border-b border-secondary-200 dark:border-secondary-700 hover:bg-primary-100 dark:hover:bg-primary-500/20 cursor-pointer transition-colors"
+        style={cellStyle}
+        onClick={() => onSelect(technique)}
+        role="button"
+        tabIndex={0}
+        onKeyPress={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect(technique)}
+      >
+        <p className="font-medium text-secondary-800 dark:text-secondary-200 truncate" title={technique.name}>
+          {technique.name}
+        </p>
+        <p className="text-secondary-500 dark:text-secondary-400">{technique.id}</p>
+      </div>
+    </Tooltip>
   );
 };
 
@@ -132,6 +208,16 @@ const DetailsPanel = ({ item, onClose }) => (
   </div>
 );
 
+const PlaceholderView = ({ title, icon: Icon }) => (
+  <div className="dashboard-card flex items-center justify-center h-full text-secondary-500">
+    <div className="text-center">
+      <Icon className="w-16 h-16 mx-auto mb-4 opacity-50" />
+      <h3 className="text-xl font-semibold">{title}</h3>
+      <p>This view is under construction.</p>
+    </div>
+  </div>
+);
+
 // --- Main Organism Component ---
 
 const MitreAttackNavigator = ({
@@ -144,6 +230,7 @@ const MitreAttackNavigator = ({
   onNavigateBack,
 }) => {
   const [selectedTechnique, setSelectedTechnique] = useState(null);
+  const [activeView, setActiveView] = useState('matrix');
 
   const highlightedTechniques = useMemo(() => {
     if (filters.selectedGroups.length === 0) return {};
@@ -168,7 +255,6 @@ const MitreAttackNavigator = ({
         .filter(g => filters.selectedGroups.includes(g.id))
         .flatMap(g => g.techniques)
     );
-    // Placeholder for organizational coverage data
     const coveredTechniques = new Set(Object.keys(highlightedTechniques).slice(0, Math.floor(Object.keys(highlightedTechniques).length / 2)));
     
     const relevantCovered = new Set([...allSelectedTechniques].filter(t => coveredTechniques.has(t)));
@@ -180,8 +266,16 @@ const MitreAttackNavigator = ({
     };
   }, [filters.selectedGroups, threatGroups, highlightedTechniques]);
 
+  const viewOptions = [
+    { id: 'matrix', label: 'Matrix View', icon: LayoutGrid },
+    { id: 'network', label: 'Network View', icon: Network },
+    { id: 'timeline', label: 'Timeline', icon: GanttChartSquare },
+    { id: 'flow', label: 'Attack Flow', icon: Workflow },
+    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+  ];
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -201,38 +295,59 @@ const MitreAttackNavigator = ({
         </div>
       </div>
 
-      <FilterToolbar
-        threatGroups={threatGroups}
-        filters={filters}
-        onFilterChange={onFilterChange}
-      />
-
-      <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-24rem)]">
-        {/* ATT&CK Matrix */}
-        <div className="flex-1 overflow-x-auto overflow-y-hidden bg-white dark:bg-secondary-800 rounded-lg shadow-md border border-secondary-200 dark:border-secondary-700">
-          <div className="flex h-full">
-            {tactics.map(tactic => (
-              <div key={tactic.id} className="flex-shrink-0 w-48 border-r border-secondary-200 dark:border-secondary-700">
-                <div className="p-2 text-center bg-secondary-100 dark:bg-secondary-700/50 border-b-2 border-primary-500">
-                  <h4 className="text-xs font-bold uppercase tracking-wider truncate" title={tactic.name}>{tactic.name}</h4>
-                </div>
-                <div className="h-[calc(100%-2.5rem)] overflow-y-auto">
-                  {getTechniquesForTactic(tactic.id).map(technique => (
-                    <MatrixCell
-                      key={technique.id}
-                      technique={technique}
-                      highlightColor={highlightedTechniques[technique.id]?.[0]} // Show first group's color
-                      onSelect={setSelectedTechnique}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center border border-secondary-200 dark:border-secondary-700 rounded-lg p-1">
+          {viewOptions.map(option => (
+            <Button
+              key={option.id}
+              variant={activeView === option.id ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => setActiveView(option.id)}
+              leadingIcon={option.icon}
+            >
+              {option.label}
+            </Button>
+          ))}
         </div>
+        <FilterToolbar
+          threatGroups={threatGroups}
+          filters={filters}
+          onFilterChange={onFilterChange}
+        />
+      </div>
 
-        {/* Details Panel */}
-        <DetailsPanel item={selectedTechnique} onClose={() => setSelectedTechnique(null)} />
+      <div className="flex-grow flex flex-col lg:flex-row gap-6 overflow-hidden">
+        {activeView === 'matrix' ? (
+          <>
+            {/* ATT&CK Matrix */}
+            <div className="flex-1 overflow-auto bg-white dark:bg-secondary-800 rounded-lg shadow-md border border-secondary-200 dark:border-secondary-700">
+              <div className="flex min-w-max h-full">
+                {tactics.map(tactic => (
+                  <div key={tactic.id} className="flex-shrink-0 w-48 border-r border-secondary-200 dark:border-secondary-700 flex flex-col">
+                    <div className="p-2 text-center bg-secondary-100 dark:bg-secondary-700/50 border-b-2 border-primary-500">
+                      <h4 className="text-xs font-bold uppercase tracking-wider truncate" title={tactic.name}>{tactic.name}</h4>
+                    </div>
+                    <div className="flex-grow overflow-y-auto">
+                      {getTechniquesForTactic(tactic.id).map(technique => (
+                        <MatrixCell
+                          key={technique.id}
+                          technique={technique}
+                          highlightColor={highlightedTechniques[technique.id]?.[0]} // Show first group's color
+                          onSelect={setSelectedTechnique}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Details Panel */}
+            <DetailsPanel item={selectedTechnique} onClose={() => setSelectedTechnique(null)} />
+          </>
+        ) : (
+          <PlaceholderView title={viewOptions.find(v => v.id === activeView)?.label} icon={viewOptions.find(v => v.id === activeView)?.icon} />
+        )}
       </div>
     </div>
   );
