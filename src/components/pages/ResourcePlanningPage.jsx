@@ -19,6 +19,9 @@ import {
   Plus,
   X,
   Save,
+  ClipboardList,
+  Clock,
+  CalendarDays,
 } from 'lucide-react';
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
@@ -242,8 +245,15 @@ const TimelineView = () => (
 );
 
 /* ---------- Resource Details (Contact Directory) ---------- */
-const ResourceDetailsView = ({ resources, filter = '' }) => {
+const ResourceDetailsView = ({ resources, capabilities, filter = '' }) => {
   const [searchTerm, setSearchTerm] = useState(filter);
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [selectedResource, setSelectedResource] = useState(null);
+
+  const handleAssignWork = (resource) => {
+    setSelectedResource(resource);
+    setIsAssignModalOpen(true);
+  };
 
   const filteredResources = useMemo(() => {
     if (!searchTerm) return resources;
@@ -327,6 +337,18 @@ const ResourceDetailsView = ({ resources, filter = '' }) => {
                     <MapPin className="w-3 h-3" /> {r.location}
                   </p>
                 )}
+                {/* Action button */}
+                <div className="pt-3 mt-2 border-t border-secondary-200 dark:border-secondary-700">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="w-full"
+                    leadingIcon={ClipboardList}
+                    onClick={() => handleAssignWork(r)}
+                  >
+                    Assign Work
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -336,12 +358,29 @@ const ResourceDetailsView = ({ resources, filter = '' }) => {
           </p>
         )}
       </div>
+
+      {/* Assign work modal */}
+      {isAssignModalOpen && selectedResource && (
+        <AssignWorkModal
+          isOpen={isAssignModalOpen}
+          onClose={() => setIsAssignModalOpen(false)}
+          resource={selectedResource}
+          capabilities={capabilities}
+        />
+      )}
     </div>
   );
 };
 
 /* ---------- Resources Tab (summary & matrix) ---------- */
-const ResourcesView = ({ resources }) => {
+const ResourcesView = ({ resources, capabilities }) => {
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [selectedResource, setSelectedResource] = useState(null);
+
+  const handleAssignWork = (resource) => {
+    setSelectedResource(resource);
+    setIsAssignModalOpen(true);
+  };
   // aggregate skills for the matrix
   const allSkills = useMemo(
     () =>
@@ -379,6 +418,7 @@ const ResourcesView = ({ resources }) => {
               <th className="p-3 text-left font-semibold">Team</th>
               <th className="p-3 text-left font-semibold">Department</th>
               <th className="p-3 text-left font-semibold">Location</th>
+              <th className="p-3 text-center font-semibold">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-secondary-200 dark:divide-secondary-700">
@@ -391,6 +431,16 @@ const ResourcesView = ({ resources }) => {
                 </td>
                 <td className="p-3">{res.department || '-'}</td>
                 <td className="p-3">{res.location || '-'}</td>
+                <td className="p-3 text-center">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    leadingIcon={ClipboardList}
+                    onClick={() => handleAssignWork(res)}
+                  >
+                    Assign Work
+                  </Button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -434,6 +484,170 @@ const ResourcesView = ({ resources }) => {
           </table>
         </div>
       )}
+
+      {/* Assign work modal */}
+      {isAssignModalOpen && selectedResource && (
+        <AssignWorkModal
+          isOpen={isAssignModalOpen}
+          onClose={() => setIsAssignModalOpen(false)}
+          resource={selectedResource}
+          capabilities={capabilities}
+        />
+      )}
+    </div>
+  );
+};
+
+/* ---------- Assign Work Modal ---------- */
+const AssignWorkModal = ({ isOpen, onClose, resource, capabilities }) => {
+  const [formData, setFormData] = useState({
+    capabilityId: '',
+    timeAllocation: '2 days per week',
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0],
+    priority: 'Medium',
+    notes: '',
+  });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // Placeholder – replace with actual save logic
+    alert(
+      `Work assignment data for ${resource.name}:\n${JSON.stringify(
+        formData,
+        null,
+        2,
+      )}`,
+    );
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow-xl w-full max-w-2xl">
+        <div className="flex items-center justify-between p-4 border-b dark:border-secondary-700">
+          <h3 className="text-lg font-semibold">
+            Assign Work to {resource.name}
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-secondary-500 hover:text-secondary-700 dark:hover:text-secondary-300"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Capability *</label>
+              <select
+                name="capabilityId"
+                value={formData.capabilityId}
+                onChange={handleChange}
+                required
+                className="w-full p-2 border border-secondary-300 dark:border-secondary-600 rounded-md dark:bg-secondary-700"
+              >
+                <option value="">Select a capability...</option>
+                {capabilities.map((cap) => (
+                  <option key={cap.id} value={cap.id}>
+                    {cap.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Time Allocation *
+              </label>
+              <select
+                name="timeAllocation"
+                value={formData.timeAllocation}
+                onChange={handleChange}
+                required
+                className="w-full p-2 border border-secondary-300 dark:border-secondary-600 rounded-md dark:bg-secondary-700"
+              >
+                <option value="1 day per week">1 day per week</option>
+                <option value="2 days per week">2 days per week</option>
+                <option value="3 days per week">3 days per week</option>
+                <option value="4 days per week">4 days per week</option>
+                <option value="Full time">Full time</option>
+                <option value="20%">20% allocation</option>
+                <option value="50%">50% allocation</option>
+                <option value="75%">75% allocation</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Start Date *
+              </label>
+              <input
+                type="date"
+                name="startDate"
+                value={formData.startDate}
+                onChange={handleChange}
+                required
+                className="w-full p-2 border border-secondary-300 dark:border-secondary-600 rounded-md dark:bg-secondary-700"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                End Date *
+              </label>
+              <input
+                type="date"
+                name="endDate"
+                value={formData.endDate}
+                onChange={handleChange}
+                required
+                className="w-full p-2 border border-secondary-300 dark:border-secondary-600 rounded-md dark:bg-secondary-700"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Priority</label>
+              <select
+                name="priority"
+                value={formData.priority}
+                onChange={handleChange}
+                className="w-full p-2 border border-secondary-300 dark:border-secondary-600 rounded-md dark:bg-secondary-700"
+              >
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+                <option value="Urgent">Urgent</option>
+              </select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-1">Notes</label>
+              <textarea
+                name="notes"
+                value={formData.notes}
+                onChange={handleChange}
+                placeholder="Any additional details about this assignment..."
+                className="w-full p-2 border border-secondary-300 dark:border-secondary-600 rounded-md dark:bg-secondary-700 h-24"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 border-t dark:border-secondary-700 pt-4">
+            <Button variant="secondary" type="button" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" leadingIcon={Save}>
+              Assign Work
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
@@ -501,10 +715,16 @@ const ResourcePlanningPage = () => {
         )}
         {view === 'timeline' && <TimelineView />}
         {view === 'details' && (
-          <ResourceDetailsView resources={filteredAndSortedResources} />
+          <ResourceDetailsView
+            resources={filteredAndSortedResources}
+            capabilities={capabilities}
+          />
         )}
         {view === 'resources' && (
-          <ResourcesView resources={filteredAndSortedResources} />
+          <ResourcesView
+            resources={filteredAndSortedResources}
+            capabilities={capabilities}
+          />
         )}
       </div>
     </div>
