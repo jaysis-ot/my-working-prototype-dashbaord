@@ -68,6 +68,7 @@ const TableToolbar = ({
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
           leadingIcon={Search}
+          onClear={onClearSearch}
         />
       </div>
       <div className="flex items-center gap-2">

@@ -27,10 +27,25 @@ export const useFilteredRequirements = (requirements, filters, searchTerm) => {
       // The requirement is a match if the search term is empty or if it's found
       // in any of the specified fields. The search is case-insensitive.
       const matchesSearch = !searchLower || (
-        (req.id?.toLowerCase() || '').includes(searchLower) ||
-        (req.description?.toLowerCase() || '').includes(searchLower) ||
-        (req.category?.toLowerCase() || '').includes(searchLower) ||
-        (req.businessJustification?.toLowerCase() || '').includes(searchLower)
+        [
+          req.id,
+          req.description,
+          req.category,
+          req.businessJustification,
+          req.priority,
+          req.status,
+          req.area,
+          req.type,
+          req.progressStatus,
+          req.maturityLevel?.level,
+          // include numeric maturity score as string just in case users search for it
+          req.maturityLevel?.score?.toString(),
+          req.applicability?.type,
+          req.assignee
+        ]
+          .filter(Boolean)                         // remove undefined / null
+          .map(v => v.toString().toLowerCase())    // normalise
+          .some(v => v.includes(searchLower))      // any match
       );
 
       // If it doesn't match the search, we can stop here.
