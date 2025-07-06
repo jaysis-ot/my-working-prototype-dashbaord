@@ -435,63 +435,94 @@ const TimelineView = ({ resources, assignments, capabilities }) => {
           })}
         </div>
 
-        {/* resource rows */}
-        {resources.map((res) => (
-          <div
-            key={res.id}
-            className="relative grid grid-cols-[150px_repeat(31,minmax(35px,1fr))] border-b dark:border-secondary-700"
-          >
-            <div className="p-2 font-medium border-r dark:border-secondary-700 flex items-center">
-              {res.name}
-            </div>
-            {days.map((d) => (
-              <div
-                key={d}
-                className="border-r dark:border-secondary-700 h-10 relative"
-              />
-            ))}
+        {/* resource rows with dynamic height */}
+        {resources.map((res) => {
+          const assignmentCount = resourceAssignments[res.id]?.length || 0;
+          const minRowHeight = 40; // px
+          const heightPerAssignment = 20; // px
+          const rowHeight =
+            Math.max(minRowHeight, assignmentCount * heightPerAssignment + 8);
 
-            {/* bars */}
-            {resourceAssignments[res.id].map((a, idx) => {
-              const duration = a.endDay - a.startDay + 1;
-              if (duration <= 0) return null; // skip invalid durations
-              const leftPos = (a.startDay - 1) * cellW + 150; // 150px resource column
-              return (
+          return (
+            <div
+              key={res.id}
+              className="relative grid grid-cols-[150px_repeat(31,minmax(35px,1fr))] border-b dark:border-secondary-700"
+            >
+              {/* Resource name and count */}
+              <div className="p-2 font-medium border-r dark:border-secondary-700 flex items-center">
+                {res.name}
+                {assignmentCount > 0 && (
+                  <Badge variant="secondary" className="ml-2 text-xs">
+                    {assignmentCount}
+                  </Badge>
+                )}
+              </div>
+
+              {/* Day cells */}
+              {days.map((d) => (
                 <div
-                  key={a.id}
-                  className={`absolute ${getColor(
-                    a.timeAllocation,
-                  )} text-white text-[10px] overflow-hidden px-2 flex items-center`}
-                  style={{
-                    left: `${leftPos}px`,
-                    width: duration * cellW,
-                    top: 8 + idx * 18,
-                    height: 16,
-                    borderTopLeftRadius: a.continuesBefore ? 0 : 9999,
-                    borderBottomLeftRadius: a.continuesBefore ? 0 : 9999,
-                    borderTopRightRadius: a.continuesAfter ? 0 : 9999,
-                    borderBottomRightRadius: a.continuesAfter ? 0 : 9999,
-                  }}
-                  title={`${a.capabilityName} (${a.timeAllocation})\n${a.startDate} → ${a.endDate}`}
-                >
-                  {duration * cellW > 80 ? (
-                    <div className="flex items-center space-x-1 whitespace-nowrap w-full">
-                      {a.continuesBefore && <span>◄</span>}
-                      <span className="truncate">{a.capabilityName}</span>
-                      {a.continuesAfter && <span>►</span>}
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center w-full">
-                      {a.continuesBefore && '◄'}
-                      {!a.continuesBefore && !a.continuesAfter && '·'}
-                      {a.continuesAfter && '►'}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ))}
+                  key={d}
+                  className="border-r dark:border-secondary-700 relative"
+                  style={{ height: `${rowHeight}px` }}
+                />
+              ))}
+
+              {/* Assignment bars */}
+              {resourceAssignments[res.id].map((a, idx) => {
+                const duration = a.endDay - a.startDay + 1;
+                if (duration <= 0) return null;
+
+                const leftPos = (a.startDay - 1) * cellW + 150;
+
+                const verticalPadding = 6;
+                const availableHeight = rowHeight - verticalPadding * 2;
+                const verticalSpacing =
+                  assignmentCount > 1
+                    ? Math.min(18, availableHeight / assignmentCount)
+                    : availableHeight;
+                const topPosition = verticalPadding + idx * verticalSpacing;
+
+                return (
+                  <div
+                    key={a.id}
+                    className={`absolute ${getColor(
+                      a.timeAllocation,
+                    )} text-white text-[10px] overflow-hidden px-2 flex items-center`}
+                    style={{
+                      left: `${leftPos}px`,
+                      width: duration * cellW,
+                      top: topPosition,
+                      height: 16,
+                      borderTopLeftRadius: a.continuesBefore ? 0 : 9999,
+                      borderBottomLeftRadius: a.continuesBefore ? 0 : 9999,
+                      borderTopRightRadius: a.continuesAfter ? 0 : 9999,
+                      borderBottomRightRadius: a.continuesAfter ? 0 : 9999,
+                      zIndex: 10,
+                    }}
+                    title={`${a.capabilityName} (${a.timeAllocation})
+From: ${a.startDate}
+To: ${a.endDate}
+Days: ${a.startDay}-${a.endDay}`}
+                  >
+                    {duration * cellW > 80 ? (
+                      <div className="flex items-center space-x-1 whitespace-nowrap w-full">
+                        {a.continuesBefore && <span>◄</span>}
+                        <span className="truncate">{a.capabilityName}</span>
+                        {a.continuesAfter && <span>►</span>}
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center w-full">
+                        {a.continuesBefore && '◄'}
+                        {!a.continuesBefore && !a.continuesAfter && '·'}
+                        {a.continuesAfter && '►'}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -631,14 +662,144 @@ const ResourceDetailsView = ({
   );
 };
 
+/* ---------- Resource Details Modal ---------- */
+const ResourceDetailsModal = ({
+  isOpen,
+  onClose,
+  resource,
+  onSave,
+}) => {
+  const [formData, setFormData] = useState(
+    resource
+      ? {
+          name: resource.name,
+          role: resource.role,
+          teamId: resource.teamId,
+          company: resource.company || '',
+          jobTitle: resource.jobTitle || '',
+          department: resource.department || '',
+          location: resource.location || '',
+          email: resource.email || '',
+          phone: resource.phone || '',
+          capacity: resource.capacity || 40,
+        }
+      : {},
+  );
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (onSave) onSave(resource.id, formData);
+    onClose();
+  };
+
+  if (!isOpen || !resource) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow-xl w-full max-w-2xl">
+        <div className="flex items-center justify-between p-4 border-b dark:border-secondary-700">
+          <h3 className="text-lg font-semibold">{resource.name} – Details</h3>
+          <button
+            onClick={onClose}
+            className="text-secondary-500 hover:text-secondary-700 dark:hover:text-secondary-300"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            {[
+              { label: 'Name', name: 'name', type: 'text', required: true },
+              { label: 'Role', name: 'role', type: 'text', required: true },
+              { label: 'Company', name: 'company', type: 'text' },
+              { label: 'Job Title', name: 'jobTitle', type: 'text' },
+              { label: 'Department', name: 'department', type: 'text' },
+              { label: 'Location', name: 'location', type: 'text' },
+              { label: 'Email', name: 'email', type: 'email' },
+              { label: 'Phone', name: 'phone', type: 'text' },
+            ].map((f) => (
+              <div key={f.name}>
+                <label className="block text-sm font-medium mb-1">
+                  {f.label}
+                  {f.required && ' *'}
+                </label>
+                <input
+                  type={f.type}
+                  name={f.name}
+                  required={f.required}
+                  value={formData[f.name]}
+                  onChange={handleChange}
+                  className="w-full p-2 border border-secondary-300 dark:border-secondary-600 rounded-md dark:bg-secondary-700"
+                />
+              </div>
+            ))}
+            {/* Team selector */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Team</label>
+              <select
+                name="teamId"
+                value={formData.teamId}
+                onChange={handleChange}
+                className="w-full p-2 border border-secondary-300 dark:border-secondary-600 rounded-md dark:bg-secondary-700"
+              >
+                <option value="">Select a team...</option>
+                {mockTeams.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {/* Capacity */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Weekly Capacity (hours)
+              </label>
+              <input
+                type="number"
+                name="capacity"
+                min="1"
+                max="168"
+                value={formData.capacity}
+                onChange={handleChange}
+                className="w-full p-2 border border-secondary-300 dark:border-secondary-600 rounded-md dark:bg-secondary-700"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 border-t dark:border-secondary-700 pt-4">
+            <Button variant="secondary" type="button" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" leadingIcon={Save}>
+              Save Changes
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 /* ---------- Resources Tab (summary & matrix) ---------- */
 const ResourcesView = ({ resources, capabilities, onAssignWork }) => {
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedResource, setSelectedResource] = useState(null);
 
   const handleAssignWork = (resource) => {
     setSelectedResource(resource);
     setIsAssignModalOpen(true);
+  };
+  const handleViewEdit = (resource) => {
+    setSelectedResource(resource);
+    setIsDetailsModalOpen(true);
   };
   // aggregate skills for the matrix
   const allSkills = useMemo(
@@ -691,14 +852,25 @@ const ResourcesView = ({ resources, capabilities, onAssignWork }) => {
                 <td className="p-3">{res.department || '-'}</td>
                 <td className="p-3">{res.location || '-'}</td>
                 <td className="p-3 text-center">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    leadingIcon={ClipboardList}
-                    onClick={() => handleAssignWork(res)}
-                  >
-                    Assign Work
-                  </Button>
+                  <div className="flex justify-center gap-2">
+                    {/* Assign Work */}
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      leadingIcon={ClipboardList}
+                      onClick={() => handleAssignWork(res)}
+                    >
+                      Assign&nbsp;Work
+                    </Button>
+                    {/* View / Edit (placeholder) */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewEdit(res)}
+                    >
+                      View/Edit
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -752,6 +924,20 @@ const ResourcesView = ({ resources, capabilities, onAssignWork }) => {
           resource={selectedResource}
           capabilities={capabilities}
           onAssignWork={onAssignWork}
+        />
+      )}
+
+      {/* Resource details modal */}
+      {isDetailsModalOpen && selectedResource && (
+        <ResourceDetailsModal
+          isOpen={isDetailsModalOpen}
+          onClose={() => setIsDetailsModalOpen(false)}
+          resource={selectedResource}
+          onSave={(id, data) => {
+            // TODO: integrate with persistence layer
+            console.log('Save resource changes', id, data);
+            setIsDetailsModalOpen(false);
+          }}
         />
       )}
     </div>
