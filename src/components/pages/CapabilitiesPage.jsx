@@ -96,8 +96,8 @@ const CapabilitiesPage = () => {
 
  if (loading) {
  return (
- <div className=\flex items-center justify-center h-full\>
- <LoadingSpinner size=\lg\ message=\Loading capabilities...\ />
+ <div className=flex items-center justify-center h-full>
+ <LoadingSpinner size=lg message=Loading capabilities... />
  </div>
  );
  }
@@ -105,14 +105,14 @@ const CapabilitiesPage = () => {
  if (error) {
  return (
  <ErrorDisplay
- title=\Failed to Load Capabilities\
+ title=Failed to Load Capabilities
  message={error.message || 'An unexpected error occurred. Please try refreshing the page.'}
  />
  );
  }
 
  return (
- <div className=\fade-in\>
+ <div className=fade-in>
  {/* 
  The CapabilitiesView organism will be the main presentational component.
  It receives all necessary data and functions as props, keeping it decoupled
