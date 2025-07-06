@@ -24,6 +24,7 @@ const ResourcePlanningPage = lazy(() => import('./components/pages/ResourcePlann
 const MaturityAnalysisPage = lazy(() => import('./components/pages/MaturityAnalysisPage'));
 const ThreatIntelligencePage = lazy(() => import('./components/pages/ThreatIntelligencePage'));
 const RiskManagementPage = lazy(() => import('./components/pages/RiskManagementPage'));
+const TrustPage = lazy(() => import('./components/pages/TrustPage'));
 const AnalyticsPage = lazy(() => import('./components/pages/AnalyticsPage'));
 const PCDBreakdownPage = lazy(() => import('./components/pages/PCDBreakdownPage'));
 const SettingsPage = lazy(() => import('./components/pages/SettingsPage'));
@@ -94,6 +95,8 @@ function App() {
                     <Route path="maturity-analysis" element={<div className="text-2xl font-bold">Maturity Analysis Page</div>} />
                     <Route path="threat-intelligence" element={<div className="text-2xl font-bold">Threat Intelligence Page</div>} />
                     <Route path="risk-management" element={<div className="text-2xl font-bold">Risk Management Page</div>} />
+                    {/* Trust Page */}
+                    <Route path="trust" element={<TrustPage />} />
                     <Route path="analytics" element={<div className="text-2xl font-bold">Analytics Page</div>} />
                     <Route path="pcd-breakdown" element={<div className="text-2xl font-bold">PCD Breakdown Page</div>} />
                     

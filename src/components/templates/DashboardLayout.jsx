@@ -17,6 +17,7 @@ import {
   Layers,
   BookOpen,
   Building2,
+  Heart,
   Settings as SettingsIcon,
 } from 'lucide-react';
 import { useDashboardUI } from '../../contexts/DashboardUIContext';
@@ -57,6 +58,7 @@ const DashboardLayout = ({ children }) => {
     Layers,
     BookOpen,
     Building2,
+    Heart,
     Settings: SettingsIcon,
   };
 
@@ -78,6 +80,7 @@ const DashboardLayout = ({ children }) => {
     { id: 'standards-frameworks', label: 'Standards & Frameworks', icon: 'BookOpen' },
     { id: 'threat-intelligence', label: 'Threat Intelligence', icon: 'AlertTriangle' },
     { id: 'risk-management', label: 'Risk Management', icon: 'Target' },
+    { id: 'trust', label: 'Trust', icon: 'Heart' },
     { id: 'settings', label: 'Settings', icon: 'Settings' },
   ];
 
