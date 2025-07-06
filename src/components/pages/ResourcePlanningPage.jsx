@@ -372,7 +372,7 @@ const TimelineView = ({ resources, assignments, capabilities }) => {
      across the correct span.  This was previously 25 px which caused
      assignments to appear only half-width.  Aligning to 35 px fixes
      the truncation issue. */
-  const cellW = 35; // px
+  const cellW = 60; // px - wider cells to ensure full visibility on desktop
   const goMonth = (delta) =>
     setCurrentMonth(
       new Date(currentMonth.getFullYear(), currentMonth.getMonth() + delta, 1),
