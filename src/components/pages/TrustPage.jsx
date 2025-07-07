@@ -1,97 +1,56 @@
 import React from 'react';
 import { Shield } from 'lucide-react';
-import LoadingSpinner from '../atoms/LoadingSpinner';
-import ErrorDisplay from '../molecules/ErrorDisplay';
-import { useTrustData } from '../../hooks/useTrustData';
 
 /**
- * A minimal React Error Boundary.
- * Catches runtime errors in any of the child components and displays a fallback UI.
- */
-class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error, info) {
-    // Log error details for debugging
-    /* eslint-disable no-console */
-    console.error('[TrustPage ErrorBoundary] Caught error:', error, info);
-    /* eslint-enable no-console */
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="dashboard-card p-6">
-          <h2 className="text-xl font-bold text-red-600 mb-2">Something went wrong.</h2>
-          <p className="text-secondary-600 dark:text-secondary-400">
-            {this.state.error?.message || 'Unknown error'}
-          </p>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
-// Prop validation is optional here; ErrorBoundary is strictly internal.
-
-/**
- * TrustPage Component
- * 
- * Provides a high-level, user-friendly overview of the Cybersecurity Trust Scoring framework.
- * It translates the complex mathematical model into understandable concepts for stakeholders.
+ * Extremely simple, self-contained Trust page.
+ * – No external hooks
+ * – Hard-coded mock data
+ * – Try/catch guarding render
+ * – Very verbose logging for troubleshooting
  */
 const TrustPage = () => {
-  // Debug log to confirm component render
-  console.log('TrustPage component rendered');
+  /* eslint-disable no-console */
+  console.log('[TrustPage] render start');
 
-  const { data: trustData, loading, error } = useTrustData();
+  // Simple mock data
+  const mockData = {
+    overallScore: 78.5,
+    scoreDelta: -1.2
+  };
+  console.log('[TrustPage] mock data:', mockData);
 
-  // Debug log to inspect hook state transitions
-  React.useEffect(() => {
-    console.log('TrustPage state update:', { loading, error, trustData });
-  }, [loading, error, trustData]);
-
-  if (loading) {
-    return <LoadingSpinner fullScreen message="Calculating Trust Score..." />;
-  }
-
-  if (error) {
-    return <ErrorDisplay title="Could not load Trust Score data" message={error.message} />;
-  }
-
-  return (
-    <ErrorBoundary>
-      <div className="dashboard-card p-6 space-y-4">
-        <h1 className="text-2xl font-bold text-secondary-900 dark:text-white flex items-center">
-          <Shield className="h-7 w-7 mr-2 text-primary-600" />
-          Cybersecurity Trust Score
+  try {
+    return (
+      <div style={{ padding: 24 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, display: 'flex', alignItems: 'center' }}>
+          <Shield size={28} style={{ marginRight: 8, color: '#3b82f6' }} />
+          Cybersecurity Trust Score (Standalone)
         </h1>
 
-        <p className="text-secondary-600 dark:text-secondary-300">
-          Your current overall Trust Score is:
+        <p style={{ marginTop: 12 }}>Your current overall Trust Score is:</p>
+
+        <p style={{ fontSize: 56, fontWeight: 800, color: '#3b82f6', margin: '12px 0' }}>
+          {mockData.overallScore.toFixed(1)}
         </p>
 
-        <p className="text-6xl font-extrabold text-primary-600 dark:text-primary-400">
-          {trustData.overallScore.toFixed(1)}
+        <p style={{ fontSize: 14 }}>
+          {mockData.scoreDelta >= 0 ? '▲' : '▼'} {mockData.scoreDelta.toFixed(1)} in the last 30 days
         </p>
 
-        <p className="text-secondary-500 dark:text-secondary-400 text-sm">
-          {trustData.scoreDelta >= 0 ? '▲' : '▼'} {trustData.scoreDelta.toFixed(1)} in the last 30 days
-        </p>
-
-        <p className="text-xs text-secondary-500 dark:text-secondary-400">
-          (Detailed visualizations are temporarily disabled while we troubleshoot rendering issues)
+        <p style={{ fontSize: 12, marginTop: 12 }}>
+          (This minimal view is for debugging only – no external data or complex visuals.)
         </p>
       </div>
-    </ErrorBoundary>
-  );
+    );
+  } catch (e) {
+    console.error('[TrustPage] render error:', e);
+    return (
+      <div style={{ padding: 24, color: 'red' }}>
+        <h2>Trust Page failed to render.</h2>
+        <pre>{String(e)}</pre>
+      </div>
+    );
+  }
 };
 
 export default TrustPage;
