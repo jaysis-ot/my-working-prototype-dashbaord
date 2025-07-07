@@ -89,16 +89,16 @@ function App() {
                     <Route path="settings" element={<SettingsPage />} />
 
                     {/* Placeholder Pages */}
-                    <Route path="requirements" element={<div className="text-2xl font-bold">Requirements Page</div>} />
-                    <Route path="capabilities" element={<div className="text-2xl font-bold">Capabilities Page</div>} />
-                    <Route path="resources" element={<div className="text-2xl font-bold">Resource Planning Page</div>} />
-                    <Route path="maturity-analysis" element={<div className="text-2xl font-bold">Maturity Analysis Page</div>} />
-                    <Route path="threat-intelligence" element={<div className="text-2xl font-bold">Threat Intelligence Page</div>} />
-                    <Route path="risk-management" element={<div className="text-2xl font-bold">Risk Management Page</div>} />
+                    <Route path="requirements" element={<RequirementsPage />} />
+                    <Route path="capabilities" element={<CapabilitiesPage />} />
+                    <Route path="resources" element={<ResourcePlanningPage />} />
+                    <Route path="maturity-analysis" element={<MaturityAnalysisPage />} />
+                    <Route path="threat-intelligence" element={<ThreatIntelligencePage />} />
+                    <Route path="risk-management" element={<RiskManagementPage />} />
                     {/* Trust Page */}
                     <Route path="trust" element={<TrustPage />} />
-                    <Route path="analytics" element={<div className="text-2xl font-bold">Analytics Page</div>} />
-                    <Route path="pcd-breakdown" element={<div className="text-2xl font-bold">PCD Breakdown Page</div>} />
+                    <Route path="analytics" element={<AnalyticsPage />} />
+                    <Route path="pcd-breakdown" element={<PCDBreakdownPage />} />
                     
                     {/* Default route within the dashboard */}
                     <Route path="*" element={<Navigate to="/dashboard/overview" replace />} />
