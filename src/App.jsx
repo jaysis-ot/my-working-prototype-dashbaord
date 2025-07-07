@@ -1,10 +1,10 @@
-import React, { Suspense, lazy, useContext } from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
 // Context Providers
 import { ThemeProvider } from './contexts/ThemeContext';
-import { JWTAuthProvider as AuthProvider } from './auth/JWTAuthProvider';
+import { AuthProvider, useAuth } from './components/auth/AuthProvider';
 import { DashboardUIProvider } from './contexts/DashboardUIContext';
 
 // Feature Context Providers - to be created
@@ -33,10 +33,8 @@ import TrustPage from './components/pages/TrustPage';
 // -------------------------------------------------------------------
 //  AUTH / ROUTE GUARD HELPERS
 // -------------------------------------------------------------------
-import { AuthContext } from './auth/JWTAuthProvider';
-
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useContext(AuthContext);
+  const { isAuthenticated, loading } = useAuth();
   if (loading) return <LoadingFallback />;
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 };

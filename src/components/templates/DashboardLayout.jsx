@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import {
   Menu,
@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { useDashboardUI } from '../../contexts/DashboardUIContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { AuthContext } from '../../auth/JWTAuthProvider';
+import { useAuth } from '../auth/AuthProvider';
 
 /**
  * DashboardLayout Template Component
@@ -46,7 +46,7 @@ const DashboardLayout = ({ children }) => {
   } = useDashboardUI();
   
   const { themeClasses } = useTheme();
-  const { user, logout } = useContext(AuthContext);
+  const { user, logout } = useAuth();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   // Get user initials for avatar
