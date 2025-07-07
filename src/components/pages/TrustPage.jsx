@@ -45,7 +45,15 @@ const InfoCard = ({ icon: Icon, title, children, color = 'primary' }) => (
  * It translates the complex mathematical model into understandable concepts for stakeholders.
  */
 const TrustPage = () => {
+  // Debug log to confirm component render
+  console.log('TrustPage component rendered');
+
   const { data: trustData, loading, error } = useTrustData();
+
+  // Debug log to inspect hook state transitions
+  React.useEffect(() => {
+    console.log('TrustPage state update:', { loading, error, trustData });
+  }, [loading, error, trustData]);
 
   if (loading) {
     return <LoadingSpinner fullScreen message="Calculating Trust Score..." />;

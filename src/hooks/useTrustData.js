@@ -17,6 +17,9 @@ import { useState, useEffect } from 'react';
  * }}
  */
 export const useTrustData = () => {
+  // Debug: confirm hook invocation
+  console.log('[useTrustData] Hook invoked');
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -63,7 +66,7 @@ export const useTrustData = () => {
           },
 
           // This object breaks down the Evidence Tensor (Ē) into its four pillars.
-          // These are the foundational inputs for the "weightedEvidence" component.
+          // These are the foundational inputs for the 'weightedEvidence' component.
           evidencePillars: {
             // E₁: Intent. Measures documented policies, governance, and stated security goals.
             intent: 92,
@@ -79,9 +82,14 @@ export const useTrustData = () => {
           }
         };
 
+        // Debug: show generated mock data
+        console.log('[useTrustData] Mock data generated:', mockTrustData);
+
         // Simulate network delay
         setTimeout(() => {
           setData(mockTrustData);
+          // Debug: confirm state update
+          console.log('[useTrustData] Data set in state:', mockTrustData);
           setLoading(false);
         }, 800);
         
