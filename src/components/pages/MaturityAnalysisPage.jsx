@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Cell,
 } from 'recharts';
 import { TrendingUp, Gauge, Target, Lightbulb, Filter, Eye } from 'lucide-react';
 
@@ -11,7 +11,6 @@ import { useAnalytics } from '../../hooks/useAnalytics';
 import LoadingSpinner from '../atoms/LoadingSpinner';
 import ErrorDisplay from '../molecules/ErrorDisplay';
 import Button from '../atoms/Button';
-import Badge from '../atoms/Badge';
 
 // --- Internal Reusable Components (Molecules) ---
 
