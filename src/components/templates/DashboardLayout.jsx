@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Link } from 'react-router-dom'; // Import Link for direct navigation
+// No special Link imports needed; all navigation handled uniformly
 import {
   Menu,
   X,
@@ -148,34 +148,7 @@ const DashboardLayout = ({ children }) => {
                   ${!sidebarExpanded ? 'justify-center' : ''}
                 `;
 
-                // ==================================================================
-                // FAULT-FINDING FIX: Direct Link for Trust Page
-                // ==================================================================
-                // The Trust page was failing to load reliably via the setViewMode 
-                // context handler. To ensure it works, this specific item uses a 
-                // direct React Router <Link> component, bypassing the custom 
-                // navigation logic for a more robust and direct navigation path.
-                if (item.id === 'trust') {
-                  return (
-                    <Link
-                      key={item.id}
-                      to="/dashboard/trust"
-                      className={commonClasses}
-                      aria-current={viewMode === item.id ? 'page' : undefined}
-                      // When this link is clicked, we still call setViewMode to
-                      // ensure the sidebar's active state is updated correctly.
-                      onClick={() => setViewMode(item.id)}
-                    >
-                      <Icon
-                        className={`w-6 h-6 flex-shrink-0 ${!sidebarExpanded ? '' : 'mr-3'}`}
-                        aria-hidden="true"
-                      />
-                      {sidebarExpanded && <span className="truncate text-base">{item.label}</span>}
-                    </Link>
-                  );
-                }
-
-                // Default rendering for all other navigation items
+                // Unified rendering for **all** navigation items (including Trust)
                 return (
                   <button
                     key={item.id}

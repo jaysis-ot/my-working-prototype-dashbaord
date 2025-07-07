@@ -28,32 +28,8 @@ const AnalyticsPage = lazy(() => import('./components/pages/AnalyticsPage'));
 const PCDBreakdownPage = lazy(() => import('./components/pages/PCDBreakdownPage'));
 const SettingsPage = lazy(() => import('./components/pages/SettingsPage'));
 
-/* -------------------------------------------------------------------- *
- *  TRUST PAGE – ‼️  DO **NOT** LAZY-LOAD  ‼️                            *
- *  ------------------------------------------------------------------  *
- *  Because the Trust page has been the source of several render        *
- *  failures, we import it directly.  This guarantees that:             *
- *    1.  The component bundle is included up-front.                    *
- *    2.  We can easily debug compile-time errors.                      *
- *  We also declare a tiny fallback component that is *always*          *
- *  available should navigation to `/dashboard/trust` fail for          *
- *  any reason (e.g. React boundary crash).                             *
- * -------------------------------------------------------------------- */
+// Trust Page is imported directly as a static placeholder to ensure it always loads.
 import TrustPage from './components/pages/TrustPage';
-
-// ultra-light back-up view so the route never “black-screens”
-const TrustPageFallback = () => (
-  <div className="p-6 text-center">
-    <h2 className="text-xl font-semibold mb-4">
-      Trust Page Fallback
-    </h2>
-    <p className="text-secondary-600 dark:text-secondary-400">
-      The primary Trust page failed to render – showing fallback view.
-    </p>
-    {/* Render primary component anyway so devs still get stack-traces */}
-    <TrustPage />
-  </div>
-);
 
 // A simple wrapper for providers to keep the App component clean
 const AppProviders = ({ children }) => {
@@ -122,9 +98,7 @@ function App() {
                     <Route path="threat-intelligence" element={<ThreatIntelligencePage />} />
                     <Route path="risk-management" element={<RiskManagementPage />} />
 
-                    {/* =================================================== *
-                     *               T R U S T    P A G E                  *
-                     * =================================================== */}
+                    {/* Static Placeholder Trust Page */}
                     <Route
                       path="trust"
                       element={<TrustPage />}
@@ -132,12 +106,6 @@ function App() {
 
                     <Route path="analytics" element={<AnalyticsPage />} />
                     <Route path="pcd-breakdown" element={<PCDBreakdownPage />} />
-
-                    {/* --- Back-up route in case the one above blows up --- */}
-                    <Route
-                      path="trust-fallback"
-                      element={<TrustPageFallback />}
-                    />
                     
                     {/* Default route within the dashboard */}
                     <Route path="*" element={<Navigate to="/dashboard/overview" replace />} />
@@ -145,15 +113,6 @@ function App() {
                 </DashboardLayout>
               }
             />
-            
-            {/* ------------------------------------------------------------------ *
-             *  DIRECT TRUST TEST ROUTE                                           *
-             * ------------------------------------------------------------------ *
-             *  Bypasses DashboardLayout entirely so we can isolate whether the   *
-             *  issue is in the TrustPage component itself or in its integration. *
-             *  Visiting  /trust-direct  should always render the TrustPage.      *
-             * ------------------------------------------------------------------ */}
-            <Route path="/trust-direct" element={<TrustPage />} />
             
             {/* Redirect root to dashboard */}
             <Route path="/" element={<Navigate to="/dashboard/overview" replace />} />
