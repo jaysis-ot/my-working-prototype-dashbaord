@@ -1,10 +1,10 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useContext } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
 // Context Providers
 import { ThemeProvider } from './contexts/ThemeContext';
-// import { AuthProvider } from './contexts/AuthContext'; // To be created
+import { JWTAuthProvider as AuthProvider } from './auth/JWTAuthProvider';
 import { DashboardUIProvider } from './contexts/DashboardUIContext';
 
 // Feature Context Providers - to be created
@@ -28,14 +28,24 @@ const AnalyticsPage = lazy(() => import('./components/pages/AnalyticsPage'));
 const PCDBreakdownPage = lazy(() => import('./components/pages/PCDBreakdownPage'));
 const SettingsPage = lazy(() => import('./components/pages/SettingsPage'));
 
-// Trust Page is imported directly as a static placeholder to ensure it always loads.
 import TrustPage from './components/pages/TrustPage';
+
+// -------------------------------------------------------------------
+//  AUTH / ROUTE GUARD HELPERS
+// -------------------------------------------------------------------
+import { AuthContext } from './auth/JWTAuthProvider';
+
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, loading } = useContext(AuthContext);
+  if (loading) return <LoadingFallback />;
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
+};
 
 // A simple wrapper for providers to keep the App component clean
 const AppProviders = ({ children }) => {
   return (
     <ThemeProvider>
-      {/* <AuthProvider> */}
+      <AuthProvider>
           <DashboardUIProvider>
             {/* <RequirementsProvider> */}
               {/* <CapabilitiesProvider> */}
@@ -45,7 +55,7 @@ const AppProviders = ({ children }) => {
               {/* </CapabilitiesProvider> */}
             {/* </RequirementsProvider> */}
           </DashboardUIProvider>
-      {/* </AuthProvider> */}
+      </AuthProvider>
     </ThemeProvider>
   );
 };
@@ -78,13 +88,14 @@ function App() {
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
             {/* Authentication Route - Placeholder */}
-            {/* <Route path="/login" element={<LoginPage />} /> */}
+            <Route path="/login" element={<LoginPage />} />
             
             {/* Dashboard Routes */}
             <Route
               path="/dashboard/*"
               element={
-                <DashboardLayout>
+                <ProtectedRoute>
+                  <DashboardLayout>
                   <Routes>
                     {/* Implemented Pages */}
                     <Route path="overview" element={<OverviewPage />} />
@@ -99,10 +110,7 @@ function App() {
                     <Route path="risk-management" element={<RiskManagementPage />} />
 
                     {/* Static Placeholder Trust Page */}
-                    <Route
-                      path="trust"
-                      element={<TrustPage />}
-                    />
+                    <Route path="trust" element={<TrustPage />} />
 
                     <Route path="analytics" element={<AnalyticsPage />} />
                     <Route path="pcd-breakdown" element={<PCDBreakdownPage />} />
@@ -110,7 +118,8 @@ function App() {
                     {/* Default route within the dashboard */}
                     <Route path="*" element={<Navigate to="/dashboard/overview" replace />} />
                   </Routes>
-                </DashboardLayout>
+                  </DashboardLayout>
+                </ProtectedRoute>
               }
             />
             

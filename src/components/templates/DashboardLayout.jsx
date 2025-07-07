@@ -1,6 +1,5 @@
-import React from 'react';
+import React, { useState, useContext } from 'react';
 import PropTypes from 'prop-types';
-// No special Link imports needed; all navigation handled uniformly
 import {
   Menu,
   X,
@@ -20,9 +19,12 @@ import {
   Building2,
   Heart,
   Settings as SettingsIcon,
+  LogOut,
+  User as UserIcon
 } from 'lucide-react';
 import { useDashboardUI } from '../../contexts/DashboardUIContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { AuthContext } from '../../auth/JWTAuthProvider';
 
 /**
  * DashboardLayout Template Component
@@ -44,6 +46,23 @@ const DashboardLayout = ({ children }) => {
   } = useDashboardUI();
   
   const { themeClasses } = useTheme();
+  const { user, logout } = useContext(AuthContext);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
+  // Get user initials for avatar
+  const userInitials = React.useMemo(() => {
+    if (user?.name) {
+      const parts = user.name.split(' ');
+      if (parts.length > 1) {
+        return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+      }
+      return user.name.substring(0, 2).toUpperCase();
+    }
+    if (user?.email) {
+      return user.email.substring(0, 2).toUpperCase();
+    }
+    return '??';
+  }, [user]);
 
   // Map icon names to actual Lucide icon components
   const iconMap = {
@@ -110,12 +129,51 @@ const DashboardLayout = ({ children }) => {
           </div>
         </div>
 
-        {/* Header right section - placeholder for user menu, notifications, etc. */}
-        <div className="flex items-center space-x-4">
-          {/* These will be replaced with actual components later */}
-          <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
-            <span className="text-primary-600 dark:text-primary-400 text-sm font-medium">JD</span>
-          </div>
+        {/* Header right section - User menu */}
+        <div className="relative">
+          <button
+            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+            className="w-9 h-9 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center ring-2 ring-offset-2 ring-offset-background-light dark:ring-offset-background-dark ring-primary-500"
+            aria-label="Open user menu"
+            aria-haspopup="true"
+            aria-expanded={isUserMenuOpen}
+          >
+            <span className="text-primary-600 dark:text-primary-400 text-sm font-medium">{userInitials}</span>
+          </button>
+
+          {isUserMenuOpen && (
+            <div 
+              className="absolute right-0 mt-2 w-64 bg-white dark:bg-secondary-800 rounded-lg shadow-xl border border-secondary-200 dark:border-secondary-700 z-50"
+              role="menu"
+              aria-orientation="vertical"
+              aria-labelledby="user-menu-button"
+            >
+              <div className="p-4 border-b border-secondary-200 dark:border-secondary-700">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
+                    <UserIcon className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-secondary-900 dark:text-white truncate">{user?.name || 'User'}</p>
+                    <p className="text-sm text-secondary-500 dark:text-secondary-400 truncate">{user?.email}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-2">
+                <button
+                  onClick={() => {
+                    logout();
+                    setIsUserMenuOpen(false);
+                  }}
+                  className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-secondary-700 dark:text-secondary-300 hover:bg-secondary-100 dark:hover:bg-secondary-700 rounded-md"
+                  role="menuitem"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </header>
       
@@ -196,7 +254,7 @@ const DashboardLayout = ({ children }) => {
                   <div className="text-xs text-secondary-400 mb-1">Trust Score</div>
                   <div className="flex items-center">
                     <div className="text-lg font-semibold text-white">78</div>
-                    <div className="ml-auto px-1.5 py-0.5 rounded-full bg-status-warning bg-opacity-20 text-status-warning text-xs">
+                    <div className="ml-auto px-1.5 py-0.5 rounded-full bg-yellow-500 bg-opacity-20 text-yellow-400 text-xs">
                       -3 Δ
                     </div>
                   </div>
