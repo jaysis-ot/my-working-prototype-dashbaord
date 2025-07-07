@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Standalone Trust Page Test</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --card-dark: #1e293b;
+            --text-primary-dark: #f1f5f9;
+            --text-secondary-dark: #94a3b8;
+            --border-dark: #334155;
+            --primary-accent: #3b82f6;
+            --red-accent: #ef4444;
+            --green-accent: #10b981;
+            --yellow-accent: #f59e0b;
+            --purple-accent: #8b5cf6;
+            --orange-accent: #f97316;
+            --teal-accent: #14b8a6;
+            --pink-accent: #ec4899;
+            --indigo-accent: #6366f1;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-primary-dark);
+            margin: 0;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header h1 {
+            font-size: 2.25rem;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .header p {
+            color: var(--text-secondary-dark);
+            max-width: 60ch;
+            margin-top: 0.5rem;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 1.5rem;
+        }
+        
+        .card {
+            background-color: var(--card-dark);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            border: 1px solid var(--border-dark);
+        }
+
+        .score-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: linear-gradient(145deg, #4f46e5, #3b82f6);
+            color: white;
+        }
+
+        .score-card .score-value {
+            font-size: 4rem;
+            font-weight: 800;
+            margin: 0.5rem 0;
+        }
+
+        .score-card .score-delta {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            background-color: rgba(239, 68, 68, 0.5); /* Red for negative delta */
+        }
+
+        .factors-grid, .pillars-grid, .deep-dive-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .factors-grid { grid-template-columns: repeat(3, 1fr); }
+        .pillars-grid { grid-template-columns: repeat(4, 1fr); }
+        .deep-dive-grid { grid-template-columns: repeat(2, 1fr); }
+
+        .info-card {
+            background-color: var(--card-dark);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        
+        .info-card .icon-container {
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+        }
+
+        .info-card h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .info-card p, .info-card ul {
+            font-size: 0.875rem;
+            color: var(--text-secondary-dark);
+            margin: 0;
+            line-height: 1.5;
+        }
+        
+        .info-card ul {
+            list-style-type: disc;
+            padding-left: 1.25rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Icon Colors */
+        .icon-blue { background-color: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .icon-purple { background-color: rgba(139, 92, 246, 0.2); color: #a78bfa; }
+        .icon-red { background-color: rgba(239, 68, 68, 0.2); color: #f87171; }
+        .icon-orange { background-color: rgba(249, 115, 22, 0.2); color: #fb923c; }
+        .icon-yellow { background-color: rgba(234, 179, 8, 0.2); color: #facc15; }
+        .icon-gray { background-color: rgba(100, 116, 139, 0.2); color: #94a3b8; }
+        .icon-green { background-color: rgba(16, 185, 129, 0.2); color: #34d399; }
+        .icon-indigo { background-color: rgba(99, 102, 241, 0.2); color: #818cf8; }
+        .icon-pink { background-color: rgba(236, 72, 153, 0.2); color: #f472b6; }
+        .icon-teal { background-color: rgba(20, 184, 166, 0.2); color: #2dd4bf; }
+
+        @media (max-width: 1024px) {
+            .main-grid { grid-template-columns: 1fr; }
+            .factors-grid { grid-template-columns: repeat(2, 1fr); }
+            .pillars-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 768px) {
+            body { padding: 1rem; }
+            .factors-grid, .pillars-grid, .deep-dive-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Page Header -->
+        <div class="header">
+            <!-- Shield Icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary-accent);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            <div>
+                <h1>Cybersecurity Trust Score</h1>
+                <p>This page provides a transparent overview of how your organization's Trust Score is calculated. Our model is a dynamic, multi-faceted framework designed to provide a realistic and actionable measure of cybersecurity trustworthiness.</p>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <div class="score-card">
+                <p style="font-weight: 600;">Overall Trust Score</p>
+                <p class="score-value">78.5</p>
+                <div class="score-delta">
+                    <span style="margin-right: 0.25rem;">▼</span> -1.2
+                    <span style="margin-left: 0.5rem; opacity: 0.8;">Last 30 days</span>
+                </div>
+                <p style="font-size: 0.75rem; opacity: 0.8; margin-top: 1rem;">A score from 0 to 100 representing the overall trustworthiness of your cybersecurity posture.</p>
+            </div>
+            <div class="card">
+                <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">Core Calculation: The 6 Key Factors</h3>
+                <p style="font-size: 0.875rem; color: var(--text-secondary-dark); margin-bottom: 1rem;">Your Trust Score is not a single metric, but a composite derived from six fundamental factors, each providing a unique perspective on your security posture.</p>
+                <div class="factors-grid">
+                    <!-- Info Cards for Factors -->
+                    <div class="info-card">
+                        <div class="icon-container icon-blue"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></div>
+                        <div><h3>Weighted Evidence</h3><p>The foundation of the score, based on all collected security data. More recent evidence carries more weight.</p></div>
+                    </div>
+                    <div class="info-card">
+                        <div class="icon-container icon-purple"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg></div>
+                        <div><h3>Business Context</h3><p>Adjusts the score based on the criticality of your systems and data to the business mission.</p></div>
+                    </div>
+                    <div class="info-card">
+                        <div class="icon-container icon-red"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg></div>
+                        <div><h3>Adversarial Adaptation</h3><p>Models how effectively your defenses adapt to the constantly evolving threat landscape.</p></div>
+                    </div>
+                    <div class="info-card">
+                        <div class="icon-container icon-orange"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12.5a2.5 2.5 0 1 0 5 0 2.5 2.5 0 1 0-5 0Z"></path><path d="M10 12.5h5"></path><path d="m14 17 1-1"></path><path d="m7 11-1-1"></path><path d="M20 12h-5"></path><path d="M4 12H2"></path><path d="m20 5-1 1"></path><path d="m4 19 1-1"></path><path d="m17 14 1 1"></path><path d="M11 7 9 9"></path><path d="M12 2v2"></path><path d="M12 20v2"></path></svg></div>
+                        <div><h3>Attack Surface</h3><p>Accounts for the size and complexity of your digital footprint. A larger surface is harder to defend.</p></div>
+                    </div>
+                    <div class="info-card">
+                        <div class="icon-container icon-yellow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><path d="M20 8v6"></path><path d="M22 11h-4"></path></svg></div>
+                        <div><h3>Systemic Risk</h3><p>Considers risks inherited from interconnected third-party vendors and partners.</p></div>
+                    </div>
+                    <div class="info-card">
+                        <div class="icon-container icon-gray"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></div>
+                        <div><h3>Uncertainty</h3><p>A built-in margin for error, acknowledging that no security measurement can be 100% perfect.</p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pillars Section -->
+        <div class="card">
+            <h2 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">What We Measure: The Four Pillars of Evidence</h2>
+            <p style="color: var(--text-secondary-dark); margin-bottom: 1.5rem; max-width: 80ch;">The "Weighted Evidence" factor is the most significant part of your score. It is built upon four distinct pillars of evidence that provide a holistic view of your security program.</p>
+            <div class="pillars-grid">
+                <!-- Info Cards for Pillars -->
+                <div class="info-card">
+                    <div class="icon-container icon-blue"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div>
+                    <div><h3>Intent</h3><p>This pillar measures your stated security goals and policies.</p><ul><li>Security Policies & Standards</li><li>Governance Documentation</li><li>Stated Risk Appetite</li></ul></div>
+                </div>
+                <div class="info-card">
+                    <div class="icon-container icon-green"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"></rect><path d="M12 12h.01"></path><path d="M17 12h.01"></path><path d="M7 12h.01"></path></svg></div>
+                    <div><h3>Implementation</h3><p>This measures how well your intentions are translated into actual security controls.</p><ul><li>Firewall Configurations</li><li>Access Control Lists (ACLs)</li><li>Endpoint Protection Deployment</li></ul></div>
+                </div>
+                <div class="info-card">
+                    <div class="icon-container icon-yellow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></div>
+                    <div><h3>Behavioral</h3><p>This pillar analyzes real-time activity to see how your controls perform in practice.</p><ul><li>Network Traffic Logs</li><li>Authentication Events</li><li>System Alerts & Events</li></ul></div>
+                </div>
+                <div class="info-card">
+                    <div class="icon-container icon-red"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg></div>
+                    <div><h3>Validation</h3><p>This provides independent verification that your controls are effective.</p><ul><li>Penetration Test Results</li><li>Vulnerability Scans</li><li>Third-Party Audits</li></ul></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Deep Dive Section -->
+        <div class="card">
+            <h2 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">Deep Dive: How Key Factors Are Modeled</h2>
+            <p style="color: var(--text-secondary-dark); margin-bottom: 1.5rem; max-width: 80ch;">Our framework uses advanced modeling to ensure the score is dynamic and realistic. Here’s a glimpse into the logic behind some of the key factors.</p>
+            <div class="deep-dive-grid">
+                <div class="info-card">
+                    <div class="icon-container icon-indigo"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div>
+                    <div><h3>The Weight of Time (Memory Kernel)</h3><p>The model gives more importance to recent events but never completely forgets the past. This is achieved through an "evidence half-life" system, where the influence of older data gradually decays. It also recognizes cyclical business activities like quarterly audits or annual policy reviews, giving them appropriate weight when they occur.</p></div>
+                </div>
+                <div class="info-card">
+                    <div class="icon-container icon-pink"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 19a6 6 0 0 0-12 0v2a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-2Z"></path><path d="M10 19c-4.4 0-8-3.6-8-8a8 8 0 0 1 8-8c.5 0 1 0 1.5.1"></path><path d="M20.1 2.4a2.4 2.4 0 0 1 3.5 0L22 4l-1.5 1.5"></path><path d="m20.5 5.5 1.5-1.5"></path><path d="M12 13h.01"></path><path d="M12 9h.01"></path><path d="m15 12-.5-2-.5 2"></path><path d="m15 12 2 .5-2 .5"></path></svg></div>
+                    <div><h3>The Human Element</h3><p>The model recognizes that security is not just about technology. It incorporates the human factor by assessing the effectiveness of security training, the level of employee awareness, and the potential for insider threats. A strong security culture positively influences the score.</p></div>
+                </div>
+                <div class="info-card">
+                    <div class="icon-container icon-teal"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg></div>
+                    <div><h3>Model Integrity & Validation</h3><p>To ensure the Trust Score is itself trustworthy, the framework is built for rigorous academic and empirical validation. It includes mechanisms for quantifying uncertainty, performing sensitivity analysis on its parameters, and undergoing statistical tests to confirm its accuracy and reliability against real-world data.</p></div>
+                </div>
+                <div class="info-card">
+                    <div class="icon-container icon-red"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg></div>
+                    <div><h3>Adversarial Adaptation</h3><p>A static defense is a losing defense. This model component acknowledges that attackers constantly adapt. It assesses how agile your security program is and adjusts the score based on your ability to keep pace with emerging threats and adversarial tactics, preventing a false sense of security.</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

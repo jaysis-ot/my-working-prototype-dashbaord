@@ -146,6 +146,15 @@ function App() {
               }
             />
             
+            {/* ------------------------------------------------------------------ *
+             *  DIRECT TRUST TEST ROUTE                                           *
+             * ------------------------------------------------------------------ *
+             *  Bypasses DashboardLayout entirely so we can isolate whether the   *
+             *  issue is in the TrustPage component itself or in its integration. *
+             *  Visiting  /trust-direct  should always render the TrustPage.      *
+             * ------------------------------------------------------------------ */}
+            <Route path="/trust-direct" element={<TrustPage />} />
+            
             {/* Redirect root to dashboard */}
             <Route path="/" element={<Navigate to="/dashboard/overview" replace />} />
             
