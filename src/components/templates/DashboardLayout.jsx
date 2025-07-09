@@ -225,8 +225,7 @@ const DashboardLayout = ({ children }) => {
         </div>
         </main>
       </div>{/* end right column */}
-      </div>{/* end flex container */}
-    </div>
+    </div>{/* end flex container */}
   );
 };
 
