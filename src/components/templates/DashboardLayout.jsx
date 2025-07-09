@@ -90,32 +90,7 @@ const DashboardLayout = ({ children }) => {
   ];
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-background-light dark:bg-background-dark">
-      {/* ---------------------------------------------------------------- */}
-      {/* Global Header – spans full width, 64 px tall                   */}
-      {/* ---------------------------------------------------------------- */}
-      <header
-        className={`${themeClasses.header} h-16 flex items-center justify-between px-4 z-30 shadow-sm`}
-      >
-        {/* Mobile sidebar toggle */}
-        <button
-          className="p-2 rounded-md text-secondary-500 hover:bg-secondary-100 dark:hover:bg-secondary-700 md:hidden"
-          onClick={handleSidebarToggle}
-          aria-label={sidebarExpanded ? 'Close sidebar' : 'Open sidebar'}
-        >
-          {sidebarExpanded ? <X size={20} /> : <Menu size={20} />}
-        </button>
-
-        {/* Right-side utilities */}
-        <div className="flex items-center space-x-4 ml-auto">
-          <UserSettingsDropdown />
-        </div>
-      </header>
-
-      {/* ---------------------------------------------------------------- */}
-      {/* Main area holding sidebar + page content                         */}
-      {/* ---------------------------------------------------------------- */}
-      <div className="flex flex-1 overflow-hidden">
+    <div className="h-screen flex overflow-hidden bg-background-light dark:bg-background-dark">
       {/* Sidebar - now full height */}
       <aside 
         className={`
@@ -123,8 +98,7 @@ const DashboardLayout = ({ children }) => {
           ${sidebarExpanded ? 'w-64' : 'w-16'} 
           transition-all duration-300 ease-in-out 
           fixed md:relative 
-          top-16
-          h-[calc(100vh-4rem)]
+          h-screen
           z-40 md:z-auto 
           ${sidebarExpanded ? 'left-0' : '-left-64 md:left-0'}
           shadow-lg md:shadow-none
@@ -208,11 +182,34 @@ const DashboardLayout = ({ children }) => {
         </div>
       </aside>
       
-      {/* Main content area */}
-      <main 
-        className="flex-1 flex flex-col overflow-hidden"
-        aria-label="Dashboard content"
-      >
+      {/* ------------ Right-side column: Header + Page content ---------- */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* ------------------------------------------------------------- */}
+        {/* Header (spans full width of content area)                    */}
+        {/* ------------------------------------------------------------- */}
+        <header
+          className={`${themeClasses.header} h-16 flex items-center justify-between px-4 z-20 shadow-sm`}
+        >
+          {/* Mobile sidebar toggle */}
+          <button
+            className="p-2 rounded-md text-secondary-500 hover:bg-secondary-100 dark:hover:bg-secondary-700 md:hidden"
+            onClick={handleSidebarToggle}
+            aria-label={sidebarExpanded ? 'Close sidebar' : 'Open sidebar'}
+          >
+            {sidebarExpanded ? <X size={20} /> : <Menu size={20} />}
+          </button>
+
+          {/* Right-side utilities */}
+          <div className="flex items-center space-x-4 ml-auto">
+            <UserSettingsDropdown />
+          </div>
+        </header>
+
+        {/* ---------------- Main content area ------------------------ */}
+        <main 
+          className="flex-1 flex flex-col overflow-hidden"
+          aria-label="Dashboard content"
+        >
         {/* Overlay for mobile when sidebar is open */}
         {sidebarExpanded && (
           <div 
@@ -226,7 +223,8 @@ const DashboardLayout = ({ children }) => {
         <div className="flex-1 overflow-y-auto p-4 md:p-6">
           {children}
         </div>
-      </main>
+        </main>
+      </div>{/* end right column */}
       </div>{/* end flex container */}
     </div>
   );
