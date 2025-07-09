@@ -6,6 +6,7 @@ import CapabilitiesView from '../organisms/CapabilitiesView';
 import LoadingSpinner from '../atoms/LoadingSpinner';
 import ErrorDisplay from '../molecules/ErrorDisplay';
 import CapabilityDetailsModal from '../molecules/CapabilityDetailsModal';
+import EditCapabilityModal from '../molecules/EditCapabilityModal';
 
 /**
  * CapabilitiesPage Component
@@ -23,6 +24,8 @@ const CapabilitiesPage = () => {
   // Modal state
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedCapability, setSelectedCapability] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [capabilityToEdit, setCapabilityToEdit] = useState(null);
 
   // --- Data Fetching ---
   const {
@@ -75,12 +78,17 @@ const CapabilitiesPage = () => {
    * @param {Object} capability - The capability to edit.
    */
   const handleEditCapability = (capability) => {
-    console.log(`Editing capability: ${capability.id}`);
-    // In a real app, this would open an edit form or modal
-    // For now, just close the details modal
     setIsDetailsModalOpen(false);
-    // Simulate opening a modal through the Dashboard UI context
-    toggleModal('showEditCapabilityModal', { capability });
+    setCapabilityToEdit(capability);
+    setIsEditModalOpen(true);
+  };
+
+  /**
+   * Closes the Edit Capability modal and resets local state.
+   */
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setCapabilityToEdit(null);
   };
 
   /**
@@ -88,8 +96,9 @@ const CapabilitiesPage = () => {
    * This triggers a modal, which is a UI state change managed by the UI context.
    */
   const handleCreateCapability = () => {
-    console.log('Opening new capability modal');
-    toggleModal('showNewCapabilityModal');
+    // Open the EditCapabilityModal in "create" mode (no existing capability)
+    setCapabilityToEdit(null);
+    setIsEditModalOpen(true);
   };
 
   // --- Render Logic ---
@@ -134,6 +143,15 @@ const CapabilitiesPage = () => {
           requirements={requirements}
           onViewRequirements={handleViewRequirements}
           onEditCapability={handleEditCapability}
+        />
+      )}
+
+      {/* Edit Capability Modal */}
+      {isEditModalOpen && (
+        <EditCapabilityModal
+          isOpen={isEditModalOpen}
+          onClose={handleCloseEditModal}
+          capability={capabilityToEdit}
         />
       )}
     </div>
