@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Sun, Moon, Laptop, Droplets, Type, ToggleLeft, ToggleRight, TextQuote } from 'lucide-react';
 import Input from '../atoms/Input';
+import ColorPreview from '../molecules/ColorPreview';
 
 // --- Reusable Molecules (Internal to this component) ---
 
@@ -93,8 +94,12 @@ const AppearanceSettings = ({ settings, updateSetting }) => {
     }
 
     const primaryColor = brandColors.primary;
+    const secondaryColor = brandColors.secondary;
     styleElement.innerHTML = `
-      :root { --color-primary: ${primaryColor}; }
+      :root { 
+        --color-primary: ${primaryColor}; 
+        --color-secondary: ${secondaryColor};
+      }
       .bg-primary-100 { background-color: ${primaryColor}1A !important; } /* 10% opacity */
       .bg-primary-600, .bg-primary-500 { background-color: ${primaryColor} !important; }
       .text-primary-600, .text-primary-700 { color: ${primaryColor} !important; }
@@ -104,6 +109,15 @@ const AppearanceSettings = ({ settings, updateSetting }) => {
       .dark .dark\\:bg-primary-500\\/20 { background-color: ${primaryColor}33 !important; } /* 20% opacity */
       .dark .dark\\:text-primary-200 { color: ${primaryColor} !important; opacity: 0.8; }
       .dark .dark\\:text-primary-300 { color: ${primaryColor} !important; opacity: 0.9; }
+
+      /* -------- Secondary Color Overrides -------- */
+      .bg-secondary-100 { background-color: ${secondaryColor}1A !important; } /* 10% opacity */
+      .bg-secondary-600, .bg-secondary-500 { background-color: ${secondaryColor} !important; }
+      .text-secondary-600, .text-secondary-700 { color: ${secondaryColor} !important; }
+      .border-secondary-500 { border-color: ${secondaryColor} !important; }
+      .ring-secondary-500 { --tw-ring-color: ${secondaryColor} !important; }
+      .dark .dark\\:bg-secondary-500\\/20 { background-color: ${secondaryColor}33 !important; } /* 20% opacity */
+      .dark .dark\\:text-secondary-200 { color: ${secondaryColor} !important; opacity: 0.8; }
     `;
   }, [brandColors]);
 
@@ -236,6 +250,14 @@ const AppearanceSettings = ({ settings, updateSetting }) => {
             />
           </div>
         </div>
+      </SettingsSection>
+
+      {/* --- Color Preview --- */}
+      <SettingsSection
+        title="Color Preview"
+        description="See how your brand colors are applied across the interface."
+      >
+        <ColorPreview brandColors={brandColors} />
       </SettingsSection>
 
       {/* --- Interface Options --- */}
