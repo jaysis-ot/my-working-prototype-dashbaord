@@ -4,7 +4,7 @@ import { Loader2 } from 'lucide-react';
 
 // Context Providers
 import { ThemeProvider } from './contexts/ThemeContext';
-// import { AuthProvider } from './contexts/AuthContext'; // To be created
+import { AuthProvider } from './auth/AuthContext';
 import { DashboardUIProvider } from './contexts/DashboardUIContext';
 
 // Feature Context Providers - to be created
@@ -15,8 +15,11 @@ import { DashboardUIProvider } from './contexts/DashboardUIContext';
 // Templates
 import DashboardLayout from './components/templates/DashboardLayout';
 
+// Authentication Pages (eager-loaded for faster initial render)
+import LoginPage from './auth/LoginPage';
+import ProtectedRoute from './auth/ProtectedRoute';
+
 // Lazy-loaded Pages
-const LoginPage = lazy(() => import('./components/pages/LoginPage'));
 const OverviewPage = lazy(() => import('./components/pages/OverviewPage'));
 const RequirementsPage = lazy(() => import('./components/pages/RequirementsPage'));
 const CapabilitiesPage = lazy(() => import('./components/pages/CapabilitiesPage'));
@@ -25,17 +28,16 @@ const MaturityAnalysisPage = lazy(() => import('./components/pages/MaturityAnaly
 const ThreatIntelligencePage = lazy(() => import('./components/pages/ThreatIntelligencePage'));
 const RiskManagementPage = lazy(() => import('./components/pages/RiskManagementPage'));
 const AnalyticsPage = lazy(() => import('./components/pages/AnalyticsPage'));
-const PCDBreakdownPage = lazy(() => import('./components/pages/PCDBreakdownPage'));
+const BusinessPlanPage = lazy(() => import('./components/pages/BusinessPlanPage'));
 const SettingsPage = lazy(() => import('./components/pages/SettingsPage'));
 
-// Trust Page is imported directly as a static placeholder to ensure it always loads.
-import TrustPage from './components/pages/TrustPage';
+const TrustPage = lazy(() => import('./components/pages/TrustPage'));
 
 // A simple wrapper for providers to keep the App component clean
 const AppProviders = ({ children }) => {
   return (
     <ThemeProvider>
-      {/* <AuthProvider> */}
+      <AuthProvider>
           <DashboardUIProvider>
             {/* <RequirementsProvider> */}
               {/* <CapabilitiesProvider> */}
@@ -45,7 +47,7 @@ const AppProviders = ({ children }) => {
               {/* </CapabilitiesProvider> */}
             {/* </RequirementsProvider> */}
           </DashboardUIProvider>
-      {/* </AuthProvider> */}
+      </AuthProvider>
     </ThemeProvider>
   );
 };
@@ -78,13 +80,14 @@ function App() {
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
             {/* Authentication Route - Placeholder */}
-            {/* <Route path="/login" element={<LoginPage />} /> */}
+            <Route path="/login" element={<LoginPage />} />
             
             {/* Dashboard Routes */}
             <Route
               path="/dashboard/*"
               element={
-                <DashboardLayout>
+                <ProtectedRoute>
+                  <DashboardLayout>
                   <Routes>
                     {/* Implemented Pages */}
                     <Route path="overview" element={<OverviewPage />} />
@@ -99,18 +102,16 @@ function App() {
                     <Route path="risk-management" element={<RiskManagementPage />} />
 
                     {/* Static Placeholder Trust Page */}
-                    <Route
-                      path="trust"
-                      element={<TrustPage />}
-                    />
+                    <Route path="trust" element={<TrustPage />} />
 
                     <Route path="analytics" element={<AnalyticsPage />} />
-                    <Route path="pcd-breakdown" element={<PCDBreakdownPage />} />
+                    <Route path="business-plan" element={<BusinessPlanPage />} />
                     
                     {/* Default route within the dashboard */}
                     <Route path="*" element={<Navigate to="/dashboard/overview" replace />} />
                   </Routes>
-                </DashboardLayout>
+                  </DashboardLayout>
+                </ProtectedRoute>
               }
             />
             

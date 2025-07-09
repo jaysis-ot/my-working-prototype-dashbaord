@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import AccountSettingsModal from '../molecules/AccountSettingsModal';
 
 /**
  * UserSettingsDropdown Component
@@ -25,6 +26,7 @@ const UserSettingsDropdown = () => {
   // Rename for clarity and to avoid ESLint errors.
   const { isDark, toggleTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
+  const [isAccountSettingsOpen, setIsAccountSettingsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   // Handle click outside to close dropdown
@@ -60,13 +62,13 @@ const UserSettingsDropdown = () => {
 
   // Handle account settings
   const handleAccountSettings = () => {
-    // Navigate to account settings page
-    // This could be updated to use React Router navigation
-    window.location.href = '/dashboard/settings';
+    // Open Account Settings modal
+    setIsAccountSettingsOpen(true);
     setIsOpen(false);
   };
 
   return (
+    <>
     <div className="relative" ref={dropdownRef}>
       {/* User avatar and dropdown toggle */}
       <button
@@ -184,6 +186,12 @@ const UserSettingsDropdown = () => {
         </div>
       </div>
     </div>
+    {/* Account Settings Modal */}
+    <AccountSettingsModal 
+      isOpen={isAccountSettingsOpen} 
+      onClose={() => setIsAccountSettingsOpen(false)} 
+    />
+    </>
   );
 };
 

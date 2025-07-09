@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>React Diagnostic Viewer</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      padding: 2em;
+      background: #f7f9fb;
+      color: #333;
+    }
+    h1, h2, h3 {
+      color: #2a3f54;
+    }
+    .section {
+      margin-bottom: 2em;
+    }
+    .tag {
+      display: inline-block;
+      padding: 2px 6px;
+      margin-left: 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #fff;
+    }
+    .routed { background: green; }
+    .not-routed { background: red; }
+    .lazy { background: #3e8ed0; }
+    .unused { color: orange; }
+    .filter-group {
+      margin-bottom: 1em;
+    }
+  </style>
+</head>
+<body>
+  <h1>📊 React Diagnostic Viewer</h1>
+
+  <div class="filter-group">
+    <label><input type="checkbox" id="showLazyOnly"> Show Lazy-Loaded Pages Only</label>
+  </div>
+
+  <div id="output">Loading structure report...</div>
+
+  <script>
+    let rawData = null;
+
+    async function loadStructure() {
+      const res = await fetch('/structure');
+      const data = await res.json();
+      rawData = data;
+      renderOutput();
+    }
+
+    function renderOutput() {
+      const out = document.getElementById('output');
+      out.innerHTML = '';
+
+      const showLazyOnly = document.getElementById('showLazyOnly').checked;
+
+      // Pages
+      out.innerHTML += `<div class="section"><h2>Pages</h2>`;
+      const pageEntries = Object.entries(rawData.pages);
+      for (const [path, info] of pageEntries) {
+        if (showLazyOnly && !info.lazy) continue;
+
+        const tags = [];
+        if (info.routed) {
+          tags.push(`<span class="tag routed">Routed</span>`);
+          if (info.lazy) {
+            tags.push(`<span class="tag lazy">Lazy</span>`);
+          }
+        } else {
+          tags.push(`<span class="tag not-routed">Not Routed</span>`);
+        }
+
+        const routedFrom = info.routedFrom ? ` <small>(from ${info.routedFrom})</small>` : '';
+
+        out.innerHTML += `
+          <div>
+            <strong>${info.identifier}</strong>${tags.join('')} ${routedFrom}
+          </div>`;
+      }
+      out.innerHTML += `</div>`;
+
+      // Components
+      out.innerHTML += `<div class="section"><h2>Components</h2>`;
+      for (const [type, comps] of Object.entries(rawData.components)) {
+        out.innerHTML += `<h3>${type.toUpperCase()}</h3>`;
+        comps.forEach(comp => {
+          const unused = comp.usedIn.length === 0;
+          out.innerHTML += `<div class="${unused ? 'unused' : ''}">
+            • ${comp.file} ${unused ? '⚠️ <em>Unused</em>' : ''}
+          </div>`;
+        });
+      }
+      out.innerHTML += `</div>`;
+
+      // Issues
+      if (rawData.issues?.length) {
+        out.innerHTML += `<div class="section"><h2 style="color: red;">Issues</h2>`;
+        rawData.issues.forEach(issue => {
+          out.innerHTML += `<div>🚨 ${issue}</div>`;
+        });
+        out.innerHTML += `</div>`;
+      }
+    }
+
+    document.getElementById('showLazyOnly').addEventListener('change', renderOutput);
+
+    loadStructure();
+    setInterval(loadStructure, 5000); // refresh every 5s
+  </script>
+</body>
+</html>

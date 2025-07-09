@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trust Page Debugger</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f7f9;
+            color: #333;
+        }
+        .container {
+            text-align: center;
+            padding: 40px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1a202c;
+            margin-bottom: 10px;
+        }
+        p {
+            color: #5a677d;
+            margin-bottom: 25px;
+        }
+        button {
+            background-color: #0073e6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 500;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #005cb8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Trust Page Debugger</h1>
+        <p>Click the button below to open the Trust page in a new tab.</p>
+        <button onclick="openTrustPage()">Open Trust Page</button>
+    </div>
+
+    <script>
+        function openTrustPage() {
+            // This assumes your development server is running on localhost:3001
+            const trustPageUrl = 'http://localhost:3001/dashboard/trust';
+            window.open(trustPageUrl, '_blank');
+        }
+    </script>
+</body>
+</html>

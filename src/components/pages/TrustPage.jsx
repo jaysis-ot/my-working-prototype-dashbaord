@@ -16,6 +16,8 @@ import {
   BrainCircuit,
   Info
 } from 'lucide-react';
+import Button from '../atoms/Button';
+import Badge from '../atoms/Badge';
 
 /**
  * A reusable card component for displaying a key concept on the Trust page.
