@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import { useDashboardUI } from '../../contexts/DashboardUIContext';
 import { useTheme } from '../../contexts/ThemeContext';
+// User settings dropdown (avatar, theme toggle, logout, etc.)
+import UserSettingsDropdown from '../organisms/UserSettingsDropdown';
 
 /**
  * DashboardLayout Template Component
@@ -112,10 +114,8 @@ const DashboardLayout = ({ children }) => {
 
         {/* Header right section - placeholder for user menu, notifications, etc. */}
         <div className="flex items-center space-x-4">
-          {/* These will be replaced with actual components later */}
-          <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
-            <span className="text-primary-600 dark:text-primary-400 text-sm font-medium">JD</span>
-          </div>
+          {/* User menu / theme toggle / logout */}
+          <UserSettingsDropdown />
         </div>
       </header>
       

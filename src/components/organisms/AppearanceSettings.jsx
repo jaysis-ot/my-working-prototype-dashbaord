@@ -32,12 +32,12 @@ const ThemeOption = ({ icon: Icon, label, isActive, onClick }) => (
       flex flex-col items-center justify-center space-y-2
       ${isActive
         ? 'bg-primary-100 dark:bg-primary-500/20 border-primary-500 text-primary-600 dark:text-primary-200'
-        : 'bg-secondary-50 dark:bg-secondary-700/50 border-transparent hover:border-primary-300 dark:hover:border-primary-500'
+        : 'bg-secondary-50 dark:bg-secondary-700/50 border-transparent hover:border-primary-300 dark:hover:border-primary-500 text-secondary-700 dark:text-secondary-200'
       }
     `}
     aria-pressed={isActive}
   >
-    <Icon size={24} />
+    <Icon size={24} className={isActive ? 'text-primary-600 dark:text-primary-300' : 'text-secondary-600 dark:text-secondary-300'} />
     <span className="font-medium text-sm">{label}</span>
   </button>
 );
@@ -103,6 +103,7 @@ const AppearanceSettings = ({ settings, updateSetting }) => {
       .sidebar-item-active { background-color: ${primaryColor} !important; }
       .dark .dark\\:bg-primary-500\\/20 { background-color: ${primaryColor}33 !important; } /* 20% opacity */
       .dark .dark\\:text-primary-200 { color: ${primaryColor} !important; opacity: 0.8; }
+      .dark .dark\\:text-primary-300 { color: ${primaryColor} !important; opacity: 0.9; }
     `;
   }, [brandColors]);
 
@@ -183,7 +184,7 @@ const AppearanceSettings = ({ settings, updateSetting }) => {
             <button
               key={scheme.name}
               onClick={() => applyScheme(scheme)}
-              className="flex items-center gap-3 p-2 rounded-lg border-2 transition-all"
+              className="flex items-center gap-3 p-2 rounded-lg border-2 transition-all bg-white dark:bg-secondary-700 text-secondary-800 dark:text-secondary-200 hover:bg-secondary-50 dark:hover:bg-secondary-600"
               style={{ borderColor: scheme.colors.primary === brandColors.primary ? scheme.colors.primary : 'transparent' }}
             >
               <div className="flex -space-x-2">
@@ -249,9 +250,36 @@ const AppearanceSettings = ({ settings, updateSetting }) => {
               Dashboard Density
             </label>
             <div className="flex">
-              <button onClick={() => handleDensityChange('compact')} className={`px-4 py-2 rounded-l-md text-sm transition-colors ${dashboardSettings.density === 'compact' ? 'bg-primary-600 text-white z-10' : 'bg-white dark:bg-secondary-700 border border-secondary-300 dark:border-secondary-600'}`}>Compact</button>
-              <button onClick={() => handleDensityChange('comfortable')} className={`px-4 py-2 text-sm transition-colors -ml-px ${dashboardSettings.density === 'comfortable' ? 'bg-primary-600 text-white z-10' : 'bg-white dark:bg-secondary-700 border border-secondary-300 dark:border-secondary-600'}`}>Comfortable</button>
-              <button onClick={() => handleDensityChange('spacious')} className={`px-4 py-2 rounded-r-md text-sm transition-colors -ml-px ${dashboardSettings.density === 'spacious' ? 'bg-primary-600 text-white z-10' : 'bg-white dark:bg-secondary-700 border border-secondary-300 dark:border-secondary-600'}`}>Spacious</button>
+              <button 
+                onClick={() => handleDensityChange('compact')} 
+                className={`px-4 py-2 rounded-l-md text-sm transition-colors ${
+                  dashboardSettings.density === 'compact' 
+                    ? 'bg-primary-600 text-white dark:bg-primary-500 dark:text-white z-10' 
+                    : 'bg-white dark:bg-secondary-700 text-secondary-700 dark:text-secondary-200 border border-secondary-300 dark:border-secondary-600 hover:bg-secondary-50 dark:hover:bg-secondary-600'
+                }`}
+              >
+                Compact
+              </button>
+              <button 
+                onClick={() => handleDensityChange('comfortable')} 
+                className={`px-4 py-2 text-sm transition-colors -ml-px ${
+                  dashboardSettings.density === 'comfortable' 
+                    ? 'bg-primary-600 text-white dark:bg-primary-500 dark:text-white z-10' 
+                    : 'bg-white dark:bg-secondary-700 text-secondary-700 dark:text-secondary-200 border border-secondary-300 dark:border-secondary-600 hover:bg-secondary-50 dark:hover:bg-secondary-600'
+                }`}
+              >
+                Comfortable
+              </button>
+              <button 
+                onClick={() => handleDensityChange('spacious')} 
+                className={`px-4 py-2 rounded-r-md text-sm transition-colors -ml-px ${
+                  dashboardSettings.density === 'spacious' 
+                    ? 'bg-primary-600 text-white dark:bg-primary-500 dark:text-white z-10' 
+                    : 'bg-white dark:bg-secondary-700 text-secondary-700 dark:text-secondary-200 border border-secondary-300 dark:border-secondary-600 hover:bg-secondary-50 dark:hover:bg-secondary-600'
+                }`}
+              >
+                Spacious
+              </button>
             </div>
           </div>
 
@@ -261,7 +289,7 @@ const AppearanceSettings = ({ settings, updateSetting }) => {
               Font Size
             </label>
             <div className="flex items-center gap-4">
-              <TextQuote size={20} className="text-secondary-400" />
+              <TextQuote size={20} className="text-secondary-400 dark:text-secondary-500" />
               <div className="w-full flex items-center gap-2">
                 {FONT_SIZES.map((size, index) => (
                   <React.Fragment key={size.value}>
@@ -269,8 +297,8 @@ const AppearanceSettings = ({ settings, updateSetting }) => {
                       onClick={() => handleFontSizeChange(size.value)}
                       className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
                         dashboardSettings.fontSize === size.value
-                          ? 'bg-primary-600 text-white scale-110'
-                          : 'bg-secondary-200 dark:bg-secondary-600 hover:bg-primary-200'
+                          ? 'bg-primary-600 text-white dark:bg-primary-500 dark:text-white scale-110'
+                          : 'bg-secondary-200 dark:bg-secondary-600 text-secondary-700 dark:text-secondary-200 hover:bg-primary-200 dark:hover:bg-primary-700'
                       }`}
                       aria-label={`Set font size to ${size.name}`}
                     >
@@ -280,7 +308,7 @@ const AppearanceSettings = ({ settings, updateSetting }) => {
                   </React.Fragment>
                 ))}
               </div>
-              <span className="w-20 text-center font-medium">
+              <span className="w-20 text-center font-medium text-secondary-800 dark:text-secondary-200">
                 {FONT_SIZES.find(s => s.value === dashboardSettings.fontSize)?.name}
               </span>
             </div>
@@ -298,11 +326,11 @@ const AppearanceSettings = ({ settings, updateSetting }) => {
               role="switch"
             >
               {dashboardSettings.animations ? (
-                <ToggleRight size={32} className="text-primary-600" />
+                <ToggleRight size={32} className="text-primary-600 dark:text-primary-400" />
               ) : (
-                <ToggleLeft size={32} className="text-secondary-400" />
+                <ToggleLeft size={32} className="text-secondary-400 dark:text-secondary-500" />
               )}
-              <span className="font-medium">
+              <span className="font-medium text-secondary-800 dark:text-secondary-200">
                 {dashboardSettings.animations ? 'Enabled' : 'Disabled'}
               </span>
             </button>
