@@ -1,6 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-// No special Link imports needed; all navigation handled uniformly
 import {
   Menu,
   X,
@@ -20,23 +19,20 @@ import {
   Building2,
   Heart,
   Settings as SettingsIcon,
+  LogOut,
+  User as UserIcon
 } from 'lucide-react';
 import { useDashboardUI } from '../../contexts/DashboardUIContext';
 import { useTheme } from '../../contexts/ThemeContext';
-// User settings dropdown (avatar, theme toggle, logout, etc.)
-import UserSettingsDropdown from '../organisms/UserSettingsDropdown';
-// Product logo placeholder component
-import ProductLogo from '../atoms/ProductLogo';
-// Global modal manager (requirement view/edit, etc.)
-import ModalManager from '../organisms/ModalManager';
+import useAuth from '../../auth/useAuth';
 
 /**
  * DashboardLayout Template Component
  * 
  * This template provides the overall layout structure for the dashboard, including:
- * - Full-height sidebar with logo and navigation
- * - Main content area with user controls in the top right
- * - Responsive design with mobile support
+ * - Responsive sidebar with toggle functionality
+ * - Header with navigation and user controls
+ * - Main content area for page content
  * 
  * It serves as the foundation for all dashboard pages, ensuring consistent
  * layout and navigation across the application.
@@ -50,6 +46,23 @@ const DashboardLayout = ({ children }) => {
   } = useDashboardUI();
   
   const { themeClasses } = useTheme();
+  const { user, logout } = useAuth();
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
+  // Get user initials for avatar
+  const userInitials = React.useMemo(() => {
+    if (user?.name) {
+      const parts = user.name.split(' ');
+      if (parts.length > 1) {
+        return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+      }
+      return user.name.substring(0, 2).toUpperCase();
+    }
+    if (user?.email) {
+      return user.email.substring(0, 2).toUpperCase();
+    }
+    return '??';
+  }, [user]);
 
   // Map icon names to actual Lucide icon components
   const iconMap = {
@@ -83,153 +96,202 @@ const DashboardLayout = ({ children }) => {
     { id: 'analytics', label: 'Analytics', icon: 'BarChart3' },
     { id: 'business-plan', label: 'Business Plan', icon: 'PieChart' },
     { id: 'maturity-analysis', label: 'Maturity Analysis', icon: 'TrendingUp' },
+    { id: 'mitre-attack', label: 'MITRE ATT&CK', icon: 'Layers' },
     { id: 'standards-frameworks', label: 'Standards & Frameworks', icon: 'BookOpen' },
     { id: 'threat-intelligence', label: 'Threat Intelligence', icon: 'AlertTriangle' },
-    { id: 'mitre-attack', label: 'MITRE ATT&CK', icon: 'Layers' },
     { id: 'risk-management', label: 'Risk Management', icon: 'Target' },
     { id: 'trust', label: 'Trust', icon: 'Heart' },
     { id: 'settings', label: 'Settings', icon: 'Settings' },
   ];
 
   return (
-    <div className="h-screen flex overflow-hidden bg-background-light dark:bg-background-dark">
-      {/* Sidebar - now full height */}
-      <aside 
-        className={`
-          ${themeClasses.sidebar} 
-          ${sidebarExpanded ? 'w-64' : 'w-16'} 
-          transition-all duration-300 ease-in-out 
-          fixed md:relative 
-          h-screen
-          z-40 md:z-auto 
-          ${sidebarExpanded ? 'left-0' : '-left-64 md:left-0'}
-          shadow-lg md:shadow-none
-          flex flex-col
-        `}
-        aria-label="Dashboard navigation"
+    <div className="h-screen flex flex-col bg-background-light dark:bg-background-dark">
+      {/* Header */}
+      <header 
+        className={`${themeClasses.header} h-16 flex items-center justify-between px-4 z-30 shadow-sm`}
+        aria-label="Dashboard header"
       >
-        {/* Logo section at the top of sidebar */}
-        <div className="flex items-center justify-center py-6 px-4 border-b border-secondary-700/30">
-          <ProductLogo expanded={sidebarExpanded} />
+        <div className="flex items-center">
+          {/* Mobile sidebar toggle */}
+          <button 
+            className="p-2 rounded-md text-secondary-500 hover:bg-secondary-100 dark:hover:bg-secondary-700 md:hidden"
+            onClick={handleSidebarToggle}
+            aria-label={sidebarExpanded ? "Close sidebar" : "Open sidebar"}
+          >
+            {sidebarExpanded ? <X size={20} /> : <Menu size={20} />}
+          </button>
+          
+          {/* Logo/Brand - Hidden on mobile when sidebar is open */}
+          <div className={`flex items-center ${sidebarExpanded ? 'hidden md:flex' : 'flex'}`}>
+            <span className="text-xl font-semibold text-primary-600 dark:text-primary-400">
+              Cyber Trust Sensor
+            </span>
+          </div>
         </div>
 
-        {/* Sidebar content */}
-        <div className="flex-1 flex flex-col py-4 overflow-y-auto">
-          {/* Navigation items */}
-          <nav className="flex-1 px-2 space-y-1">
-            {navItems.map((item) => {
-              const Icon = iconMap[item.icon];
-              const commonClasses = `
-                w-full text-left
-                sidebar-item
-                ${viewMode === item.id ? 'sidebar-item-active' : 'sidebar-item-inactive'}
-                ${!sidebarExpanded ? 'justify-center' : ''}
-              `;
+        {/* Header right section - User menu */}
+        <div className="relative">
+          <button
+            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+            className="w-9 h-9 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center ring-2 ring-offset-2 ring-offset-background-light dark:ring-offset-background-dark ring-primary-500"
+            aria-label="Open user menu"
+            aria-haspopup="true"
+            aria-expanded={isUserMenuOpen}
+          >
+            <span className="text-primary-600 dark:text-primary-400 text-sm font-medium">{userInitials}</span>
+          </button>
 
-              // Unified rendering for all navigation items
-              return (
-                <button
-                  key={item.id}
-                  className={commonClasses}
-                  onClick={() => setViewMode(item.id)}
-                  aria-current={viewMode === item.id ? 'page' : undefined}
-                >
-                  <Icon
-                    className={`w-6 h-6 flex-shrink-0 ${!sidebarExpanded ? '' : 'mr-3'}`}
-                    aria-hidden="true"
-                  />
-                  {sidebarExpanded && <span className="truncate text-base">{item.label}</span>}
-                </button>
-              );
-            })}
-          </nav>
-          
-          {/* Sidebar collapse/expand toggle */}
-          <div className="mt-2 border-t border-secondary-700/20 dark:border-secondary-700 pt-2 px-2">
-            <button
-              onClick={handleSidebarToggle}
-              aria-label={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
-              className={`
-                w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors
-                text-secondary-600 dark:text-secondary-300
-                hover:bg-secondary-100 dark:hover:bg-secondary-700
-                ${sidebarExpanded ? '' : 'justify-center'}
-              `}
+          {isUserMenuOpen && (
+            <div 
+              className="absolute right-0 mt-2 w-64 bg-white dark:bg-secondary-800 rounded-lg shadow-xl border border-secondary-200 dark:border-secondary-700 z-50"
+              role="menu"
+              aria-orientation="vertical"
+              aria-labelledby="user-menu-button"
             >
-              {sidebarExpanded ? (
-                <>
-                  <ChevronLeft className="w-6 h-6 flex-shrink-0" />
-                  <span className="truncate text-base">Collapse</span>
-                </>
-              ) : (
-                <ChevronRight className="w-6 h-6 flex-shrink-0" />
-              )}
-            </button>
-          </div>
-
-          {/* Sidebar footer - Trust Score indicator placeholder */}
-          {sidebarExpanded && (
-            <div className="px-4 py-3 mt-auto">
-              <div className="bg-secondary-800 bg-opacity-50 rounded-lg p-3">
-                <div className="text-xs text-secondary-400 mb-1">Trust Score</div>
-                <div className="flex items-center">
-                  <div className="text-lg font-semibold text-white">78</div>
-                  <div className="ml-auto px-1.5 py-0.5 rounded-full bg-status-warning bg-opacity-20 text-status-warning text-xs">
-                    -3 Δ
+              <div className="p-4 border-b border-secondary-200 dark:border-secondary-700">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
+                    <UserIcon className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-secondary-900 dark:text-white truncate">{user?.name || 'User'}</p>
+                    <p className="text-sm text-secondary-500 dark:text-secondary-400 truncate">{user?.email}</p>
                   </div>
                 </div>
+              </div>
+              <div className="p-2">
+                <button
+                  onClick={() => {
+                    logout();
+                    setIsUserMenuOpen(false);
+                  }}
+                  className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-secondary-700 dark:text-secondary-300 hover:bg-secondary-100 dark:hover:bg-secondary-700 rounded-md"
+                  role="menuitem"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Sign Out</span>
+                </button>
               </div>
             </div>
           )}
         </div>
-      </aside>
+      </header>
       
-      {/* ------------ Right-side column: Header + Page content ---------- */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* ------------------------------------------------------------- */}
-        {/* Header (spans full width of content area)                    */}
-        {/* ------------------------------------------------------------- */}
-        <header
-          className={`${themeClasses.header} h-16 flex items-center justify-between px-4 z-20 shadow-sm`}
+      {/* Main container with sidebar and content */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <aside 
+          className={`
+            ${themeClasses.sidebar} 
+            ${sidebarExpanded ? 'w-64' : 'w-16'} 
+            transition-all duration-300 ease-in-out 
+            fixed md:relative 
+            h-[calc(100vh-4rem)] 
+            z-40 md:z-auto 
+            ${sidebarExpanded ? 'left-0' : '-left-64 md:left-0'}
+            shadow-lg md:shadow-none
+          `}
+          aria-label="Dashboard navigation"
         >
-          {/* Mobile sidebar toggle */}
-          <button
-            className="p-2 rounded-md text-secondary-500 hover:bg-secondary-100 dark:hover:bg-secondary-700 md:hidden"
-            onClick={handleSidebarToggle}
-            aria-label={sidebarExpanded ? 'Close sidebar' : 'Open sidebar'}
-          >
-            {sidebarExpanded ? <X size={20} /> : <Menu size={20} />}
-          </button>
+          {/* Sidebar content */}
+          <div className="h-full flex flex-col py-4">
+            {/* Navigation items */}
+            <nav className="flex-1 px-2 space-y-1 overflow-y-auto">
+              {navItems.map((item) => {
+                const Icon = iconMap[item.icon];
+                const commonClasses = `
+                  w-full text-left
+                  sidebar-item
+                  ${viewMode === item.id ? 'sidebar-item-active' : 'sidebar-item-inactive'}
+                  ${!sidebarExpanded ? 'justify-center' : ''}
+                `;
 
-          {/* Right-side utilities */}
-          <div className="flex items-center space-x-4 ml-auto">
-            <UserSettingsDropdown />
+                // Unified rendering for **all** navigation items (including Trust)
+                return (
+                  <button
+                    key={item.id}
+                    className={commonClasses}
+                    onClick={() => setViewMode(item.id)}
+                    aria-current={viewMode === item.id ? 'page' : undefined}
+                  >
+                    <Icon
+                      className={`w-6 h-6 flex-shrink-0 ${!sidebarExpanded ? '' : 'mr-3'}`}
+                      aria-hidden="true"
+                    />
+                    {sidebarExpanded && <span className="truncate text-base">{item.label}</span>}
+                  </button>
+                );
+              })}
+            </nav>
+            
+            {/* Sidebar collapse/expand toggle */}
+            <div className="mt-2 border-t border-secondary-700/20 dark:border-secondary-700 pt-2">
+              <button
+                onClick={handleSidebarToggle}
+                aria-label={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+                className={`
+                  w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors
+                  text-secondary-600 dark:text-secondary-300
+                  hover:bg-secondary-100 dark:hover:bg-secondary-700
+                  ${sidebarExpanded ? '' : 'justify-center'}
+                `}
+              >
+                {sidebarExpanded ? (
+                  <>
+                    <ChevronLeft className="w-6 h-6 flex-shrink-0" />
+                    <span className="truncate text-base">Collapse</span>
+                  </>
+                ) : (
+                  <ChevronRight className="w-6 h-6 flex-shrink-0" />
+                )}
+              </button>
+            </div>
+
+            {/* Sidebar footer - Trust Score indicator placeholder */}
+            {sidebarExpanded && (
+              <div className="px-4 py-3 mt-auto">
+                <div className="bg-secondary-800 bg-opacity-50 rounded-lg p-3">
+                  <div className="text-xs text-secondary-400 mb-1">Trust Score</div>
+                  <div className="flex items-center">
+                    <div className="text-lg font-semibold text-white">78</div>
+                    <div className="ml-auto px-1.5 py-0.5 rounded-full bg-yellow-500 bg-opacity-20 text-yellow-400 text-xs">
+                      -3 Δ
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        </header>
-
-        {/* ---------------- Main content area ------------------------ */}
+        </aside>
+        
+        {/* Main content */}
         <main 
-          className="flex-1 flex flex-col overflow-hidden"
+          className={`
+            flex-1 
+            overflow-y-auto 
+            transition-all 
+            duration-300 
+            ease-in-out
+            ${sidebarExpanded ? 'md:ml-0' : 'md:ml-0'}
+            pt-16 md:pt-0
+          `}
           aria-label="Dashboard content"
         >
-        {/* Overlay for mobile when sidebar is open */}
-        {sidebarExpanded && (
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
-            onClick={handleSidebarToggle}
-            aria-hidden="true"
-          />
-        )}
-        
-        {/* Content container */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6">
-          {children}
-        </div>
+          {/* Overlay for mobile when sidebar is open */}
+          {sidebarExpanded && (
+            <div 
+              className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+              onClick={handleSidebarToggle}
+              aria-hidden="true"
+            />
+          )}
+          
+          {/* Content container */}
+          <div className="p-4 md:p-6 h-full">
+            {children}
+          </div>
         </main>
-
-        {/* Global Modal Manager */}
-        <ModalManager />
-      </div>{/* end right column */}
+      </div>
     </div>
   );
 };
