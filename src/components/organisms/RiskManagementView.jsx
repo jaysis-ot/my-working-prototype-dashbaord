@@ -5,8 +5,6 @@ import {
   BarChart2,
   Filter,
   Plus,
-  Upload,
-  Download,
   ArrowDownUp,
   Eye,
   Edit,
@@ -16,6 +14,8 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Search,
+  Upload,
+  Download,
 } from 'lucide-react';
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
@@ -55,9 +55,13 @@ const RiskRatingIndicator = ({ level, score }) => {
   };
   return (
     <div className="flex items-center gap-2">
-      <Badge variant="default" className={getRatingStyles(level)}>
+      <span
+        className={`px-2 py-1 text-xs font-semibold rounded-full ${getRatingStyles(
+          level,
+        )}`}
+      >
         {level}
-      </Badge>
+      </span>
       <span className="font-mono text-sm text-secondary-600 dark:text-secondary-400">({score})</span>
     </div>
   );
