@@ -17,9 +17,6 @@ import { useState, useEffect } from 'react';
  * }}
  */
 export const useTrustData = () => {
-  // Debug: confirm hook invocation
-  console.log('[useTrustData] Hook invoked');
-
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -82,14 +79,9 @@ export const useTrustData = () => {
           }
         };
 
-        // Debug: show generated mock data
-        console.log('[useTrustData] Mock data generated:', mockTrustData);
-
         // Simulate network delay
         setTimeout(() => {
           setData(mockTrustData);
-          // Debug: confirm state update
-          console.log('[useTrustData] Data set in state:', mockTrustData);
           setLoading(false);
         }, 800);
         
