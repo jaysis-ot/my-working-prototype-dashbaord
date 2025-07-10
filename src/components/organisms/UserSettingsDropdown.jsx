@@ -10,7 +10,7 @@ import {
   Mail,
   Shield
 } from 'lucide-react';
-import { useAuth } from '../../auth/AuthContext';
+import useAuth from '../../auth/useAuth';
 import { useTheme } from '../../contexts/ThemeContext';
 import AccountSettingsModal from '../molecules/AccountSettingsModal';
 

@@ -1,6 +1,6 @@
 // src/hooks/useUserProfile.js
 import { useMemo } from 'react';
-import { useAuth } from '../auth/AuthContext';
+import useAuth from '../auth/useAuth';
 
 /**
  * useUserProfile Hook
