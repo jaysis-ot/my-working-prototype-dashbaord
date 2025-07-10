@@ -4,7 +4,7 @@ import { Loader2 } from 'lucide-react';
 
 // Context Providers
 import { ThemeProvider } from './contexts/ThemeContext';
-import { JWTAuthProvider as AuthProvider } from './auth/JWTAuthProvider';
+import { JWTAuthProvider as AuthProvider, AuthContext } from './auth/JWTAuthProvider';
 import { DashboardUIProvider } from './contexts/DashboardUIContext';
 
 // Feature Context Providers - to be created
@@ -14,6 +14,8 @@ import { DashboardUIProvider } from './contexts/DashboardUIContext';
 
 // Templates
 import DashboardLayout from './components/templates/DashboardLayout';
+// Direct-load Page (non-lazy to keep critical route instantly available)
+import TrustPage from './components/pages/TrustPage';
 
 // Lazy-loaded Pages
 const LoginPage = lazy(() => import('./components/pages/LoginPage'));
@@ -28,12 +30,9 @@ const IncidentManagementPage = lazy(() => import('./components/pages/IncidentMan
 const AnalyticsPage = lazy(() => import('./components/pages/AnalyticsPage'));
 const SettingsPage = lazy(() => import('./components/pages/SettingsPage'));
 
-import TrustPage from './components/pages/TrustPage';
-
 // -------------------------------------------------------------------
 //  AUTH / ROUTE GUARD HELPERS
 // -------------------------------------------------------------------
-import { AuthContext } from './auth/JWTAuthProvider';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useContext(AuthContext);
