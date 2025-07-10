@@ -4,6 +4,30 @@ import RiskManagementView from '../organisms/RiskManagementView';
 import LoadingSpinner from '../atoms/LoadingSpinner';
 import ErrorDisplay from '../molecules/ErrorDisplay';
 
+/* ------------------------------------------------------------------
+ * CSV Utilities (mirrors RequirementsPage implementation)
+ * ---------------------------------------------------------------- */
+const generateCSV = (data) => {
+  if (!data || data.length === 0) return '';
+  const headers = Object.keys(data[0]).join(',');
+  const rows = data.map(row => Object.values(row).join(','));
+  return `${headers}\n${rows.join('\n')}`;
+};
+
+const downloadCSV = (csvString, filename) => {
+  const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  if (link.download !== undefined) {
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+};
+
 /**
  * RiskManagementPage Component
  * 
@@ -71,6 +95,21 @@ const RiskManagementPage = () => {
     deleteRisk(riskId);
   }, [deleteRisk]);
 
+  /* ------------------------------------------------------------------
+   * Import / Export Handlers
+   * ---------------------------------------------------------------- */
+  const handleExportCSV = useCallback(() => {
+    const csvString = generateCSV(filteredRisks);
+    downloadCSV(csvString, `risks-export-${new Date().toISOString().split('T')[0]}.csv`);
+  }, [filteredRisks]);
+
+  // Placeholder – will be replaced with real import logic later
+  const handleImportCSV = useCallback(() => {
+    /* eslint-disable no-console */
+    console.info('Import Risk CSV – feature not yet implemented');
+    /* eslint-enable no-console */
+  }, []);
+
   // --- Render Logic ---
 
   if (loading) {
@@ -107,6 +146,8 @@ const RiskManagementPage = () => {
         onAddRisk={handleAddRisk}
         onUpdateRisk={handleUpdateRisk}
         onDeleteRisk={handleDeleteRisk}
+        onExportCSV={handleExportCSV}
+        onImportCSV={handleImportCSV}
       />
     </div>
   );
