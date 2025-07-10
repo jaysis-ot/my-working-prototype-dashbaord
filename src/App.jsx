@@ -24,6 +24,7 @@ const ResourcePlanningPage = lazy(() => import('./components/pages/ResourcePlann
 const MaturityAnalysisPage = lazy(() => import('./components/pages/MaturityAnalysisPage'));
 const ThreatIntelligencePage = lazy(() => import('./components/pages/ThreatIntelligencePage'));
 const RiskManagementPage = lazy(() => import('./components/pages/RiskManagementPage'));
+const IncidentManagementPage = lazy(() => import('./components/pages/IncidentManagementPage'));
 const AnalyticsPage = lazy(() => import('./components/pages/AnalyticsPage'));
 const PCDBreakdownPage = lazy(() => import('./components/pages/PCDBreakdownPage'));
 const SettingsPage = lazy(() => import('./components/pages/SettingsPage'));
@@ -108,6 +109,7 @@ function App() {
                     <Route path="maturity-analysis" element={<MaturityAnalysisPage />} />
                     <Route path="threat-intelligence" element={<ThreatIntelligencePage />} />
                     <Route path="risk-management" element={<RiskManagementPage />} />
+                    <Route path="incident-management" element={<IncidentManagementPage />} />
 
                     {/* Static Placeholder Trust Page */}
                     <Route path="trust" element={<TrustPage />} />
