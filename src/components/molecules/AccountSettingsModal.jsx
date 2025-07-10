@@ -20,7 +20,8 @@ import {
   Sun,
   Eye,
   EyeOff,
-  Moon
+  Moon,
+  LogOut
 } from 'lucide-react';
 import { useAuth } from '../../auth/JWTAuthProvider';
 import { useTheme } from '../../contexts/ThemeContext';

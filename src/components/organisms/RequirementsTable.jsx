@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import {
   Search,
@@ -10,6 +10,10 @@ import {
   ChevronDown,
   ChevronUp,
   XCircle,
+  X,
+  Columns,
+  Check,
+  RefreshCw
 } from 'lucide-react';
 import Button from '../atoms/Button';
 
@@ -71,12 +75,15 @@ const RequirementsTable = ({
   onSearchChange,
   onClearFilters,
   onClearSearch,
+  onToggleColumnVisibility,
   onViewRequirement,
   onEditRequirement,
   onExportCSV,
   onImportCSV,
 }) => {
   const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'ascending' });
+  const [showColumnSelector, setShowColumnSelector] = useState(false);
+  const columnSelectorRef = useRef(null);
 
   const requestSort = useCallback((key) => {
     let direction = 'ascending';
@@ -107,6 +114,25 @@ const RequirementsTable = ({
     return capability ? capability.name : 'N/A';
   };
 
+  const toggleColumnSelector = () => {
+    setShowColumnSelector(!showColumnSelector);
+  };
+
+  /* --------------------------------------------------------------------
+   * Close the column selector pop-over when user clicks outside of it.
+   * ------------------------------------------------------------------ */
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (showColumnSelector &&
+          columnSelectorRef.current &&
+          !columnSelectorRef.current.contains(e.target)) {
+        setShowColumnSelector(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showColumnSelector]);
+
   return (
     <div className="dashboard-card p-0">
       {/* Toolbar */}
@@ -114,34 +140,117 @@ const RequirementsTable = ({
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search */}
           <div className="relative flex-grow">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-secondary-400" />
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-secondary-400" aria-hidden="true" />
+            </div>
             <input
               type="text"
               placeholder="Search requirements..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600 focus:ring-primary-500 focus:border-primary-500"
+              className="block w-full pl-10 pr-10 py-2 border border-secondary-300 rounded-md bg-white text-secondary-900 placeholder-secondary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-secondary-800 dark:border-secondary-600 dark:text-white"
             />
+            {searchTerm && (
+              <button
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-secondary-400 hover:text-secondary-600"
+                onClick={onClearSearch}
+              >
+                <X className="h-5 w-5" aria-hidden="true" />
+              </button>
+            )}
           </div>
+
           {/* Filters */}
-          <div className="flex items-center gap-2">
-            <Filter className="h-5 w-5 text-secondary-500" />
-            <select
-              value={filters.status || ''}
-              onChange={(e) => onFilterChange('status', e.target.value)}
-              className="text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600"
-            >
-              <option value="">All Statuses</option>
-              <option value="Not Started">Not Started</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Completed">Completed</option>
-            </select>
-             <Button variant="ghost" onClick={onClearFilters} className="flex items-center gap-1">
-              <XCircle className="h-4 w-4" /> Clear
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center">
+              <Filter className="h-5 w-5 text-secondary-500 mr-2" />
+              <select
+                value={filters.status || ''}
+                onChange={(e) => onFilterChange('status', e.target.value)}
+                className="text-sm border-secondary-300 rounded-md bg-white dark:bg-secondary-800 dark:border-secondary-600 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="">All Statuses</option>
+                <option value="Not Started">Not Started</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+
+            <div className="flex items-center">
+              <select
+                value={filters.capabilityId || ''}
+                onChange={(e) => onFilterChange('capabilityId', e.target.value)}
+                className="text-sm border-secondary-300 rounded-md bg-white dark:bg-secondary-800 dark:border-secondary-600 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="">All Capabilities</option>
+                {capabilities.map(cap => (
+                  <option key={cap.id} value={cap.id}>{cap.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center">
+              <select
+                value={filters.priority || ''}
+                onChange={(e) => onFilterChange('priority', e.target.value)}
+                className="text-sm border-secondary-300 rounded-md bg-white dark:bg-secondary-800 dark:border-secondary-600 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="">All Priorities</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+
+            <Button variant="ghost" onClick={onClearFilters} className="flex items-center gap-1">
+              <RefreshCw className="h-4 w-4" /> Reset
             </Button>
           </div>
-          {/* Actions */}
+        </div>
+
+        {/* Second row for actions */}
+        <div className="flex justify-between items-center mt-4">
+          <div className="text-sm text-secondary-600 dark:text-secondary-400">
+            Showing <span className="font-medium">{sortedItems.length}</span> of <span className="font-medium">{filteredRequirements.length}</span> requirements
+          </div>
+          
           <div className="flex items-center gap-2">
+            {/* Column Selector */}
+            <div className="relative" ref={columnSelectorRef}>
+              <Button 
+                variant="outline" 
+                onClick={toggleColumnSelector}
+                className="flex items-center gap-1"
+              >
+                <Columns className="h-4 w-4" /> Columns
+              </Button>
+              
+              {showColumnSelector && (
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-secondary-800 rounded-md shadow-lg z-10 border border-secondary-200 dark:border-secondary-700">
+                  <div className="p-2">
+                    <div className="text-sm font-medium text-secondary-700 dark:text-secondary-300 mb-2 pb-2 border-b border-secondary-200 dark:border-secondary-700">
+                      Toggle Columns
+                    </div>
+                    <div className="space-y-2">
+                      {Object.entries(columnVisibility).map(([column, isVisible]) => (
+                        <label key={column} className="flex items-center justify-between cursor-pointer p-1 hover:bg-secondary-50 dark:hover:bg-secondary-700 rounded">
+                          <span className="text-sm text-secondary-700 dark:text-secondary-300 capitalize">
+                            {column === 'id' ? 'ID' : column}
+                          </span>
+                          <div 
+                            onClick={() => onToggleColumnVisibility(column)}
+                            className={`w-5 h-5 flex items-center justify-center rounded ${isVisible ? 'bg-primary-500 text-white' : 'bg-secondary-200 dark:bg-secondary-700'}`}
+                          >
+                            {isVisible && <Check className="h-3 w-3" />}
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
             <Button variant="outline" onClick={onImportCSV}>
               <Upload className="h-4 w-4 mr-2" /> Import
             </Button>
@@ -161,6 +270,7 @@ const RequirementsTable = ({
               {columnVisibility.description && <SortableHeader columnId="description" sortConfig={sortConfig} requestSort={requestSort}>Description</SortableHeader>}
               {columnVisibility.capability && <SortableHeader columnId="capabilityId" sortConfig={sortConfig} requestSort={requestSort}>Capability</SortableHeader>}
               {columnVisibility.status && <SortableHeader columnId="status" sortConfig={sortConfig} requestSort={requestSort}>Status</SortableHeader>}
+              {columnVisibility.priority && <SortableHeader columnId="priority" sortConfig={sortConfig} requestSort={requestSort}>Priority</SortableHeader>}
               {columnVisibility.actions && <th className="p-3 text-left text-xs font-semibold text-secondary-600 dark:text-secondary-400 uppercase tracking-wider">Actions</th>}
             </tr>
           </thead>
@@ -179,6 +289,17 @@ const RequirementsTable = ({
                         'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                       }`}>
                         {req.status}
+                      </span>
+                    </td>
+                  )}
+                  {columnVisibility.priority && (
+                    <td className="p-3 text-sm">
+                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                        req.priority === 'High' ? 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300' :
+                        req.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300' :
+                        'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300'
+                      }`}>
+                        {req.priority}
                       </span>
                     </td>
                   )}

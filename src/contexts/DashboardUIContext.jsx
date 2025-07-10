@@ -92,7 +92,7 @@ const initialState = {
     actions: true,
     area: false,
     type: false,
-    priority: false,
+    priority: true,
     assignee: false,
     dueDate: false
   }
