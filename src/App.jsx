@@ -26,7 +26,6 @@ const ThreatIntelligencePage = lazy(() => import('./components/pages/ThreatIntel
 const RiskManagementPage = lazy(() => import('./components/pages/RiskManagementPage'));
 const IncidentManagementPage = lazy(() => import('./components/pages/IncidentManagementPage'));
 const AnalyticsPage = lazy(() => import('./components/pages/AnalyticsPage'));
-const PCDBreakdownPage = lazy(() => import('./components/pages/PCDBreakdownPage'));
 const SettingsPage = lazy(() => import('./components/pages/SettingsPage'));
 
 import TrustPage from './components/pages/TrustPage';
@@ -115,7 +114,6 @@ function App() {
                     <Route path="trust" element={<TrustPage />} />
 
                     <Route path="analytics" element={<AnalyticsPage />} />
-                    <Route path="pcd-breakdown" element={<PCDBreakdownPage />} />
                     
                     {/* Default route within the dashboard */}
                     <Route path="*" element={<Navigate to="/dashboard/overview" replace />} />
