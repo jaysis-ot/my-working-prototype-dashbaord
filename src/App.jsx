@@ -1,10 +1,10 @@
-import React, { Suspense, lazy, useContext } from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
 // Context Providers
 import { ThemeProvider } from './contexts/ThemeContext';
-import { JWTAuthProvider as AuthProvider, AuthContext } from './auth/AuthContext';
+import { AuthProvider } from './auth/AuthContext';
 import { DashboardUIProvider } from './contexts/DashboardUIContext';
 
 // Feature Context Providers - to be created
@@ -14,31 +14,26 @@ import { DashboardUIProvider } from './contexts/DashboardUIContext';
 
 // Templates
 import DashboardLayout from './components/templates/DashboardLayout';
-// Direct-load Page (non-lazy to keep critical route instantly available)
-import TrustPage from './components/pages/TrustPage';
+
+// Authentication Pages (eager-loaded for faster initial render)
+import LoginPage from './auth/LoginPage';
+import ProtectedRoute from './auth/ProtectedRoute';
 
 // Lazy-loaded Pages
-const LoginPage = lazy(() => import('./components/pages/LoginPage'));
 const OverviewPage = lazy(() => import('./components/pages/OverviewPage'));
 const RequirementsPage = lazy(() => import('./components/pages/RequirementsPage'));
 const CapabilitiesPage = lazy(() => import('./components/pages/CapabilitiesPage'));
 const ResourcePlanningPage = lazy(() => import('./components/pages/ResourcePlanningPage'));
 const MaturityAnalysisPage = lazy(() => import('./components/pages/MaturityAnalysisPage'));
 const ThreatIntelligencePage = lazy(() => import('./components/pages/ThreatIntelligencePage'));
+const MitreAttackPage = lazy(() => import('./components/pages/MitreAttackPage'));
+const StandardsFrameworksPage = lazy(() => import('./components/pages/StandardsFrameworksPage'));
 const RiskManagementPage = lazy(() => import('./components/pages/RiskManagementPage'));
-const IncidentManagementPage = lazy(() => import('./components/pages/IncidentManagementPage'));
 const AnalyticsPage = lazy(() => import('./components/pages/AnalyticsPage'));
+const BusinessPlanPage = lazy(() => import('./components/pages/BusinessPlanPage'));
 const SettingsPage = lazy(() => import('./components/pages/SettingsPage'));
 
-// -------------------------------------------------------------------
-//  AUTH / ROUTE GUARD HELPERS
-// -------------------------------------------------------------------
-
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useContext(AuthContext);
-  if (loading) return <LoadingFallback />;
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
-};
+const TrustPage = lazy(() => import('./components/pages/TrustPage'));
 
 // A simple wrapper for providers to keep the App component clean
 const AppProviders = ({ children }) => {
@@ -106,13 +101,17 @@ function App() {
                     <Route path="resources" element={<ResourcePlanningPage />} />
                     <Route path="maturity-analysis" element={<MaturityAnalysisPage />} />
                     <Route path="threat-intelligence" element={<ThreatIntelligencePage />} />
+                    {/* MITRE ATT&CK Framework */}
+                    <Route path="mitre-attack" element={<MitreAttackPage />} />
+                    {/* Standards & Frameworks */}
+                    <Route path="standards-frameworks" element={<StandardsFrameworksPage />} />
                     <Route path="risk-management" element={<RiskManagementPage />} />
-                    <Route path="incident-management" element={<IncidentManagementPage />} />
 
                     {/* Static Placeholder Trust Page */}
                     <Route path="trust" element={<TrustPage />} />
 
                     <Route path="analytics" element={<AnalyticsPage />} />
+                    <Route path="business-plan" element={<BusinessPlanPage />} />
                     
                     {/* Default route within the dashboard */}
                     <Route path="*" element={<Navigate to="/dashboard/overview" replace />} />

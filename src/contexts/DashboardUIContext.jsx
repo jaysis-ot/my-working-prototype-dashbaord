@@ -86,13 +86,13 @@ const initialState = {
     capability: true,
     progressStatus: true,
     businessValue: true,
+    maturity: true,
     applicability: true,
     status: true,
-    maturity: true,
     actions: true,
     area: false,
     type: false,
-    priority: true,
+    priority: false,
     assignee: false,
     dueDate: false
   }
