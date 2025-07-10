@@ -9,7 +9,12 @@ import {
   Columns,
   Check,
   RefreshCw,
-  ArrowDownUp
+  ArrowDownUp,
+  Trash2,
+  ChevronsLeft,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsRight
 } from 'lucide-react';
 import Button from '../atoms/Button';
 import Input from '../atoms/Input';
@@ -21,7 +26,7 @@ const SortableHeader = ({ children, columnId, sortConfig, requestSort }) => {
 
   return (
     <th
-      className="p-3 text-left text-xs font-semibold text-secondary-600 dark:text-secondary-400 uppercase tracking-wider cursor-pointer hover:bg-secondary-50 dark:hover:bg-secondary-800"
+      className="p-3 text-left text-xs font-semibold text-secondary-600 dark:text-secondary-400 uppercase tracking-wider cursor-pointer hover:bg-secondary-50 dark:hover:bg-secondary-800 group"
       onClick={() => requestSort(columnId)}
     >
       <div className="flex items-center">
@@ -103,6 +108,7 @@ MaturityIndicator.propTypes = {
  * - Handling user interactions (sorting, button clicks) and delegating them to the parent page.
  */
 const RequirementsTable = ({
+  requirements,
   filteredRequirements,
   capabilities,
   filters,
@@ -115,10 +121,13 @@ const RequirementsTable = ({
   onToggleColumnVisibility,
   onViewRequirement,
   onEditRequirement,
+  onDeleteRequirement,
   onExportCSV,
   onImportCSV,
 }) => {
   const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'ascending' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
   const [showColumnSelector, setShowColumnSelector] = useState(false);
   const columnSelectorRef = useRef(null);
 
@@ -162,6 +171,17 @@ const RequirementsTable = ({
     return sortableItems;
   }, [filteredRequirements, sortConfig]);
 
+  const totalPages = Math.ceil(sortedItems.length / PAGE_SIZE) || 1;
+  const paginatedItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    return sortedItems.slice(startIndex, startIndex + PAGE_SIZE);
+  }, [sortedItems, currentPage]);
+
+  /* Reset page when data set changes */
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, searchTerm, sortConfig]);
+
   const getCapabilityName = (id) => {
     const capability = capabilities.find(c => c.id === id);
     return capability ? capability.name : 'N/A';
@@ -192,7 +212,7 @@ const RequirementsTable = ({
       <div className="p-4 border-b border-secondary-200 dark:border-secondary-700">
         <div className="flex justify-between mb-4">
           <div className="text-sm text-secondary-600 dark:text-secondary-400">
-            Showing <span className="font-medium">{sortedItems.length}</span> of <span className="font-medium">{filteredRequirements.length}</span> requirements
+            Showing <span className="font-medium">{paginatedItems.length}</span> of <span className="font-medium">{filteredRequirements.length}</span> requirements
           </div>
           
           <div className="flex items-center gap-2">
@@ -201,7 +221,7 @@ const RequirementsTable = ({
               <Button 
                 variant="outline" 
                 onClick={toggleColumnSelector}
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 h-10"
               >
                 <Columns className="h-4 w-4" /> Columns
               </Button>
@@ -232,28 +252,29 @@ const RequirementsTable = ({
               )}
             </div>
             
-            <Button variant="outline" onClick={onImportCSV}>
+            <Button variant="outline" onClick={onImportCSV} className="h-10">
               <Upload className="h-4 w-4 mr-2" /> Import
             </Button>
-            <Button variant="outline" onClick={onExportCSV}>
+            <Button variant="outline" onClick={onExportCSV} className="h-10">
               <Download className="h-4 w-4 mr-2" /> Export
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1">
           <Input
             placeholder="Search requirements..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             onClear={onClearSearch}
             leadingIcon={Search}
+            className="h-10"
           />
           
           <select 
             value={filters.status || ''} 
             onChange={(e) => onFilterChange('status', e.target.value)} 
-            className="w-full text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600"
+            className="w-full h-10 text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600"
           >
             <option value="">All Statuses</option>
             <option value="Not Started">Not Started</option>
@@ -264,7 +285,7 @@ const RequirementsTable = ({
           <select 
             value={filters.capabilityId || ''} 
             onChange={(e) => onFilterChange('capabilityId', e.target.value)} 
-            className="w-full text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600"
+            className="w-full h-10 text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600"
           >
             <option value="">All Capabilities</option>
             {capabilities.map(cap => (
@@ -275,7 +296,7 @@ const RequirementsTable = ({
           <select 
             value={filters.priority || ''} 
             onChange={(e) => onFilterChange('priority', e.target.value)} 
-            className="w-full text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600"
+            className="w-full h-10 text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600"
           >
             <option value="">All Priorities</option>
             <option value="High">High</option>
@@ -286,7 +307,7 @@ const RequirementsTable = ({
           <select 
             value={filters.maturityLevel || ''} 
             onChange={(e) => onFilterChange('maturityLevel', e.target.value)} 
-            className="w-full text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600"
+            className="w-full h-10 text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600"
           >
             <option value="">All Maturity Levels</option>
             <option value="1">Initial (1)</option>
@@ -299,7 +320,7 @@ const RequirementsTable = ({
           <Button 
             variant="ghost" 
             onClick={onClearFilters} 
-            className="flex items-center justify-center gap-1"
+            className="h-10 flex items-center justify-center gap-1"
           >
             <RefreshCw className="h-4 w-4" /> Reset Filters
           </Button>
@@ -321,8 +342,8 @@ const RequirementsTable = ({
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-secondary-900 divide-y divide-secondary-200 dark:divide-secondary-700">
-            {sortedItems.length > 0 ? (
-              sortedItems.map((req) => (
+            {paginatedItems.length > 0 ? (
+              paginatedItems.map((req) => (
                 <tr key={req.id} className="hover:bg-secondary-50 dark:hover:bg-secondary-800/50">
                   {columnVisibility.id && <td className="p-3 text-sm font-mono text-primary-600 dark:text-primary-400 whitespace-nowrap">{req.id}</td>}
                   {columnVisibility.description && <td className="p-3 text-sm text-secondary-700 dark:text-secondary-300 max-w-xs truncate">{req.description}</td>}
@@ -366,6 +387,9 @@ const RequirementsTable = ({
                         <Button size="sm" variant="ghost" onClick={() => onEditRequirement(req)} title="Edit">
                           <Edit2 className="h-4 w-4" />
                         </Button>
+                        <Button size="sm" variant="ghost" onClick={() => onDeleteRequirement(req)} title="Delete">
+                          <Trash2 className="h-4 w-4 text-status-error" />
+                        </Button>
                       </div>
                     </td>
                   )}
@@ -381,6 +405,30 @@ const RequirementsTable = ({
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="p-4 border-t border-secondary-200 dark:border-secondary-700 flex items-center justify-between">
+          <span className="text-sm text-secondary-600 dark:text-secondary-400">
+            Page {currentPage} of {totalPages}
+          </span>
+          <div className="flex items-center gap-1">
+            <Button size="sm" variant="secondary" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
+              <ChevronsLeft className="w-4 h-4" />
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}>
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <span className="px-2 text-sm font-semibold">{currentPage}</span>
+            <Button size="sm" variant="secondary" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages}>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>
+              <ChevronsRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -399,6 +447,7 @@ RequirementsTable.propTypes = {
   onToggleColumnVisibility: PropTypes.func.isRequired,
   onViewRequirement: PropTypes.func.isRequired,
   onEditRequirement: PropTypes.func.isRequired,
+  onDeleteRequirement: PropTypes.func.isRequired,
   onExportCSV: PropTypes.func.isRequired,
   onImportCSV: PropTypes.func.isRequired,
 };
