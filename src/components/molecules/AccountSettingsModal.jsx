@@ -23,7 +23,7 @@ import {
   Moon,
   LogOut
 } from 'lucide-react';
-import { useAuth } from '../../auth/JWTAuthProvider';
+import { useAuth } from '../../auth/AutContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import Button from '../atoms/Button';
 
