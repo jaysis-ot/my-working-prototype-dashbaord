@@ -4,7 +4,7 @@ import { Loader2 } from 'lucide-react';
 
 // Context Providers
 import { ThemeProvider } from './contexts/ThemeContext';
-import { JWTAuthProvider as AuthProvider, AuthContext } from './auth/JWTAuthProvider';
+import { JWTAuthProvider as AuthProvider, AuthContext } from './auth/AuthContext';
 import { DashboardUIProvider } from './contexts/DashboardUIContext';
 
 // Feature Context Providers - to be created
