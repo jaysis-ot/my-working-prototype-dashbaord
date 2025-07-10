@@ -112,10 +112,9 @@ function App() {
                     {/* Static Placeholder Trust Page */}
                     <Route path="trust" element={<TrustPage />} />
 
+                    <Route path="analytics" element={<AnalyticsPage />} />
                     {/* Business Planning */}
                     <Route path="business-plan" element={<BusinessPlanPage />} />
-
-                    <Route path="analytics" element={<AnalyticsPage />} />
                     
                     {/* Default route within the dashboard */}
                     <Route path="*" element={<Navigate to="/dashboard/overview" replace />} />
