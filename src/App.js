@@ -1,10 +1,10 @@
-import React, { Suspense, lazy, useContext } from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
 // Context Providers
 import { ThemeProvider } from './contexts/ThemeContext';
-import { JWTAuthProvider as AuthProvider } from './auth/JWTAuthProvider';
+// import { AuthProvider } from './contexts/AuthContext'; // To be created
 import { DashboardUIProvider } from './contexts/DashboardUIContext';
 
 // Feature Context Providers - to be created
@@ -14,48 +14,52 @@ import { DashboardUIProvider } from './contexts/DashboardUIContext';
 
 // Templates
 import DashboardLayout from './components/templates/DashboardLayout';
+import ModalManager from './components/templates/ModalManager';
 
 // Lazy-loaded Pages
-const LoginPage = lazy(() => import('./components/pages/LoginPage'));
 const OverviewPage = lazy(() => import('./components/pages/OverviewPage'));
-const RequirementsPage = lazy(() => import('./components/pages/RequirementsPage'));
+const SettingsPage = lazy(() => import('./components/pages/SettingsPage'));
 const CapabilitiesPage = lazy(() => import('./components/pages/CapabilitiesPage'));
+const RequirementsPage = lazy(() => import('./components/pages/RequirementsPage'));
 const ResourcePlanningPage = lazy(() => import('./components/pages/ResourcePlanningPage'));
-const MaturityAnalysisPage = lazy(() => import('./components/pages/MaturityAnalysisPage'));
+const MitreAttackPage = lazy(() => import('./components/pages/MitreAttackPage'));
 const ThreatIntelligencePage = lazy(() => import('./components/pages/ThreatIntelligencePage'));
 const RiskManagementPage = lazy(() => import('./components/pages/RiskManagementPage'));
+const StandardsFrameworksPage = lazy(() => import('./components/pages/StandardsFrameworksPage'));
 const AnalyticsPage = lazy(() => import('./components/pages/AnalyticsPage'));
 const BusinessPlanPage = lazy(() => import('./components/pages/BusinessPlanPage'));
-const SettingsPage = lazy(() => import('./components/pages/SettingsPage'));
+const MaturityAnalysisPage = lazy(() => import('./components/pages/MaturityAnalysisPage'));
 
-import TrustPage from './components/pages/TrustPage';
-
-// -------------------------------------------------------------------
-//  AUTH / ROUTE GUARD HELPERS
-// -------------------------------------------------------------------
-import { AuthContext } from './auth/JWTAuthProvider';
-
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useContext(AuthContext);
-  if (loading) return <LoadingFallback />;
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
-};
+// NOTE:
+// The following pages are referenced only as placeholder <div> routes
+// and do not yet have real components.  Their lazy imports are removed
+// to avoid build-time resolution errors.  Add them back once the files exist.
+// const LoginPage            = lazy(() => import('./components/pages/LoginPage'));
+// const RequirementsPage     = lazy(() => import('./components/pages/RequirementsPage'));
+// const CapabilitiesPage     = lazy(() => import('./components/pages/CapabilitiesPage'));
+// const ResourcePlanningPage = lazy(() => import('./components/pages/ResourcePlanningPage'));
+// const MaturityAnalysisPage = lazy(() => import('./components/pages/MaturityAnalysisPage'));
+// const ThreatIntelligencePage = lazy(() => import('./components/pages/ThreatIntelligencePage'));
+// const RiskManagementPage   = lazy(() => import('./components/pages/RiskManagementPage'));
+// const AnalyticsPage        = lazy(() => import('./components/pages/AnalyticsPage'));
 
 // A simple wrapper for providers to keep the App component clean
 const AppProviders = ({ children }) => {
   return (
     <ThemeProvider>
-      <AuthProvider>
+      {/* <AuthProvider> */}
           <DashboardUIProvider>
             {/* <RequirementsProvider> */}
               {/* <CapabilitiesProvider> */}
                 {/* <TeamProvider> */}
                   {children}
+                  {/* Global Modal Manager */}
+                  <ModalManager />
                 {/* </TeamProvider> */}
               {/* </CapabilitiesProvider> */}
             {/* </RequirementsProvider> */}
           </DashboardUIProvider>
-      </AuthProvider>
+      {/* </AuthProvider> */}
     </ThemeProvider>
   );
 };
@@ -88,14 +92,13 @@ function App() {
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
             {/* Authentication Route - Placeholder */}
-            <Route path="/login" element={<LoginPage />} />
+            {/* <Route path="/login" element={<LoginPage />} /> */}
             
             {/* Dashboard Routes */}
             <Route
               path="/dashboard/*"
               element={
-                <ProtectedRoute>
-                  <DashboardLayout>
+                <DashboardLayout>
                   <Routes>
                     {/* Implemented Pages */}
                     <Route path="overview" element={<OverviewPage />} />
@@ -105,23 +108,18 @@ function App() {
                     <Route path="requirements" element={<RequirementsPage />} />
                     <Route path="capabilities" element={<CapabilitiesPage />} />
                     <Route path="resources" element={<ResourcePlanningPage />} />
+                    <Route path="mitre-attack" element={<MitreAttackPage />} />
                     <Route path="maturity-analysis" element={<MaturityAnalysisPage />} />
                     <Route path="threat-intelligence" element={<ThreatIntelligencePage />} />
                     <Route path="risk-management" element={<RiskManagementPage />} />
-
-                    {/* Static Placeholder Trust Page */}
-                    <Route path="trust" element={<TrustPage />} />
-
-                    {/* Business Planning */}
-                    <Route path="business-plan" element={<BusinessPlanPage />} />
-
+                    <Route path="standards-frameworks" element={<StandardsFrameworksPage />} />
                     <Route path="analytics" element={<AnalyticsPage />} />
+                    <Route path="business-plan" element={<BusinessPlanPage />} />
                     
                     {/* Default route within the dashboard */}
                     <Route path="*" element={<Navigate to="/dashboard/overview" replace />} />
                   </Routes>
-                  </DashboardLayout>
-                </ProtectedRoute>
+                </DashboardLayout>
               }
             />
             
