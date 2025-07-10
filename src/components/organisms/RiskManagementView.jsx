@@ -18,6 +18,12 @@ import {
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
 import Input from '../atoms/Input';
+// Modal to view & edit requirements linked to a risk
+import RiskRequirementsModal from '../molecules/RiskRequirementsModal';
+// Modal to edit a risk itself
+import RiskEditModal from '../molecules/RiskEditModal';
+// Modal to create a new risk
+import RiskCreateModal from '../molecules/RiskCreateModal';
 
 // --- Internal Molecules for RiskManagementView ---
 
@@ -87,6 +93,58 @@ const RiskManagementView = ({
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 10;
 
+  // ------------------ Requirement modal state ------------------ //
+  const [selectedRisk, setSelectedRisk] = useState(null);
+  const [isReqModalOpen, setIsReqModalOpen] = useState(false);
+
+  const openRequirementsModal = useCallback((risk) => {
+    setSelectedRisk(risk);
+    setIsReqModalOpen(true);
+  }, []);
+
+  const closeRequirementsModal = useCallback(() => {
+    setIsReqModalOpen(false);
+    setSelectedRisk(null);
+  }, []);
+
+  // ------------------ Edit Risk modal state ------------------ //
+  const [riskToEdit, setRiskToEdit] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  const openEditModal = useCallback((risk) => {
+    setRiskToEdit(risk);
+    setIsEditModalOpen(true);
+  }, []);
+
+  const closeEditModal = useCallback(() => {
+    setIsEditModalOpen(false);
+    setRiskToEdit(null);
+  }, []);
+
+  const handleUpdateRiskModal = useCallback((updatedRisk) => {
+    onUpdateRisk(updatedRisk.id, updatedRisk);
+    closeEditModal();
+  }, [onUpdateRisk, closeEditModal]);
+
+  // ------------------ Create Risk modal state ------------------ //
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const openCreateModal = useCallback(() => {
+    setIsCreateModalOpen(true);
+  }, []);
+
+  const closeCreateModal = useCallback(() => {
+    setIsCreateModalOpen(false);
+  }, []);
+
+  const handleCreateRisk = useCallback(
+    (newRisk) => {
+      onAddRisk(newRisk);
+      closeCreateModal();
+    },
+    [onAddRisk, closeCreateModal]
+  );
+
   const handleSort = useCallback((key) => {
     setSortConfig(prev => {
       if (prev.key === key) {
@@ -123,6 +181,7 @@ const RiskManagementView = ({
   ];
 
   return (
+    <>
     <div className="h-full flex flex-col space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -135,7 +194,9 @@ const RiskManagementView = ({
             Identify, assess, and manage organizational risks.
           </p>
         </div>
-        <Button onClick={onAddRisk} leadingIcon={Plus}>Add New Risk</Button>
+        <Button onClick={openCreateModal} leadingIcon={Plus}>
+          Add New Risk
+        </Button>
       </div>
 
       {/* Metrics Cards */}
@@ -205,8 +266,22 @@ const RiskManagementView = ({
                   <td className="px-6 py-4 whitespace-nowrap text-sm"><RiskRatingIndicator {...risk.rating} /></td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <div className="flex items-center gap-2">
-                      <Button size="sm" variant="ghost" onClick={() => {}} title="View"><Eye className="w-4 h-4" /></Button>
-                      <Button size="sm" variant="ghost" onClick={() => onUpdateRisk(risk.id, {})} title="Edit"><Edit className="w-4 h-4" /></Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => openRequirementsModal(risk)}
+                        title="View Requirements"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => openEditModal(risk)}
+                        title="Edit"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
                       <Button size="sm" variant="ghost" onClick={() => onDeleteRisk(risk.id)} title="Delete"><Trash2 className="w-4 h-4 text-status-error" /></Button>
                     </div>
                   </td>
@@ -231,6 +306,29 @@ const RiskManagementView = ({
         )}
       </div>
     </div>
+
+    {/* ----- Requirements Modal ----- */}
+    <RiskRequirementsModal
+      risk={selectedRisk}
+      isOpen={isReqModalOpen}
+      onClose={closeRequirementsModal}
+    />
+
+    {/* ----- Risk Edit Modal ----- */}
+    <RiskEditModal
+      risk={riskToEdit}
+      isOpen={isEditModalOpen}
+      onClose={closeEditModal}
+      onSave={handleUpdateRiskModal}
+    />
+
+    {/* ----- Risk Create Modal ----- */}
+    <RiskCreateModal
+      isOpen={isCreateModalOpen}
+      onClose={closeCreateModal}
+      onSave={handleCreateRisk}
+    />
+    </>
   );
 };
 

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import {
   Shield,
@@ -19,6 +19,8 @@ import {
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
 import Input from '../atoms/Input';
+import { Link as RouterLink } from 'react-router-dom';
+import { useThreatIntelFeeds } from '../../hooks/useThreatIntelFeeds';
 
 // --- Reusable Molecules (Internal to this Organism) ---
 
@@ -190,23 +192,98 @@ const AnalyticsTab = () => (
   </div>
 );
 
-const FeedsTab = ({ intelSources }) => (
-  <div className="dashboard-card p-6">
-    <h3 className="text-lg font-semibold text-secondary-900 dark:text-white mb-4">Intelligence Feed Status</h3>
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {Object.values(intelSources).map(source => (
-        <div key={source.id} className="p-4 bg-secondary-50 dark:bg-secondary-800/50 rounded-lg border border-secondary-200 dark:border-secondary-700">
-          <h4 className="font-semibold text-secondary-800 dark:text-white">{source.name}</h4>
-          <p className="text-xs text-secondary-500 dark:text-secondary-400 mb-2">{source.description}</p>
-          <div className="flex items-center justify-between text-sm">
-            <Badge variant={source.reliability === 'high' ? 'success' : 'warning'}>{source.reliability} reliability</Badge>
-            <span className="text-xs text-secondary-500">{source.updateFrequency}</span>
-          </div>
+const FeedsTab = ({ feeds, feedsLoading, feedsError }) => {
+  const activeFeeds = feeds.filter(f => f.status === 'active');
+
+  const getHealthIcon = (health) => {
+    switch (health) {
+      case 'healthy':
+        return <CheckCircle className="w-4 h-4 text-status-success" />;
+      case 'error':
+        return <AlertTriangle className="w-4 h-4 text-status-error" />;
+      default:
+        return <Clock className="w-4 h-4 text-secondary-400" />;
+    }
+  };
+
+  if (feedsLoading) {
+    return (
+      <div className="dashboard-card flex items-center justify-center py-12">
+        <RefreshCw className="animate-spin w-6 h-6 text-primary-500 mr-2" />
+        <span>Loading feeds…</span>
+      </div>
+    );
+  }
+
+  if (feedsError) {
+    return (
+      <div className="dashboard-card p-6 text-status-error">
+        <AlertTriangle className="w-5 h-5 inline mr-2" />
+        Failed to load feeds: {feedsError}
+      </div>
+    );
+  }
+
+  return (
+    <div className="dashboard-card p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-secondary-900 dark:text-white">Active Intelligence Feeds</h3>
+        {/* Link styled to look like a small secondary button */}
+        <RouterLink
+          to="/settings?tab=threat-intel"
+          className="
+            inline-flex items-center justify-center
+            px-2.5 py-1.5 text-xs font-medium rounded-md
+            bg-secondary-200 hover:bg-secondary-300
+            text-secondary-900 focus:outline-none focus:ring-2
+            focus:ring-offset-2 focus:ring-secondary-500
+          "
+        >
+          Manage Feeds
+        </RouterLink>
+      </div>
+
+      {activeFeeds.length === 0 ? (
+        <p className="text-secondary-500 dark:text-secondary-400">No active feeds configured.</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {activeFeeds.map(feed => (
+            <div
+              key={feed.id}
+              className="p-4 bg-secondary-50 dark:bg-secondary-800/50 rounded-lg border border-secondary-200 dark:border-secondary-700 flex"
+            >
+              {/* logo */}
+              <div className="w-10 h-10 flex-shrink-0 rounded-md overflow-hidden bg-white border border-secondary-200 dark:border-secondary-700 mr-4 flex items-center justify-center">
+                {feed.logo ? (
+                  <img src={feed.logo} alt="" className="w-full h-full object-contain" />
+                ) : (
+                  <Database className="w-6 h-6 text-primary-500" />
+                )}
+              </div>
+
+              {/* info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold text-secondary-800 dark:text-white truncate">{feed.name}</h4>
+                  {getHealthIcon(feed.healthStatus)}
+                </div>
+                <p className="text-xs text-secondary-500 dark:text-secondary-400 line-clamp-2">{feed.description}</p>
+                <div className="flex items-center justify-between text-xs mt-2">
+                  <span>{feed.updateFrequency}</span>
+                  {feed.url && (
+                    <a href={feed.url} target="_blank" rel="noopener noreferrer" className="text-primary-500 hover:underline">
+                      <ExternalLink className="w-4 h-4 inline" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 
 // --- Main Organism Component ---
@@ -219,8 +296,27 @@ const ThreatIntelligenceView = ({
   onNavigateBack,
   onRefresh,
   onSearch,
-  intelSources,
 }) => {
+  /* ------------------------------------------------------------------
+   * Threat-intel feeds state (centralised via custom hook)
+   * ---------------------------------------------------------------- */
+  const {
+    feeds = [],
+    activeFeeds = [],
+    loading: feedsLoading,
+    error: feedsError,
+  } = useThreatIntelFeeds();
+
+  /* ------------------------------------------------------------------
+   * Basic side-effect: log feed hook errors (prevents silent failures)
+   * ---------------------------------------------------------------- */
+  useEffect(() => {
+    if (feedsError) {
+      // eslint-disable-next-line no-console
+      console.error('Threat Intel Feeds Error:', feedsError);
+    }
+  }, [feedsError]);
+
   const [activeTab, setActiveTab] = useState('overview');
 
   const tabs = [
@@ -228,7 +324,7 @@ const ThreatIntelligenceView = ({
     { id: 'threats', name: 'Active Threats', icon: AlertTriangle, badge: threats.length },
     { id: 'iocs', name: 'Indicators', icon: Globe, badge: iocs.length },
     { id: 'analytics', name: 'Analytics', icon: BarChart3 },
-    { id: 'feeds', name: 'Intel Feeds', icon: Database }
+    { id: 'feeds', name: 'Intel Feeds', icon: Database, badge: activeFeeds.length },
   ];
 
   const summaryStats = useMemo(() => [
@@ -300,7 +396,9 @@ const ThreatIntelligenceView = ({
         {activeTab === 'threats' && <ThreatsListTab threats={threats} onSearch={onSearch} />}
         {activeTab === 'iocs' && <IocsTableTab iocs={iocs} />}
         {activeTab === 'analytics' && <AnalyticsTab />}
-        {activeTab === 'feeds' && <FeedsTab intelSources={intelSources} />}
+        {activeTab === 'feeds' && (
+          <FeedsTab feeds={feeds} feedsLoading={feedsLoading} feedsError={feedsError} />
+        )}
       </div>
     </div>
   );
@@ -314,7 +412,6 @@ ThreatIntelligenceView.propTypes = {
   onNavigateBack: PropTypes.func.isRequired,
   onRefresh: PropTypes.func.isRequired,
   onSearch: PropTypes.func.isRequired,
-  intelSources: PropTypes.object.isRequired,
 };
 
 export default ThreatIntelligenceView;

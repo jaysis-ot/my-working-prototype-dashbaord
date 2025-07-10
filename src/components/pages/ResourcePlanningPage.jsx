@@ -22,6 +22,7 @@ import {
   ClipboardList,
   Clock,
   CalendarDays,
+  Edit, // Added Edit icon for the task card
 } from 'lucide-react';
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
@@ -30,6 +31,7 @@ import { useCapabilitiesData } from '../../hooks/useCapabilitiesData';
 import LoadingSpinner from '../atoms/LoadingSpinner';
 import ErrorDisplay from '../molecules/ErrorDisplay';
 import Input from '../atoms/Input';
+import EditAssignmentModal from '../molecules/EditAssignmentModal'; // Import the EditAssignmentModal component
 
 // --- Mock Data (to be replaced by hooks) ---
 const mockTeams = [
@@ -164,15 +166,26 @@ const FilterToolbar = ({ view, setView, sortConfig, setSortConfig, teamFilter, s
   </div>
 );
 
-const TaskCard = ({ req }) => {
+// Updated TaskCard component with edit functionality
+const TaskCard = ({ req, onEdit }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  
   const getPriorityVariant = (priority) => {
     if (priority === 'Critical') return 'error';
     if (priority === 'High') return 'warning';
     return 'default';
   };
+  
+  const handleEdit = (e) => {
+    e.stopPropagation(); // Prevent the card click from triggering
+    if (onEdit) {
+      onEdit(req);
+    }
+  };
+  
   return (
     <div
-      className={`dashboard-card p-3 mb-2 border-l-4 ${
+      className={`dashboard-card p-3 mb-2 border-l-4 cursor-pointer hover:bg-secondary-50 dark:hover:bg-secondary-800/70 transition-colors relative ${
         req.isAssignment ? 'bg-primary-50 dark:bg-primary-900/20' : ''
       }`}
       style={{
@@ -180,6 +193,9 @@ const TaskCard = ({ req }) => {
           ? 'var(--color-primary-500)'
           : `var(--maturity-${req.maturityLevel?.score || 1})`,
       }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={handleEdit}
     >
       <div className="flex justify-between items-start">
         <p className="text-sm font-semibold text-secondary-800 dark:text-secondary-100 line-clamp-2">{req.description}</p>
@@ -189,11 +205,23 @@ const TaskCard = ({ req }) => {
         <div className="flex items-center gap-1"><Briefcase className="w-3 h-3" /><span>{req.capabilityId}</span></div>
         <div className="flex items-center gap-1"><Calendar className="w-3 h-3" /><span>{req.dueDate}</span></div>
       </div>
+      
+      {/* Edit button that appears on hover */}
+      {isHovered && (
+        <button 
+          className="absolute top-2 right-2 w-6 h-6 bg-secondary-100 dark:bg-secondary-700 rounded-full flex items-center justify-center opacity-80 hover:opacity-100 transition-opacity"
+          onClick={handleEdit}
+          aria-label="Edit allocation"
+        >
+          <Edit className="w-3.5 h-3.5 text-secondary-600 dark:text-secondary-300" />
+        </button>
+      )}
     </div>
   );
 };
 
-const ResourceLane = ({ resource, tasks }) => {
+// Updated ResourceLane to pass onEdit to TaskCard
+const ResourceLane = ({ resource, tasks, onEditTask }) => {
   const workload = useMemo(() => tasks.reduce((acc, task) => acc + (task.estimatedHours || 4), 0), [tasks]);
   const utilization = useMemo(() => (workload / resource.capacity) * 100, [workload, resource.capacity]);
 
@@ -202,6 +230,7 @@ const ResourceLane = ({ resource, tasks }) => {
     if (u > 80) return 'bg-yellow-500';
     return 'bg-green-500';
   };
+  
   return (
     <div className="flex-shrink-0 w-80 bg-secondary-50 dark:bg-secondary-900/50 rounded-lg p-3">
       <div className="flex items-center justify-between mb-3">
@@ -224,18 +253,33 @@ const ResourceLane = ({ resource, tasks }) => {
         </div>
       </div>
       <div className="h-[calc(100vh-28rem)] overflow-y-auto pr-1">
-        {tasks.length > 0 ? tasks.map(req => <TaskCard key={req.id} req={req} />) : <p className="text-center text-sm text-secondary-500 pt-16">No tasks assigned.</p>}
+        {tasks.length > 0 ? 
+          tasks.map(req => (
+            <TaskCard 
+              key={req.id} 
+              req={req} 
+              onEdit={(task) => onEditTask(resource.id, task)}
+            />
+          )) : 
+          <p className="text-center text-sm text-secondary-500 pt-16">No tasks assigned.</p>
+        }
       </div>
     </div>
   );
 };
 
+// Updated SwimlaneView to handle edit functionality
 const SwimlaneView = ({
   resources,
   requirements,
   assignments,
   capabilities,
+  onUpdateAssignment,
 }) => {
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
+  const [editingResourceId, setEditingResourceId] = useState(null);
+  
   // Build a map of tasks per resource combining requirements + assignments
   const resourceTasks = useMemo(() => {
     const map = {};
@@ -252,6 +296,11 @@ const SwimlaneView = ({
         priority: a.priority || 'Medium',
         dueDate: a.endDate,
         capabilityId: a.capabilityId,
+        startDate: a.startDate,
+        endDate: a.endDate,
+        timeAllocation: a.timeAllocation,
+        notes: a.notes || '',
+        resourceId: a.resourceId,
         estimatedHours:
           a.timeAllocation === 'Full time'
             ? 40
@@ -272,6 +321,21 @@ const SwimlaneView = ({
     return map;
   }, [resources, requirements, assignments, capabilities]);
 
+  const handleEditTask = (resourceId, task) => {
+    setEditingResourceId(resourceId);
+    setEditingTask(task);
+    setEditModalOpen(true);
+  };
+
+  const handleSaveEdit = (taskId, updatedData) => {
+    if (onUpdateAssignment && editingTask.isAssignment) {
+      onUpdateAssignment(editingResourceId, taskId, updatedData);
+    }
+    setEditModalOpen(false);
+    setEditingTask(null);
+    setEditingResourceId(null);
+  };
+
   return (
     <div className="flex gap-4 overflow-x-auto pb-4">
       {resources.map((resource) => (
@@ -279,8 +343,24 @@ const SwimlaneView = ({
           key={resource.id}
           resource={resource}
           tasks={resourceTasks[resource.id] || []}
+          onEditTask={handleEditTask}
         />
       ))}
+      
+      {/* Edit Assignment Modal */}
+      {editModalOpen && editingTask && (
+        <EditAssignmentModal
+          isOpen={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          assignment={{
+            ...editingTask,
+            resourceName: resources.find(r => r.id === editingResourceId)?.name || 'Resource'
+          }}
+          capabilities={capabilities}
+          onSave={handleSaveEdit}
+          isRequirement={!editingTask.isAssignment}
+        />
+      )}
     </div>
   );
 };
@@ -288,9 +368,12 @@ const SwimlaneView = ({
 /* ------------------------------------------------------------------ */
 /* TimelineView – capacity-planner style Gantt view                  */
 /* ------------------------------------------------------------------ */
-const TimelineView = ({ resources, assignments, capabilities }) => {
+const TimelineView = ({ resources, assignments, capabilities, onUpdateAssignment }) => {
   /* month navigation */
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingAssignment, setEditingAssignment] = useState(null);
+  
   const daysInMonth = new Date(
     currentMonth.getFullYear(),
     currentMonth.getMonth() + 1,
@@ -370,13 +453,29 @@ const TimelineView = ({ resources, assignments, capabilities }) => {
   /* ------------------------------------------------------------------
      Keep day-cell width consistent with ResourceLane so bars render
      across the correct span.  This was previously 25 px which caused
-     assignments to appear only half-width.  Aligning to 35 px fixes
-     the truncation issue. */
-  const cellW = 60; // px - wider cells to ensure full visibility on desktop
+     assignments to appear only half-/over-width.  Aligning to 35 px
+     (the same size used in the CSS grid) fixes the mis-alignment. */
+  const cellW = 35; // px – must match min-width in grid template
   const goMonth = (delta) =>
     setCurrentMonth(
       new Date(currentMonth.getFullYear(), currentMonth.getMonth() + delta, 1),
     );
+    
+  const handleEditAssignment = (assignment) => {
+    setEditingAssignment({
+      ...assignment,
+      resourceName: resources.find(r => r.id === assignment.resourceId)?.name || 'Resource'
+    });
+    setEditModalOpen(true);
+  };
+  
+  const handleSaveEdit = (assignmentId, updatedData) => {
+    if (onUpdateAssignment) {
+      onUpdateAssignment(editingAssignment.resourceId, assignmentId, updatedData);
+    }
+    setEditModalOpen(false);
+    setEditingAssignment(null);
+  };
 
   return (
     <div className="dashboard-card p-4 overflow-x-auto">
@@ -487,7 +586,7 @@ const TimelineView = ({ resources, assignments, capabilities }) => {
                     key={a.id}
                     className={`absolute ${getColor(
                       a.timeAllocation,
-                    )} text-white text-[10px] overflow-hidden px-2 flex items-center`}
+                    )} text-white text-[10px] overflow-hidden px-2 flex items-center cursor-pointer hover:opacity-90 transition-opacity`}
                     style={{
                       left: `${leftPos}px`,
                       width: duration * cellW,
@@ -503,6 +602,7 @@ const TimelineView = ({ resources, assignments, capabilities }) => {
 From: ${a.startDate}
 To: ${a.endDate}
 Days: ${a.startDay}-${a.endDay}`}
+                    onClick={() => handleEditAssignment(a)}
                   >
                     {duration * cellW > 80 ? (
                       <div className="flex items-center space-x-1 whitespace-nowrap w-full">
@@ -524,6 +624,18 @@ Days: ${a.startDay}-${a.endDay}`}
           );
         })}
       </div>
+      
+      {/* Edit Assignment Modal */}
+      {editModalOpen && editingAssignment && (
+        <EditAssignmentModal
+          isOpen={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          assignment={editingAssignment}
+          capabilities={capabilities}
+          onSave={handleSaveEdit}
+          isRequirement={false}
+        />
+      )}
     </div>
   );
 };
@@ -1132,6 +1244,24 @@ const ResourcePlanningPage = () => {
     /* eslint-disable no-console */
     console.log('📌 New assignment added', newAssignment);
   }, []);
+  
+  /**
+   * Callback to update an existing assignment
+   * 
+   * @param {string} resourceId - ID of the resource the work is assigned to
+   * @param {string} assignmentId - ID of the assignment to update
+   * @param {Object} updatedData - New assignment data
+   */
+  const handleUpdateAssignment = useCallback((resourceId, assignmentId, updatedData) => {
+    setAssignments(prev => 
+      prev.map(assignment => 
+        assignment.id === assignmentId 
+          ? { ...assignment, ...updatedData, resourceId }
+          : assignment
+      )
+    );
+    console.log('📝 Assignment updated', assignmentId, updatedData);
+  }, []);
 
   // Using real data hooks
   const { requirements, loading: reqsLoading, error: reqsError } = useRequirementsData();
@@ -1187,6 +1317,7 @@ const ResourcePlanningPage = () => {
             requirements={requirements}
             assignments={assignments}
             capabilities={capabilities}
+            onUpdateAssignment={handleUpdateAssignment}
           />
         )}
         {view === 'timeline' && (
@@ -1194,6 +1325,7 @@ const ResourcePlanningPage = () => {
             resources={filteredAndSortedResources}
             assignments={assignments}
             capabilities={capabilities}
+            onUpdateAssignment={handleUpdateAssignment}
           />
         )}
         {view === 'details' && (

@@ -25,7 +25,6 @@ const ThreatIntelligencePage = () => {
     error,
     isInitialized,
     searchThreats,
-    THREAT_INTEL_SOURCES,
   } = useThreatIntelligence();
 
   // --- Event Handlers ---
@@ -75,7 +74,6 @@ const ThreatIntelligencePage = () => {
         onNavigateBack={handleNavigateBack}
         onRefresh={handleRefresh}
         onSearch={searchThreats}
-        intelSources={THREAT_INTEL_SOURCES}
       />
     </div>
   );

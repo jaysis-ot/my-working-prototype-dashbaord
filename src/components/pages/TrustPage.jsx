@@ -8,55 +8,62 @@ import {
   Network,
   HelpCircle,
   FileText,
-  Construction,
+  Wrench,
   Activity,
   CheckSquare,
   BarChart,
   Scale,
-  BrainCircuit
+  BrainCircuit,
+  Info
 } from 'lucide-react';
-import LoadingSpinner from '../atoms/LoadingSpinner';
-import ErrorDisplay from '../molecules/ErrorDisplay';
-import { useTrustData } from '../../hooks/useTrustData';
+import Button from '../atoms/Button';
+import Badge from '../atoms/Badge';
 
 /**
  * A reusable card component for displaying a key concept on the Trust page.
+ * This is an internal component to keep the main page component clean.
  */
 const InfoCard = ({ icon: Icon, title, children, color = 'primary' }) => (
-  <div className="dashboard-card p-6">
-    <div className="flex items-start">
-      <div className={`mr-4 p-2 bg-${color}-100 dark:bg-${color}-900/30 rounded-lg`}>
-        <Icon className={`h-6 w-6 text-${color}-600 dark:text-${color}-400`} />
-      </div>
-      <div>
-        <h3 className="text-lg font-semibold text-secondary-900 dark:text-white mb-2">{title}</h3>
-        <div className="text-sm text-secondary-600 dark:text-secondary-300 space-y-2">
-          {children}
-        </div>
+  <div className="bg-white dark:bg-secondary-800/50 p-4 rounded-lg border border-secondary-200/50 dark:border-secondary-700/50 flex items-start gap-4 h-full">
+    <div className={`p-2 rounded-lg bg-${color}-100 dark:bg-${color}-900/30`}>
+      <Icon className={`h-6 w-6 text-${color}-600 dark:text-${color}-400`} />
+    </div>
+    <div>
+      <h3 className="text-md font-semibold text-secondary-900 dark:text-white mb-1">{title}</h3>
+      <div className="text-sm text-secondary-600 dark:text-secondary-300 space-y-2">
+        {children}
       </div>
     </div>
   </div>
 );
 
 /**
- * TrustPage Component
+ * TrustPage Component - STATIC PLACEHOLDER
  * 
- * Provides a high-level, user-friendly overview of the Cybersecurity Trust Scoring framework.
+ * Provides a static, user-friendly overview of the Cybersecurity Trust Scoring framework.
+ * This version uses hardcoded data to ensure it loads reliably while debugging other issues.
  * It translates the complex mathematical model into understandable concepts for stakeholders.
  */
 const TrustPage = () => {
-  const { data: trustData, loading, error } = useTrustData();
-
-  if (loading) {
-    return <LoadingSpinner fullScreen message="Calculating Trust Score..." />;
-  }
-
-  if (error) {
-    return <ErrorDisplay title="Could not load Trust Score data" message={error.message} />;
-  }
+  // Hardcoded mock data to ensure the page always renders
+  const trustData = {
+    overallScore: 78.5,
+    scoreDelta: -1.2,
+  };
 
   return (
-    <div className="fade-in space-y-8">
+    <div className="fade-in space-y-6 p-1">
+      {/* Placeholder Notification */}
+      <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-md" role="alert">
+        <div className="flex items-center">
+          <Info className="h-5 w-5 mr-3" />
+          <div>
+            <p className="font-bold">Placeholder Page</p>
+            <p className="text-sm">This is a static placeholder for the Trust Page. The data displayed is for demonstration purposes only and is not live.</p>
+          </div>
+        </div>
+      </div>
+
       {/* Page Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between">
         <div>
@@ -71,8 +78,8 @@ const TrustPage = () => {
       </div>
 
       {/* Main Score Display */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1 dashboard-card bg-gradient-to-br from-primary-500 to-primary-700 text-white p-8 flex flex-col items-center justify-center text-center">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1 dashboard-card bg-gradient-to-br from-primary-600 to-blue-600 text-white p-6 flex flex-col items-center justify-center text-center">
           <p className="font-semibold">Overall Trust Score</p>
           <p className="text-6xl font-bold my-2">{trustData.overallScore.toFixed(1)}</p>
           <div className={`flex items-center px-3 py-1 rounded-full text-sm font-medium ${trustData.scoreDelta < 0 ? 'bg-red-500/50' : 'bg-green-500/50'}`}>
@@ -81,12 +88,12 @@ const TrustPage = () => {
           </div>
           <p className="text-xs opacity-80 mt-4">A score from 0 to 100 representing the overall trustworthiness of your cybersecurity posture.</p>
         </div>
-        <div className="md:col-span-2 dashboard-card p-6">
+        <div className="lg:col-span-2 dashboard-card p-6">
           <h3 className="text-lg font-semibold mb-4">Core Calculation: The 6 Key Factors</h3>
           <p className="text-sm text-secondary-600 dark:text-secondary-400 mb-4">
             Your Trust Score is not a single metric, but a composite derived from six fundamental factors, each providing a unique perspective on your security posture.
           </p>
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <InfoCard icon={BarChart} title="Weighted Evidence" color="blue"><p>The foundation of the score, based on all collected security data. More recent evidence carries more weight.</p></InfoCard>
             <InfoCard icon={Briefcase} title="Business Context" color="purple"><p>Adjusts the score based on the criticality of your systems and data to the business mission.</p></InfoCard>
             <InfoCard icon={Target} title="Adversarial Adaptation" color="red"><p>Models how effectively your defenses adapt to the constantly evolving threat landscape.</p></InfoCard>
@@ -112,7 +119,7 @@ const TrustPage = () => {
               <li>Stated Risk Appetite</li>
             </ul>
           </InfoCard>
-          <InfoCard icon={Construction} title="Implementation" color="green">
+          <InfoCard icon={Wrench} title="Implementation" color="green">
             <p>This measures how well your intentions are translated into actual security controls.</p>
             <ul className="list-disc pl-5 mt-2 text-xs">
               <li>Firewall Configurations</li>
