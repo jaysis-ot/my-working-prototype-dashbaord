@@ -2,20 +2,17 @@ import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import PropTypes from 'prop-types';
 import {
   Search,
-  Filter,
   Upload,
   Download,
   Eye,
   Edit2,
-  ChevronDown,
-  ChevronUp,
-  XCircle,
-  X,
   Columns,
   Check,
-  RefreshCw
+  RefreshCw,
+  ArrowDownUp
 } from 'lucide-react';
 import Button from '../atoms/Button';
+import Input from '../atoms/Input';
 
 // Internal component for the table header to handle sorting UI
 const SortableHeader = ({ children, columnId, sortConfig, requestSort }) => {
@@ -29,17 +26,15 @@ const SortableHeader = ({ children, columnId, sortConfig, requestSort }) => {
     >
       <div className="flex items-center">
         {children}
-        <span className="ml-2">
-          {isSorted ? (
-            direction === 'ascending' ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )
-          ) : (
-            <ChevronDown className="h-4 w-4 text-transparent group-hover:text-secondary-400" />
-          )}
-        </span>
+        <ArrowDownUp
+          className={`w-3 h-3 ml-1 transition-transform ${
+            isSorted
+              ? direction === 'ascending'
+                ? 'text-secondary-600 rotate-180'
+                : 'text-secondary-600'
+              : 'text-secondary-400 group-hover:text-secondary-600'
+          }`}
+        />
       </div>
     </th>
   );
@@ -137,79 +132,7 @@ const RequirementsTable = ({
     <div className="dashboard-card p-0">
       {/* Toolbar */}
       <div className="p-4 border-b border-secondary-200 dark:border-secondary-700">
-        <div className="flex flex-col md:flex-row gap-4">
-          {/* Search */}
-          <div className="relative flex-grow">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-secondary-400" aria-hidden="true" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search requirements..."
-              value={searchTerm}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="block w-full pl-10 pr-10 py-2 border border-secondary-300 rounded-md bg-white text-secondary-900 placeholder-secondary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-secondary-800 dark:border-secondary-600 dark:text-white"
-            />
-            {searchTerm && (
-              <button
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-secondary-400 hover:text-secondary-600"
-                onClick={onClearSearch}
-              >
-                <X className="h-5 w-5" aria-hidden="true" />
-              </button>
-            )}
-          </div>
-
-          {/* Filters */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center">
-              <Filter className="h-5 w-5 text-secondary-500 mr-2" />
-              <select
-                value={filters.status || ''}
-                onChange={(e) => onFilterChange('status', e.target.value)}
-                className="text-sm border-secondary-300 rounded-md bg-white dark:bg-secondary-800 dark:border-secondary-600 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="">All Statuses</option>
-                <option value="Not Started">Not Started</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Completed">Completed</option>
-              </select>
-            </div>
-
-            <div className="flex items-center">
-              <select
-                value={filters.capabilityId || ''}
-                onChange={(e) => onFilterChange('capabilityId', e.target.value)}
-                className="text-sm border-secondary-300 rounded-md bg-white dark:bg-secondary-800 dark:border-secondary-600 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="">All Capabilities</option>
-                {capabilities.map(cap => (
-                  <option key={cap.id} value={cap.id}>{cap.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex items-center">
-              <select
-                value={filters.priority || ''}
-                onChange={(e) => onFilterChange('priority', e.target.value)}
-                className="text-sm border-secondary-300 rounded-md bg-white dark:bg-secondary-800 dark:border-secondary-600 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="">All Priorities</option>
-                <option value="High">High</option>
-                <option value="Medium">Medium</option>
-                <option value="Low">Low</option>
-              </select>
-            </div>
-
-            <Button variant="ghost" onClick={onClearFilters} className="flex items-center gap-1">
-              <RefreshCw className="h-4 w-4" /> Reset
-            </Button>
-          </div>
-        </div>
-
-        {/* Second row for actions */}
-        <div className="flex justify-between items-center mt-4">
+        <div className="flex justify-between mb-4">
           <div className="text-sm text-secondary-600 dark:text-secondary-400">
             Showing <span className="font-medium">{sortedItems.length}</span> of <span className="font-medium">{filteredRequirements.length}</span> requirements
           </div>
@@ -258,6 +181,50 @@ const RequirementsTable = ({
               <Download className="h-4 w-4 mr-2" /> Export
             </Button>
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <Input
+            placeholder="Search requirements..."
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
+            onClear={onClearSearch}
+            leadingIcon={Search}
+            className="lg:col-span-2"
+          />
+          
+          <select 
+            value={filters.status || ''} 
+            onChange={(e) => onFilterChange('status', e.target.value)} 
+            className="w-full text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600"
+          >
+            <option value="">All Statuses</option>
+            <option value="Not Started">Not Started</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+          </select>
+          
+          <select 
+            value={filters.capabilityId || ''} 
+            onChange={(e) => onFilterChange('capabilityId', e.target.value)} 
+            className="w-full text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600"
+          >
+            <option value="">All Capabilities</option>
+            {capabilities.map(cap => (
+              <option key={cap.id} value={cap.id}>{cap.name}</option>
+            ))}
+          </select>
+          
+          <select 
+            value={filters.priority || ''} 
+            onChange={(e) => onFilterChange('priority', e.target.value)} 
+            className="w-full text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600"
+          >
+            <option value="">All Priorities</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
         </div>
       </div>
 
