@@ -26,7 +26,19 @@ const defaultAuthContext = {
 export const AuthContext = createContext(defaultAuthContext);
 
 // Convenient hook for consumers
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const ctx = useContext(AuthContext);
+  /* ---------------------------------------------------------------------
+   * If `useAuth` is called outside of an `JWTAuthProvider` the returned
+   * value will still be the *default* object we passed to `createContext`.
+   * Detect this and throw a descriptive error so developers know exactly
+   * what went wrong instead of failing later with undefined properties.
+   * ------------------------------------------------------------------- */
+  if (ctx === defaultAuthContext) {
+    throw new Error('useAuth must be used within a <JWTAuthProvider>. Make sure your component is wrapped in the provider.');
+  }
+  return ctx;
+};
 
 // JWT Auth Provider Component
 export const JWTAuthProvider = ({ children }) => {
