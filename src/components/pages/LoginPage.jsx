@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
-import { useAuth } from '../../auth/JWTAuthProvider.js';
+import useAuth from '../../auth/useAuth.js';
 import { JWTLoginForm } from '../../auth/JWTLoginForm.js';
 
 /**

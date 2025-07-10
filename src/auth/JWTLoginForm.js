@@ -1,7 +1,7 @@
 // src/auth/JWTLoginForm.js
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Shield, Lock, User, AlertCircle, Key } from 'lucide-react';
-import { useAuth } from './JWTAuthProvider';
+import useAuth from './useAuth';
 import { LoginAttemptManager } from './JWTManager';
 import { JWT_CONFIG } from './auth-config';
 
