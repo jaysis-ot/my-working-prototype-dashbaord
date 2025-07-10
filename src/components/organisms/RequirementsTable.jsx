@@ -47,6 +47,48 @@ SortableHeader.propTypes = {
   requestSort: PropTypes.func.isRequired,
 };
 
+// Maturity Indicator Component - similar to RiskRatingIndicator
+const MaturityIndicator = ({ level, score }) => {
+  const getMaturityStyles = (score) => {
+    if (!score) return 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+    
+    switch (score) {
+      case 1: return 'bg-red-500 text-white'; // Initial
+      case 2: return 'bg-orange-500 text-white'; // Developing
+      case 3: return 'bg-yellow-400 text-yellow-900'; // Defined
+      case 4: return 'bg-green-500 text-white'; // Managed
+      case 5: return 'bg-blue-500 text-white'; // Optimizing
+      default: return 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+    }
+  };
+  
+  const getMaturityLabel = (score) => {
+    if (!score) return 'Unknown';
+    
+    switch (score) {
+      case 1: return 'Initial';
+      case 2: return 'Developing';
+      case 3: return 'Defined';
+      case 4: return 'Managed';
+      case 5: return 'Optimizing';
+      default: return 'Unknown';
+    }
+  };
+  
+  return (
+    <div className="flex items-center gap-2">
+      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getMaturityStyles(score)}`}>
+        {level || getMaturityLabel(score)}
+      </span>
+      <span className="font-mono text-sm text-secondary-600 dark:text-secondary-400">({score || '?'})</span>
+    </div>
+  );
+};
+
+MaturityIndicator.propTypes = {
+  level: PropTypes.string,
+  score: PropTypes.number
+};
 
 /**
  * RequirementsTable Organism
@@ -92,6 +134,22 @@ const RequirementsTable = ({
     let sortableItems = [...filteredRequirements];
     if (sortConfig.key !== null) {
       sortableItems.sort((a, b) => {
+        // Handle nested properties like maturityLevel.score
+        if (sortConfig.key.includes('.')) {
+          const [parent, child] = sortConfig.key.split('.');
+          const aValue = a[parent] ? a[parent][child] : null;
+          const bValue = b[parent] ? b[parent][child] : null;
+          
+          if (aValue < bValue) {
+            return sortConfig.direction === 'ascending' ? -1 : 1;
+          }
+          if (aValue > bValue) {
+            return sortConfig.direction === 'ascending' ? 1 : -1;
+          }
+          return 0;
+        }
+        
+        // Regular property sorting
         if (a[sortConfig.key] < b[sortConfig.key]) {
           return sortConfig.direction === 'ascending' ? -1 : 1;
         }
@@ -129,7 +187,7 @@ const RequirementsTable = ({
   }, [showColumnSelector]);
 
   return (
-    <div className="dashboard-card p-0">
+    <div className="dashboard-card flex-grow flex flex-col">
       {/* Toolbar */}
       <div className="p-4 border-b border-secondary-200 dark:border-secondary-700">
         <div className="flex justify-between mb-4">
@@ -183,14 +241,13 @@ const RequirementsTable = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
           <Input
             placeholder="Search requirements..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             onClear={onClearSearch}
             leadingIcon={Search}
-            className="lg:col-span-2"
           />
           
           <select 
@@ -225,12 +282,33 @@ const RequirementsTable = ({
             <option value="Medium">Medium</option>
             <option value="Low">Low</option>
           </select>
+          
+          <select 
+            value={filters.maturityLevel || ''} 
+            onChange={(e) => onFilterChange('maturityLevel', e.target.value)} 
+            className="w-full text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600"
+          >
+            <option value="">All Maturity Levels</option>
+            <option value="1">Initial (1)</option>
+            <option value="2">Developing (2)</option>
+            <option value="3">Defined (3)</option>
+            <option value="4">Managed (4)</option>
+            <option value="5">Optimizing (5)</option>
+          </select>
+          
+          <Button 
+            variant="ghost" 
+            onClick={onClearFilters} 
+            className="flex items-center justify-center gap-1"
+          >
+            <RefreshCw className="h-4 w-4" /> Reset Filters
+          </Button>
         </div>
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-secondary-200 dark:divide-secondary-700">
+      <div className="overflow-x-auto flex-grow">
+        <table className="min-w-full divide-y divide-secondary-200 dark:divide-secondary-700 table-auto">
           <thead className="bg-secondary-50 dark:bg-secondary-800/50 group">
             <tr>
               {columnVisibility.id && <SortableHeader columnId="id" sortConfig={sortConfig} requestSort={requestSort}>ID</SortableHeader>}
@@ -238,6 +316,7 @@ const RequirementsTable = ({
               {columnVisibility.capability && <SortableHeader columnId="capabilityId" sortConfig={sortConfig} requestSort={requestSort}>Capability</SortableHeader>}
               {columnVisibility.status && <SortableHeader columnId="status" sortConfig={sortConfig} requestSort={requestSort}>Status</SortableHeader>}
               {columnVisibility.priority && <SortableHeader columnId="priority" sortConfig={sortConfig} requestSort={requestSort}>Priority</SortableHeader>}
+              {columnVisibility.maturity && <SortableHeader columnId="maturityLevel.score" sortConfig={sortConfig} requestSort={requestSort}>Maturity</SortableHeader>}
               {columnVisibility.actions && <th className="p-3 text-left text-xs font-semibold text-secondary-600 dark:text-secondary-400 uppercase tracking-wider">Actions</th>}
             </tr>
           </thead>
@@ -245,11 +324,11 @@ const RequirementsTable = ({
             {sortedItems.length > 0 ? (
               sortedItems.map((req) => (
                 <tr key={req.id} className="hover:bg-secondary-50 dark:hover:bg-secondary-800/50">
-                  {columnVisibility.id && <td className="p-3 text-sm font-mono text-primary-600 dark:text-primary-400">{req.id}</td>}
-                  {columnVisibility.description && <td className="p-3 text-sm text-secondary-700 dark:text-secondary-300 max-w-md truncate">{req.description}</td>}
-                  {columnVisibility.capability && <td className="p-3 text-sm text-secondary-600 dark:text-secondary-400">{getCapabilityName(req.capabilityId)}</td>}
+                  {columnVisibility.id && <td className="p-3 text-sm font-mono text-primary-600 dark:text-primary-400 whitespace-nowrap">{req.id}</td>}
+                  {columnVisibility.description && <td className="p-3 text-sm text-secondary-700 dark:text-secondary-300 max-w-xs truncate">{req.description}</td>}
+                  {columnVisibility.capability && <td className="p-3 text-sm text-secondary-600 dark:text-secondary-400 whitespace-nowrap">{getCapabilityName(req.capabilityId)}</td>}
                   {columnVisibility.status && (
-                    <td className="p-3 text-sm">
+                    <td className="p-3 text-sm whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
                         req.status === 'Completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' :
                         req.status === 'In Progress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300' :
@@ -260,7 +339,7 @@ const RequirementsTable = ({
                     </td>
                   )}
                   {columnVisibility.priority && (
-                    <td className="p-3 text-sm">
+                    <td className="p-3 text-sm whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
                         req.priority === 'High' ? 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300' :
                         req.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300' :
@@ -270,8 +349,16 @@ const RequirementsTable = ({
                       </span>
                     </td>
                   )}
+                  {columnVisibility.maturity && (
+                    <td className="p-3 text-sm whitespace-nowrap">
+                      <MaturityIndicator 
+                        level={req.maturityLevel?.level} 
+                        score={req.maturityLevel?.score} 
+                      />
+                    </td>
+                  )}
                   {columnVisibility.actions && (
-                    <td className="p-3 text-sm">
+                    <td className="p-3 text-sm whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <Button size="sm" variant="ghost" onClick={() => onViewRequirement(req)} title="View">
                           <Eye className="h-4 w-4" />

@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useDashboardUI } from '../../contexts/DashboardUIContext';
 import { useRequirementsData } from '../../hooks/useRequirementsData';
 import { useCapabilitiesData } from '../../hooks/useCapabilitiesData';
@@ -6,6 +6,8 @@ import { useFilteredRequirements } from '../../hooks/useFilteredRequirements';
 import RequirementsTable from '../organisms/RequirementsTable';
 import LoadingSpinner from '../atoms/LoadingSpinner';
 import ErrorDisplay from '../molecules/ErrorDisplay';
+import Button from '../atoms/Button';
+import { ClipboardList, Plus } from 'lucide-react';
 
 // Mock utility for CSV export until a proper one is built
 const generateCSV = (data) => {
@@ -77,9 +79,37 @@ const RequirementsPage = () => {
     openRequirementModal(requirement, true); // true for edit mode
   }, [openRequirementModal]);
   
+  const handleAddRequirement = useCallback(() => {
+    // Open modal in edit mode with no pre-selected requirement
+    openRequirementModal(null, true);
+  }, [openRequirementModal]);
+  
   const handleImportCSV = useCallback(() => {
     uiDispatch({ type: 'TOGGLE_MODAL', payload: 'showUploadModal' });
   }, [uiDispatch]);
+
+  // --- Metrics -----------------------------------------------------------
+  const requirementMetrics = useMemo(() => {
+    const total = requirements.length;
+    const completed = requirements.filter(r => r.status === 'Completed').length;
+    const inProgress = requirements.filter(r => r.status === 'In Progress').length;
+    // Average maturity score if available
+    const maturityScores = requirements
+      .map(r => r.maturityLevel?.score)
+      .filter(Boolean);
+    const avgMaturity = maturityScores.length
+      ? (maturityScores.reduce((a, b) => a + b, 0) / maturityScores.length).toFixed(1)
+      : 'N/A';
+    return { total, completed, inProgress, avgMaturity };
+  }, [requirements]);
+
+  // Simple metric card (mirrors Risk page style)
+  const MetricCard = ({ title, value, border }) => (
+    <div className={`dashboard-card p-4 border-l-4 border-${border}-500`}>
+      <p className="text-sm font-medium text-secondary-500 dark:text-secondary-400">{title}</p>
+      <p className="text-3xl font-bold text-secondary-900 dark:text-white mt-1">{value}</p>
+    </div>
+  );
 
   // --- Render Logic ---
 
@@ -101,7 +131,31 @@ const RequirementsPage = () => {
   }
 
   return (
-    <div className="fade-in">
+    <div className="h-full flex flex-col space-y-6 fade-in">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-secondary-900 dark:text-white flex items-center">
+            <ClipboardList className="w-7 h-7 mr-3 text-primary-600" />
+            Requirements
+          </h1>
+          <p className="text-secondary-500 dark:text-secondary-400 mt-1">
+            Track and manage security requirements across capabilities.
+          </p>
+        </div>
+        <Button onClick={handleAddRequirement} leadingIcon={Plus}>
+          Add New Requirement
+        </Button>
+      </div>
+
+      {/* Metric Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        <MetricCard title="Total Requirements" value={requirementMetrics.total} border="blue" />
+        <MetricCard title="Completed" value={requirementMetrics.completed} border="green" />
+        <MetricCard title="In Progress" value={requirementMetrics.inProgress} border="orange" />
+        <MetricCard title="Avg. Maturity" value={requirementMetrics.avgMaturity} border="purple" />
+      </div>
+
       <RequirementsTable
         requirements={requirements}
         filteredRequirements={filteredRequirements}
