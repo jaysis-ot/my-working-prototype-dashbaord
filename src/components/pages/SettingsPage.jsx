@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Palette,
   Bell,
@@ -8,11 +8,13 @@ import {
   Shield,
   Save,
   CheckCircle,
+  HardDrive,
   AlertTriangle,
   Building2,
   Monitor, // icon for system diagnostics
 } from 'lucide-react';
 import Button from '../atoms/Button';
+import { useSearchParams } from 'react-router-dom';
 import AppearanceSettings from '../organisms/AppearanceSettings';
 import NotificationsSettings from '../organisms/NotificationsSettings';
 import IntegrationsSettings from '../organisms/IntegrationsSettings';
@@ -21,6 +23,7 @@ import PerformanceSettings from '../organisms/PerformanceSettings';
 import ComplianceSettings from '../organisms/ComplianceSettings';
 import CompanyProfileSettings from '../organisms/CompanyProfileSettings';
 import SystemDiagnosticsSettings from '../organisms/SystemDiagnosticsSettings'; // <- NEW
+import ThreatIntelSettings from '../organisms/ThreatIntelSettings'; // NEW
 
 // --- Organisms (Internal to SettingsPage for now) ---
 
@@ -105,6 +108,7 @@ const SettingsTabs = ({ tabs, activeTab, onTabClick }) => (
  */
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState('appearance');
+  const [searchParams, setSearchParams] = useSearchParams();
   const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'saved', 'error'
   const [lastSaved, setLastSaved] = useState(null);
 
@@ -117,7 +121,24 @@ const SettingsPage = () => {
     performance: {},
     compliance: {},
     companyProfile: {},
+    threatIntel: {}, // NEW state section for feeds
   });
+
+  /* ------------------------------------------------------------------
+   * Tab configuration (must be declared before effects that use it)
+   * ---------------------------------------------------------------- */
+  const tabs = [
+    { id: 'appearance', label: 'Appearance', icon: Palette, component: AppearanceSettings },
+    { id: 'notifications', label: 'Notifications', icon: Bell, component: NotificationsSettings },
+    { id: 'integrations', label: 'Integrations', icon: Link, component: IntegrationsSettings },
+    { id: 'threat-intel', label: 'Threat Intel', icon: Database, component: ThreatIntelSettings }, // NEW tab
+    { id: 'backup', label: 'Data & Backup', icon: HardDrive, component: DataBackupSettings },
+    { id: 'performance', label: 'Performance', icon: Zap, component: PerformanceSettings },
+    { id: 'company-profile', label: 'Company Profile', icon: Building2, component: CompanyProfileSettings },
+    // New tab placed between Company Profile and Compliance
+    { id: 'system-diagnostics', label: 'System Diagnostics', icon: Monitor, component: SystemDiagnosticsSettings },
+    { id: 'compliance', label: 'Compliance', icon: Shield, component: ComplianceSettings },
+  ];
 
   const handleSaveSettings = useCallback(async () => {
     setSaveStatus('saving');
@@ -134,17 +155,31 @@ const SettingsPage = () => {
     }
   }, []);
 
-  const tabs = [
-    { id: 'appearance', label: 'Appearance', icon: Palette, component: AppearanceSettings },
-    { id: 'notifications', label: 'Notifications', icon: Bell, component: NotificationsSettings },
-    { id: 'integrations', label: 'Integrations', icon: Link, component: IntegrationsSettings },
-    { id: 'backup', label: 'Data & Backup', icon: Database, component: DataBackupSettings },
-    { id: 'performance', label: 'Performance', icon: Zap, component: PerformanceSettings },
-    { id: 'company-profile', label: 'Company Profile', icon: Building2, component: CompanyProfileSettings },
-    // New tab placed between Company Profile and Compliance
-    { id: 'system-diagnostics', label: 'System Diagnostics', icon: Monitor, component: SystemDiagnosticsSettings },
-    { id: 'compliance', label: 'Compliance', icon: Shield, component: ComplianceSettings },
-  ];
+  /* ------------------------------------------------------------------
+   * URL  query-param synchronisation (`?tab=<id>`)
+   * ---------------------------------------------------------------- */
+  // Whenever the URL's `tab` param changes, update local state
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && tabParam !== activeTab && tabs.some(t => t.id === tabParam)) {
+      setActiveTab(tabParam);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Helper to change tab from UI and reflect in URL
+  const handleTabChange = useCallback(
+    (id) => {
+      setActiveTab(id);
+      // Preserve existing params but set new tab
+      setSearchParams((prev) => {
+        const params = new URLSearchParams(prev);
+        params.set('tab', id);
+        return params;
+      });
+    },
+    [setSearchParams]
+  );
 
   const CurrentTabComponent = tabs.find(tab => tab.id === activeTab)?.component;
 
@@ -184,7 +219,7 @@ const SettingsPage = () => {
         <SettingsTabs
           tabs={tabs}
           activeTab={activeTab}
-          onTabClick={setActiveTab}
+          onTabClick={handleTabChange}
         />
         <main className="w-full md:w-3/4 lg:w-4/5 mt-6 md:mt-0">
           {CurrentTabComponent && (

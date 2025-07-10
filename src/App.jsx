@@ -26,6 +26,8 @@ const CapabilitiesPage = lazy(() => import('./components/pages/CapabilitiesPage'
 const ResourcePlanningPage = lazy(() => import('./components/pages/ResourcePlanningPage'));
 const MaturityAnalysisPage = lazy(() => import('./components/pages/MaturityAnalysisPage'));
 const ThreatIntelligencePage = lazy(() => import('./components/pages/ThreatIntelligencePage'));
+const MitreAttackPage = lazy(() => import('./components/pages/MitreAttackPage'));
+const StandardsFrameworksPage = lazy(() => import('./components/pages/StandardsFrameworksPage'));
 const RiskManagementPage = lazy(() => import('./components/pages/RiskManagementPage'));
 const AnalyticsPage = lazy(() => import('./components/pages/AnalyticsPage'));
 const BusinessPlanPage = lazy(() => import('./components/pages/BusinessPlanPage'));
@@ -99,6 +101,10 @@ function App() {
                     <Route path="resources" element={<ResourcePlanningPage />} />
                     <Route path="maturity-analysis" element={<MaturityAnalysisPage />} />
                     <Route path="threat-intelligence" element={<ThreatIntelligencePage />} />
+                    {/* MITRE ATT&CK Framework */}
+                    <Route path="mitre-attack" element={<MitreAttackPage />} />
+                    {/* Standards & Frameworks */}
+                    <Route path="standards-frameworks" element={<StandardsFrameworksPage />} />
                     <Route path="risk-management" element={<RiskManagementPage />} />
 
                     {/* Static Placeholder Trust Page */}

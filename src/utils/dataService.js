@@ -155,7 +155,7 @@ export const generateMockData = () => {
       area,
       type,
       category,
-      capabilityId: 'CAP-001',
+      capabilityId: `OT-${2021 + (i % 3)}-${['NS', 'IAM', 'OTM', 'DMH', 'IRP', 'VUL'][i % 6]}-T-00${(i % 6) + 1}`,
       description: `${category} requirement for ${area.toLowerCase()} stakeholders focusing on ${type.toLowerCase()} aspects. This requirement addresses critical operational needs and regulatory compliance requirements.`,
       status,
       priority,

@@ -27,6 +27,8 @@ import { useTheme } from '../../contexts/ThemeContext';
 import UserSettingsDropdown from '../organisms/UserSettingsDropdown';
 // Product logo placeholder component
 import ProductLogo from '../atoms/ProductLogo';
+// Global modal manager (requirement view/edit, etc.)
+import ModalManager from '../organisms/ModalManager';
 
 /**
  * DashboardLayout Template Component
@@ -81,9 +83,9 @@ const DashboardLayout = ({ children }) => {
     { id: 'analytics', label: 'Analytics', icon: 'BarChart3' },
     { id: 'business-plan', label: 'Business Plan', icon: 'PieChart' },
     { id: 'maturity-analysis', label: 'Maturity Analysis', icon: 'TrendingUp' },
-    { id: 'mitre-attack', label: 'MITRE ATT&CK', icon: 'Layers' },
     { id: 'standards-frameworks', label: 'Standards & Frameworks', icon: 'BookOpen' },
     { id: 'threat-intelligence', label: 'Threat Intelligence', icon: 'AlertTriangle' },
+    { id: 'mitre-attack', label: 'MITRE ATT&CK', icon: 'Layers' },
     { id: 'risk-management', label: 'Risk Management', icon: 'Target' },
     { id: 'trust', label: 'Trust', icon: 'Heart' },
     { id: 'settings', label: 'Settings', icon: 'Settings' },
@@ -224,6 +226,9 @@ const DashboardLayout = ({ children }) => {
           {children}
         </div>
         </main>
+
+        {/* Global Modal Manager */}
+        <ModalManager />
       </div>{/* end right column */}
     </div>
   );

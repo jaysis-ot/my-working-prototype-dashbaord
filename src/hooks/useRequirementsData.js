@@ -32,7 +32,29 @@ export const useRequirementsData = () => {
   useEffect(() => {
     try {
       setLoading(true);
-      const mockData = generateMockData();
+      // Generate base mock data
+      let mockData = generateMockData();
+
+      // -------------------------------------------------------------
+      // Inject risk relationship data
+      // -------------------------------------------------------------
+      // Randomly associate some requirements with existing risk IDs so
+      // that RiskRequirementsModal can filter on this property.
+      // We assume risk IDs follow the format RISK-###
+      mockData = mockData.map((req, idx) => {
+        // 30% chance a requirement is linked to 1 risk
+        // (keeps demo data balanced – tweak probability as needed)
+        const riskIds =
+          Math.random() > 0.7
+            ? [`RISK-${String(idx % 20).padStart(3, '0')}`]
+            : [];
+
+        return {
+          ...req,
+          riskIds, // Array of associated risk IDs
+        };
+      });
+
       // Simulate network delay
       setTimeout(() => {
         setRequirements(mockData);
@@ -53,6 +75,10 @@ export const useRequirementsData = () => {
     const newRequirement = {
       id: `REQ-${String(Date.now()).slice(-4)}`,
       ...newRequirementData,
+      // Ensure riskIds is always an array
+      riskIds: Array.isArray(newRequirementData.riskIds)
+        ? newRequirementData.riskIds
+        : [],
       lastUpdated: new Date().toISOString().split('T')[0],
     };
     setRequirements(prevRequirements => [...prevRequirements, newRequirement]);
