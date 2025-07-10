@@ -1,10 +1,11 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
+import useAuth from './auth/useAuth';
 
 // Context Providers
 import { ThemeProvider } from './contexts/ThemeContext';
-// import { AuthProvider } from './contexts/AuthContext'; // To be created
+import { JWTAuthProvider } from './auth/JWTAuthProvider';
 import { DashboardUIProvider } from './contexts/DashboardUIContext';
 
 // Feature Context Providers - to be created
@@ -19,6 +20,7 @@ import ModalManager from './components/templates/ModalManager';
 // Lazy-loaded Pages
 const OverviewPage = lazy(() => import('./components/pages/OverviewPage'));
 const SettingsPage = lazy(() => import('./components/pages/SettingsPage'));
+const LoginPage = lazy(() => import('./components/pages/LoginPage'));
 const CapabilitiesPage = lazy(() => import('./components/pages/CapabilitiesPage'));
 const RequirementsPage = lazy(() => import('./components/pages/RequirementsPage'));
 const ResourcePlanningPage = lazy(() => import('./components/pages/ResourcePlanningPage'));
@@ -34,7 +36,6 @@ const MaturityAnalysisPage = lazy(() => import('./components/pages/MaturityAnaly
 // The following pages are referenced only as placeholder <div> routes
 // and do not yet have real components.  Their lazy imports are removed
 // to avoid build-time resolution errors.  Add them back once the files exist.
-// const LoginPage            = lazy(() => import('./components/pages/LoginPage'));
 // const RequirementsPage     = lazy(() => import('./components/pages/RequirementsPage'));
 // const CapabilitiesPage     = lazy(() => import('./components/pages/CapabilitiesPage'));
 // const ResourcePlanningPage = lazy(() => import('./components/pages/ResourcePlanningPage'));
@@ -47,19 +48,13 @@ const MaturityAnalysisPage = lazy(() => import('./components/pages/MaturityAnaly
 const AppProviders = ({ children }) => {
   return (
     <ThemeProvider>
-      {/* <AuthProvider> */}
-          <DashboardUIProvider>
-            {/* <RequirementsProvider> */}
-              {/* <CapabilitiesProvider> */}
-                {/* <TeamProvider> */}
-                  {children}
-                  {/* Global Modal Manager */}
-                  <ModalManager />
-                {/* </TeamProvider> */}
-              {/* </CapabilitiesProvider> */}
-            {/* </RequirementsProvider> */}
-          </DashboardUIProvider>
-      {/* </AuthProvider> */}
+      <JWTAuthProvider>
+        <DashboardUIProvider>
+          {children}
+          {/* Global Modal Manager */}
+          <ModalManager />
+        </DashboardUIProvider>
+      </JWTAuthProvider>
     </ThemeProvider>
   );
 };
@@ -73,6 +68,21 @@ const LoadingFallback = () => (
     </div>
   </div>
 );
+
+// Protected Route Component - redirects to login if not authenticated
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
+  
+  if (loading) {
+    return <LoadingFallback />;
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return children;
+};
 
 /**
  * Main App Component for the Cyber Trust Sensor Dashboard
@@ -91,35 +101,37 @@ function App() {
       <AppProviders>
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
-            {/* Authentication Route - Placeholder */}
-            {/* <Route path="/login" element={<LoginPage />} /> */}
+            {/* Authentication Route */}
+            <Route path="/login" element={<LoginPage />} />
             
             {/* Dashboard Routes */}
             <Route
               path="/dashboard/*"
               element={
-                <DashboardLayout>
-                  <Routes>
-                    {/* Implemented Pages */}
-                    <Route path="overview" element={<OverviewPage />} />
-                    <Route path="settings" element={<SettingsPage />} />
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <Routes>
+                      {/* Implemented Pages */}
+                      <Route path="overview" element={<OverviewPage />} />
+                      <Route path="settings" element={<SettingsPage />} />
 
-                    {/* Placeholder Pages */}
-                    <Route path="requirements" element={<RequirementsPage />} />
-                    <Route path="capabilities" element={<CapabilitiesPage />} />
-                    <Route path="resources" element={<ResourcePlanningPage />} />
-                    <Route path="mitre-attack" element={<MitreAttackPage />} />
-                    <Route path="maturity-analysis" element={<MaturityAnalysisPage />} />
-                    <Route path="threat-intelligence" element={<ThreatIntelligencePage />} />
-                    <Route path="risk-management" element={<RiskManagementPage />} />
-                    <Route path="standards-frameworks" element={<StandardsFrameworksPage />} />
-                    <Route path="analytics" element={<AnalyticsPage />} />
-                    <Route path="business-plan" element={<BusinessPlanPage />} />
-                    
-                    {/* Default route within the dashboard */}
-                    <Route path="*" element={<Navigate to="/dashboard/overview" replace />} />
-                  </Routes>
-                </DashboardLayout>
+                      {/* Placeholder Pages */}
+                      <Route path="requirements" element={<RequirementsPage />} />
+                      <Route path="capabilities" element={<CapabilitiesPage />} />
+                      <Route path="resources" element={<ResourcePlanningPage />} />
+                      <Route path="mitre-attack" element={<MitreAttackPage />} />
+                      <Route path="maturity-analysis" element={<MaturityAnalysisPage />} />
+                      <Route path="threat-intelligence" element={<ThreatIntelligencePage />} />
+                      <Route path="risk-management" element={<RiskManagementPage />} />
+                      <Route path="standards-frameworks" element={<StandardsFrameworksPage />} />
+                      <Route path="analytics" element={<AnalyticsPage />} />
+                      <Route path="business-plan" element={<BusinessPlanPage />} />
+                      
+                      {/* Default route within the dashboard */}
+                      <Route path="*" element={<Navigate to="/dashboard/overview" replace />} />
+                    </Routes>
+                  </DashboardLayout>
+                </ProtectedRoute>
               }
             />
             
