@@ -13,6 +13,7 @@ import {
   PieChart,
   TrendingUp,
   AlertTriangle,
+  AlertCircle,
   Target,
   Layers,
   BookOpen,
@@ -25,6 +26,10 @@ import {
 import { useDashboardUI } from '../../contexts/DashboardUIContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import useAuth from '../../auth/useAuth';
+// Global modal manager (requirement view/edit, etc.)
+import ModalManager from '../organisms/ModalManager';
+// Product logo component
+import ProductLogo from '../atoms/ProductLogo';
 
 /**
  * DashboardLayout Template Component
@@ -51,6 +56,8 @@ const DashboardLayout = ({ children }) => {
 
   // Get user initials for avatar
   const userInitials = React.useMemo(() => {
+    if (!user) return 'U'; // Default if no user
+
     if (user?.name) {
       const parts = user.name.split(' ');
       if (parts.length > 1) {
@@ -61,7 +68,7 @@ const DashboardLayout = ({ children }) => {
     if (user?.email) {
       return user.email.substring(0, 2).toUpperCase();
     }
-    return '??';
+    return 'U'; // Default fallback
   }, [user]);
 
   // Map icon names to actual Lucide icon components
@@ -74,6 +81,7 @@ const DashboardLayout = ({ children }) => {
     PieChart,
     TrendingUp,
     AlertTriangle,
+    AlertCircle,
     Target,
     Layers,
     BookOpen,
@@ -94,11 +102,11 @@ const DashboardLayout = ({ children }) => {
     { id: 'capabilities', label: 'Capabilities', icon: 'Shield' },
     { id: 'resources', label: 'Resource Planning', icon: 'Users' },
     { id: 'analytics', label: 'Analytics', icon: 'BarChart3' },
-    { id: 'business-plan', label: 'Business Plan', icon: 'PieChart' },
     { id: 'maturity-analysis', label: 'Maturity Analysis', icon: 'TrendingUp' },
     { id: 'mitre-attack', label: 'MITRE ATT&CK', icon: 'Layers' },
     { id: 'standards-frameworks', label: 'Standards & Frameworks', icon: 'BookOpen' },
     { id: 'threat-intelligence', label: 'Threat Intelligence', icon: 'AlertTriangle' },
+    { id: 'incident-management', label: 'Incident Management', icon: 'AlertCircle' },
     { id: 'risk-management', label: 'Risk Management', icon: 'Target' },
     { id: 'trust', label: 'Trust', icon: 'Heart' },
     { id: 'settings', label: 'Settings', icon: 'Settings' },
@@ -123,8 +131,9 @@ const DashboardLayout = ({ children }) => {
           
           {/* Logo/Brand - Hidden on mobile when sidebar is open */}
           <div className={`flex items-center ${sidebarExpanded ? 'hidden md:flex' : 'flex'}`}>
-            <span className="text-xl font-semibold text-primary-600 dark:text-primary-400">
-              Cyber Trust Sensor
+            <ProductLogo expanded={false} size="small" />
+            <span className="ml-2 text-xl font-semibold text-primary-600 dark:text-primary-400">
+              TrustGuard
             </span>
           </div>
         </div>
@@ -193,8 +202,13 @@ const DashboardLayout = ({ children }) => {
           `}
           aria-label="Dashboard navigation"
         >
+          {/* Logo section at the top of sidebar */}
+          <div className="flex items-center justify-center py-6 px-4 border-b border-secondary-700/30">
+            <ProductLogo expanded={sidebarExpanded} />
+          </div>
+
           {/* Sidebar content */}
-          <div className="h-full flex flex-col py-4">
+          <div className="flex-1 flex flex-col py-4 overflow-y-auto">
             {/* Navigation items */}
             <nav className="flex-1 px-2 space-y-1 overflow-y-auto">
               {navItems.map((item) => {
@@ -292,6 +306,8 @@ const DashboardLayout = ({ children }) => {
           </div>
         </main>
       </div>
+      {/* Global Modal Manager */}
+      <ModalManager />
     </div>
   );
 };

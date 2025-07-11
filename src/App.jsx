@@ -4,7 +4,7 @@ import { Loader2 } from 'lucide-react';
 
 // Context Providers
 import { ThemeProvider } from './contexts/ThemeContext';
-import { AuthProvider } from './auth/AuthContext';
+import { AuthProvider } from './auth/AuthContext.js';
 import { DashboardUIProvider } from './contexts/DashboardUIContext';
 
 // Feature Context Providers - to be created
@@ -16,7 +16,7 @@ import { DashboardUIProvider } from './contexts/DashboardUIContext';
 import DashboardLayout from './components/templates/DashboardLayout';
 
 // Authentication Pages (eager-loaded for faster initial render)
-import LoginPage from './auth/LoginPage';
+import LoginPage from './components/pages/LoginPage';
 import ProtectedRoute from './auth/ProtectedRoute';
 
 // Lazy-loaded Pages
@@ -30,7 +30,7 @@ const MitreAttackPage = lazy(() => import('./components/pages/MitreAttackPage'))
 const StandardsFrameworksPage = lazy(() => import('./components/pages/StandardsFrameworksPage'));
 const RiskManagementPage = lazy(() => import('./components/pages/RiskManagementPage'));
 const AnalyticsPage = lazy(() => import('./components/pages/AnalyticsPage'));
-const BusinessPlanPage = lazy(() => import('./components/pages/BusinessPlanPage'));
+const IncidentManagementPage = lazy(() => import('./components/pages/IncidentManagementPage'));
 const SettingsPage = lazy(() => import('./components/pages/SettingsPage'));
 
 const TrustPage = lazy(() => import('./components/pages/TrustPage'));
@@ -111,7 +111,7 @@ function App() {
                     <Route path="trust" element={<TrustPage />} />
 
                     <Route path="analytics" element={<AnalyticsPage />} />
-                    <Route path="business-plan" element={<BusinessPlanPage />} />
+                    <Route path="incident-management" element={<IncidentManagementPage />} />
                     
                     {/* Default route within the dashboard */}
                     <Route path="*" element={<Navigate to="/dashboard/overview" replace />} />
