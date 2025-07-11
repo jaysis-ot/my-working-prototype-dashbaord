@@ -25,11 +25,12 @@ import {
 } from 'lucide-react';
 import { useDashboardUI } from '../../contexts/DashboardUIContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import useAuth from '../../auth/useAuth';
 // Global modal manager (requirement view/edit, etc.)
 import ModalManager from '../organisms/ModalManager';
 // Product logo component
 import ProductLogo from '../atoms/ProductLogo';
+// User settings dropdown (avatar, theme toggle, logout, etc.)
+import UserSettingsDropdown from '../organisms/UserSettingsDropdown';
 
 /**
  * DashboardLayout Template Component
@@ -51,25 +52,7 @@ const DashboardLayout = ({ children }) => {
   } = useDashboardUI();
   
   const { themeClasses } = useTheme();
-  const { user, logout } = useAuth();
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-
-  // Get user initials for avatar
-  const userInitials = React.useMemo(() => {
-    if (!user) return 'U'; // Default if no user
-
-    if (user?.name) {
-      const parts = user.name.split(' ');
-      if (parts.length > 1) {
-        return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-      }
-      return user.name.substring(0, 2).toUpperCase();
-    }
-    if (user?.email) {
-      return user.email.substring(0, 2).toUpperCase();
-    }
-    return 'U'; // Default fallback
-  }, [user]);
+  // No direct auth logic needed here; handled inside UserSettingsDropdown
 
   // Map icon names to actual Lucide icon components
   const iconMap = {
@@ -113,81 +96,7 @@ const DashboardLayout = ({ children }) => {
   ];
 
   return (
-    <div className="h-screen flex flex-col bg-background-light dark:bg-background-dark">
-      {/* Header */}
-      <header 
-        className={`${themeClasses.header} h-16 flex items-center justify-between px-4 z-30 shadow-sm`}
-        aria-label="Dashboard header"
-      >
-        <div className="flex items-center">
-          {/* Mobile sidebar toggle */}
-          <button 
-            className="p-2 rounded-md text-secondary-500 hover:bg-secondary-100 dark:hover:bg-secondary-700 md:hidden"
-            onClick={handleSidebarToggle}
-            aria-label={sidebarExpanded ? "Close sidebar" : "Open sidebar"}
-          >
-            {sidebarExpanded ? <X size={20} /> : <Menu size={20} />}
-          </button>
-          
-          {/* Logo/Brand - Hidden on mobile when sidebar is open */}
-          <div className={`flex items-center ${sidebarExpanded ? 'hidden md:flex' : 'flex'}`}>
-            <ProductLogo expanded={false} size="small" />
-            <span className="ml-2 text-xl font-semibold text-primary-600 dark:text-primary-400">
-              TrustGuard
-            </span>
-          </div>
-        </div>
-
-        {/* Header right section - User menu */}
-        <div className="relative">
-          <button
-            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-            className="w-9 h-9 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center ring-2 ring-offset-2 ring-offset-background-light dark:ring-offset-background-dark ring-primary-500"
-            aria-label="Open user menu"
-            aria-haspopup="true"
-            aria-expanded={isUserMenuOpen}
-          >
-            <span className="text-primary-600 dark:text-primary-400 text-sm font-medium">{userInitials}</span>
-          </button>
-
-          {isUserMenuOpen && (
-            <div 
-              className="absolute right-0 mt-2 w-64 bg-white dark:bg-secondary-800 rounded-lg shadow-xl border border-secondary-200 dark:border-secondary-700 z-50"
-              role="menu"
-              aria-orientation="vertical"
-              aria-labelledby="user-menu-button"
-            >
-              <div className="p-4 border-b border-secondary-200 dark:border-secondary-700">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
-                    <UserIcon className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-secondary-900 dark:text-white truncate">{user?.name || 'User'}</p>
-                    <p className="text-sm text-secondary-500 dark:text-secondary-400 truncate">{user?.email}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="p-2">
-                <button
-                  onClick={() => {
-                    logout();
-                    setIsUserMenuOpen(false);
-                  }}
-                  className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-secondary-700 dark:text-secondary-300 hover:bg-secondary-100 dark:hover:bg-secondary-700 rounded-md"
-                  role="menuitem"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Sign Out</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </header>
-      
-      {/* Main container with sidebar and content */}
-      <div className="flex flex-1 overflow-hidden">
+    <div className="h-screen flex bg-background-light dark:bg-background-dark">
         {/* Sidebar */}
         <aside 
           className={`
@@ -195,7 +104,7 @@ const DashboardLayout = ({ children }) => {
             ${sidebarExpanded ? 'w-64' : 'w-16'} 
             transition-all duration-300 ease-in-out 
             fixed md:relative 
-            h-[calc(100vh-4rem)] 
+            h-screen 
             z-40 md:z-auto 
             ${sidebarExpanded ? 'left-0' : '-left-64 md:left-0'}
             shadow-lg md:shadow-none
@@ -278,38 +187,61 @@ const DashboardLayout = ({ children }) => {
           </div>
         </aside>
         
-        {/* Main content */}
-        <main 
-          className={`
-            flex-1 
-            overflow-y-auto 
-            transition-all 
-            duration-300 
-            ease-in-out
-            ${sidebarExpanded ? 'md:ml-0' : 'md:ml-0'}
-            pt-16 md:pt-0
-          `}
-          aria-label="Dashboard content"
-        >
-          {/* Overlay for mobile when sidebar is open */}
-          {sidebarExpanded && (
-            <div 
-              className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
-              onClick={handleSidebarToggle}
-              aria-hidden="true"
-            />
-          )}
-          
-          {/* Content container */}
-          <div className="p-4 md:p-6 h-full">
-            {children}
-          </div>
-        </main>
+        {/* MAIN WRAPPER (header + page content) */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Header (now inside main wrapper) */}
+          <header
+            className={`${themeClasses.header} h-16 flex items-center justify-between px-4 shadow-sm z-20`}
+            aria-label="Dashboard header"
+          >
+            <div className="flex items-center">
+              {/* Mobile sidebar toggle */}
+              <button
+                className="p-2 rounded-md text-secondary-500 hover:bg-secondary-100 dark:hover:bg-secondary-700 md:hidden"
+                onClick={handleSidebarToggle}
+                aria-label={sidebarExpanded ? 'Close sidebar' : 'Open sidebar'}
+              >
+                {sidebarExpanded ? <X size={20} /> : <Menu size={20} />}
+              </button>
+
+              {/* Brand (hidden on mobile when sidebar is open) */}
+              <div
+                className={`flex items-center ${sidebarExpanded ? 'hidden md:flex' : 'flex'}`}
+              >
+                <ProductLogo expanded={false} size="small" />
+                <span className="ml-2 text-xl font-semibold text-primary-600 dark:text-primary-400">
+                  TrustGuard
+                </span>
+              </div>
+            </div>
+
+            {/* User menu */}
+            <UserSettingsDropdown />
+          </header>
+
+          {/* Page content */}
+          <main
+            className="flex-1 overflow-y-auto transition-all duration-300 ease-in-out"
+            aria-label="Dashboard content"
+          >
+            {/* Mobile overlay when sidebar is open */}
+            {sidebarExpanded && (
+              <div
+                className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+                onClick={handleSidebarToggle}
+                aria-hidden="true"
+              />
+            )}
+
+            {/* Inner padding wrapper */}
+            <div className="p-4 md:p-6 h-full">{children}</div>
+          </main>
+        </div>
+        
+        {/* Global Modal Manager */}
+        <ModalManager />
       </div>
-      {/* Global Modal Manager */}
-      <ModalManager />
-    </div>
-  );
+    );
 };
 
 DashboardLayout.propTypes = {
