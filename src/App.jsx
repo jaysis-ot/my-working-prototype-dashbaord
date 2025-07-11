@@ -25,14 +25,14 @@ const RequirementsPage = lazy(() => import('./components/pages/RequirementsPage'
 const CapabilitiesPage = lazy(() => import('./components/pages/CapabilitiesPage'));
 const ResourcePlanningPage = lazy(() => import('./components/pages/ResourcePlanningPage'));
 const MaturityAnalysisPage = lazy(() => import('./components/pages/MaturityAnalysisPage'));
+const BusinessPlanPage = lazy(() => import('./components/pages/BusinessPlanPage'));
 const ThreatIntelligencePage = lazy(() => import('./components/pages/ThreatIntelligencePage'));
 const MitreAttackPage = lazy(() => import('./components/pages/MitreAttackPage'));
 const StandardsFrameworksPage = lazy(() => import('./components/pages/StandardsFrameworksPage'));
 const RiskManagementPage = lazy(() => import('./components/pages/RiskManagementPage'));
 const AnalyticsPage = lazy(() => import('./components/pages/AnalyticsPage'));
-const IncidentManagementPage = lazy(() => import('./components/pages/IncidentManagementPage'));
+const IncidentManagementPage = lazy(() =>import('./components/pages/IncidentManagementPage'));
 const SettingsPage = lazy(() => import('./components/pages/SettingsPage'));
-
 const TrustPage = lazy(() => import('./components/pages/TrustPage'));
 
 // A simple wrapper for providers to keep the App component clean
@@ -90,6 +90,9 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
+                  {/* Inner Suspense prevents heavy spinner between page switches */}
+                  {/* Inner Suspense now shows a minimal indicator – avoids large spinner flash */}
+                  <Suspense fallback={<div className="p-4 text-sm">Loading…</div>}>
                   <Routes>
                     {/* Implemented Pages */}
                     <Route path="overview" element={<OverviewPage />} />
@@ -100,22 +103,28 @@ function App() {
                     <Route path="capabilities" element={<CapabilitiesPage />} />
                     <Route path="resources" element={<ResourcePlanningPage />} />
                     <Route path="maturity-analysis" element={<MaturityAnalysisPage />} />
+
+                    {/* Business Plan */}
+                    <Route path="business-plan" element={<BusinessPlanPage />} />
+
                     <Route path="threat-intelligence" element={<ThreatIntelligencePage />} />
+
+                    {/* --- Debugging specific pages not loading --- */}
+                    <Route path="incident-management" element={<IncidentManagementPage />} />
+                    <Route path="trust" element={<TrustPage />} />
+
                     {/* MITRE ATT&CK Framework */}
                     <Route path="mitre-attack" element={<MitreAttackPage />} />
                     {/* Standards & Frameworks */}
                     <Route path="standards-frameworks" element={<StandardsFrameworksPage />} />
                     <Route path="risk-management" element={<RiskManagementPage />} />
 
-                    {/* Static Placeholder Trust Page */}
-                    <Route path="trust" element={<TrustPage />} />
-
                     <Route path="analytics" element={<AnalyticsPage />} />
-                    <Route path="incident-management" element={<IncidentManagementPage />} />
                     
                     {/* Default route within the dashboard */}
                     <Route path="*" element={<Navigate to="/dashboard/overview" replace />} />
                   </Routes>
+                  </Suspense>
                   </DashboardLayout>
                 </ProtectedRoute>
               }

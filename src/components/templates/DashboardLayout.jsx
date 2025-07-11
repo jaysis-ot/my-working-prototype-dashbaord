@@ -84,6 +84,7 @@ const DashboardLayout = ({ children }) => {
     { id: 'requirements', label: 'Requirements', icon: 'FileText' },
     { id: 'capabilities', label: 'Capabilities', icon: 'Shield' },
     { id: 'resources', label: 'Resource Planning', icon: 'Users' },
+    { id: 'business-plan', label: 'Business Plan', icon: 'Building2' },
     { id: 'analytics', label: 'Analytics', icon: 'BarChart3' },
     { id: 'maturity-analysis', label: 'Maturity Analysis', icon: 'TrendingUp' },
     { id: 'mitre-attack', label: 'MITRE ATT&CK', icon: 'Layers' },
@@ -134,7 +135,15 @@ const DashboardLayout = ({ children }) => {
                   <button
                     key={item.id}
                     className={commonClasses}
-                    onClick={() => setViewMode(item.id)}
+                    onClick={() => {
+                      /* ------------------------------------------------------------------
+                       * Debug helper – log navigation target so we can trace route issues.
+                       * This should be removed or guarded by an environment flag in prod.
+                       * ---------------------------------------------------------------- */
+                      // eslint-disable-next-line no-console
+                      console.log(`Navigating to: ${item.id}`);
+                      setViewMode(item.id);
+                    }}
                     aria-current={viewMode === item.id ? 'page' : undefined}
                   >
                     <Icon
@@ -210,7 +219,7 @@ const DashboardLayout = ({ children }) => {
               >
                 <ProductLogo expanded={false} size="small" />
                 <span className="ml-2 text-xl font-semibold text-primary-600 dark:text-primary-400">
-                  TrustGuard
+                  Cyber Trust Sensor
                 </span>
               </div>
             </div>

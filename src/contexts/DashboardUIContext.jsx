@@ -239,6 +239,10 @@ export const DashboardUIProvider = ({ children }) => {
   
   // Set the current view mode and navigate to the corresponding route
   const setViewMode = useCallback((mode) => {
+    // Debug helper – useful while investigating pages that fail to load.
+    // Remove or guard with `process.env.NODE_ENV !== 'production'` in production.
+    // eslint-disable-next-line no-console
+    console.log(`Setting view mode to: ${mode} and navigating to /dashboard/${mode}`);
     dispatch({ type: ACTIONS.SET_VIEW_MODE, payload: mode });
     navigate(`/dashboard/${mode}`);
   }, [navigate]);
