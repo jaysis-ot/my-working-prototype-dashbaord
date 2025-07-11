@@ -1,134 +1,111 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import {
-  Search, Filter, Eye, Edit, X, Star, Download, Upload,
-  ChevronDown, Settings, RefreshCw, MoreVertical, Trash2,
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-  ArrowDown, ArrowUp
+  Search,
+  Upload,
+  Download,
+  Eye,
+  Edit2,
+  Columns,
+  Check,
+  RefreshCw,
+  ArrowDownUp,
+  Trash2,
+  ChevronsLeft,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsRight
 } from 'lucide-react';
 import Button from '../atoms/Button';
 import Input from '../atoms/Input';
-import Badge from '../atoms/Badge';
 
-// --- Internal Molecules for RequirementsTable ---
-
-/**
- * MaturityIndicator Molecule
- * A visual representation of a requirement's maturity level.
- */
-const MaturityIndicator = ({ score }) => {
-  const level = Math.round(score || 0);
-  const colors = [
-    'bg-maturity-1', 'bg-maturity-2', 'bg-maturity-3', 'bg-maturity-4', 'bg-maturity-5'
-  ];
+// Internal component for the table header to handle sorting UI
+const SortableHeader = ({ children, columnId, sortConfig, requestSort }) => {
+  const isSorted = sortConfig.key === columnId;
+  const direction = isSorted ? sortConfig.direction : undefined;
 
   return (
-    <div className="flex items-center gap-1" title={`Maturity Score: ${score}/5`}>
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div
-          key={i}
-          className={`w-3 h-5 rounded-sm ${i < level ? colors[i] : 'bg-secondary-200 dark:bg-secondary-600'}`}
+    <th
+      className="p-3 text-left text-xs font-semibold text-secondary-600 dark:text-secondary-400 uppercase tracking-wider cursor-pointer hover:bg-secondary-50 dark:hover:bg-secondary-800 group"
+      onClick={() => requestSort(columnId)}
+    >
+      <div className="flex items-center">
+        {children}
+        <ArrowDownUp
+          className={`w-3 h-3 ml-1 transition-transform ${
+            isSorted
+              ? direction === 'ascending'
+                ? 'text-secondary-600 rotate-180'
+                : 'text-secondary-600'
+              : 'text-secondary-400 group-hover:text-secondary-600'
+          }`}
         />
-      ))}
-      <span className="ml-2 text-sm font-semibold">{score?.toFixed(1) || 'N/A'}</span>
-    </div>
+      </div>
+    </th>
   );
 };
-MaturityIndicator.propTypes = { score: PropTypes.number };
 
-/**
- * ProgressStatus Molecule
- * Displays the progress status with a label and percentage.
- */
-const ProgressStatus = ({ status, percentage }) => {
-  const color = status === 'Qualifying' ? 'text-blue-600 dark:text-blue-400' : 'text-green-600 dark:text-green-400';
+SortableHeader.propTypes = {
+  children: PropTypes.node.isRequired,
+  columnId: PropTypes.string.isRequired,
+  sortConfig: PropTypes.object.isRequired,
+  requestSort: PropTypes.func.isRequired,
+};
+
+// Maturity Indicator Component - similar to RiskRatingIndicator
+const MaturityIndicator = ({ level, score }) => {
+  const getMaturityStyles = (score) => {
+    if (!score) return 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+    
+    switch (score) {
+      case 1: return 'bg-red-500 text-white'; // Initial
+      case 2: return 'bg-orange-500 text-white'; // Developing
+      case 3: return 'bg-yellow-400 text-yellow-900'; // Defined
+      case 4: return 'bg-green-500 text-white'; // Managed
+      case 5: return 'bg-blue-500 text-white'; // Optimizing
+      default: return 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+    }
+  };
+  
+  const getMaturityLabel = (score) => {
+    if (!score) return 'Unknown';
+    
+    switch (score) {
+      case 1: return 'Initial';
+      case 2: return 'Developing';
+      case 3: return 'Defined';
+      case 4: return 'Managed';
+      case 5: return 'Optimizing';
+      default: return 'Unknown';
+    }
+  };
+  
   return (
     <div className="flex items-center gap-2">
-      <span className={`font-medium ${color}`}>{status}</span>
-      <span className="text-secondary-500 dark:text-secondary-400">{percentage}%</span>
+      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getMaturityStyles(score)}`}>
+        {level || getMaturityLabel(score)}
+      </span>
+      <span className="font-mono text-sm text-secondary-600 dark:text-secondary-400">({score || '?'})</span>
     </div>
   );
 };
-ProgressStatus.propTypes = { status: PropTypes.string, percentage: PropTypes.number };
 
-/**
- * TableToolbar: Header section with search, filters, and actions.
- */
-const TableToolbar = ({
-  onSearchChange, searchTerm, onClearSearch,
-  showFilters, setShowFilters, activeFiltersCount,
-  showColumnSelector, setShowColumnSelector,
-  onImportCSV, onExportCSV
-}) => (
-  <div className="p-4 border-b border-secondary-200 dark:border-secondary-700">
-    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-      <div className="w-full md:w-1/2 lg:w-2/5">
-        <Input
-          placeholder="Search requirements, descriptions, justifications..."
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-          leadingIcon={Search}
-          onClear={onClearSearch}
-        />
-      </div>
-      <div className="flex items-center gap-2">
-        <Button variant="secondary" onClick={() => setShowColumnSelector(val => !val)} leadingIcon={Settings}>Columns</Button>
-        <Button variant="secondary" onClick={() => setShowFilters(!showFilters)} leadingIcon={Filter}>
-          Filters {activeFiltersCount > 0 && `(${activeFiltersCount})`}
-        </Button>
-        <Button variant="secondary" onClick={onImportCSV} leadingIcon={Upload}>Import CSV</Button>
-        <Button onClick={onExportCSV} leadingIcon={Download}>Export CSV</Button>
-      </div>
-    </div>
-  </div>
-);
-
-/**
- * FilterPanel: Expandable panel for advanced filtering.
- */
-const FilterPanel = ({ filters, capabilities, onFilterChange, onClearFilters }) => (
-  <div className="p-4 bg-secondary-50 dark:bg-secondary-900/50 border-b border-secondary-200 dark:border-secondary-700">
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
-      <select value={filters.capability || ''} onChange={(e) => onFilterChange('capability', e.target.value)} className="w-full text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600">
-        <option value="">All Capabilities</option>
-        {capabilities.map(cap => <option key={cap.id} value={cap.id}>{cap.name}</option>)}
-      </select>
-      <select value={filters.area || ''} onChange={(e) => onFilterChange('area', e.target.value)} className="w-full text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600">
-        <option value="">All Areas</option>
-        {['Business', 'User', 'System', 'Infrastructure'].map(a => <option key={a} value={a}>{a}</option>)}
-      </select>
-      <select value={filters.type || ''} onChange={(e) => onFilterChange('type', e.target.value)} className="w-full text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600">
-        <option value="">All Types</option>
-        {['Functional', 'Non-Functional'].map(t => <option key={t} value={t}>{t}</option>)}
-      </select>
-      <select value={filters.status || ''} onChange={(e) => onFilterChange('status', e.target.value)} className="w-full text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600">
-        <option value="">All Statuses</option>
-        {['Not Started', 'In Progress', 'Completed', 'On Hold', 'Under Review'].map(s => <option key={s} value={s}>{s}</option>)}
-      </select>
-      <select value={filters.priority || ''} onChange={(e) => onFilterChange('priority', e.target.value)} className="w-full text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600">
-        <option value="">All Priorities</option>
-        {['Low', 'Medium', 'High', 'Critical'].map(p => <option key={p} value={p}>{p}</option>)}
-      </select>
-      <select value={filters.maturityLevel || ''} onChange={(e) => onFilterChange('maturityLevel', e.target.value)} className="w-full text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600">
-        <option value="">All Maturity</option>
-        {['Initial', 'Developing', 'Defined', 'Managed', 'Optimizing'].map(m => <option key={m} value={m}>{m}</option>)}
-      </select>
-      <select value={filters.applicability || ''} onChange={(e) => onFilterChange('applicability', e.target.value)} className="w-full text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600">
-        <option value="">All Applicability</option>
-        {['Not Applicable', 'Applicable', 'Conditional'].map(a => <option key={a} value={a}>{a}</option>)}
-      </select>
-    </div>
-    <div className="mt-4 flex justify-end">
-      <Button variant="ghost" onClick={onClearFilters} leadingIcon={RefreshCw}>Clear Filters</Button>
-    </div>
-  </div>
-);
+MaturityIndicator.propTypes = {
+  level: PropTypes.string,
+  score: PropTypes.number
+};
 
 /**
  * RequirementsTable Organism
  * 
- * Displays requirements in a sortable, filterable, and paginated table.
- * This is a presentational component that receives all data and handlers via props.
+ * This is a placeholder component that displays requirements in a filterable and sortable table.
+ * It is designed to be a "dumb" component, receiving all its data and logic via props
+ * from the parent `RequirementsPage`.
+ * 
+ * Responsibilities:
+ * - Displaying the list of filtered requirements.
+ * - Rendering filter controls and search bars.
+ * - Handling user interactions (sorting, button clicks) and delegating them to the parent page.
  */
 const RequirementsTable = ({
   requirements,
@@ -144,213 +121,312 @@ const RequirementsTable = ({
   onToggleColumnVisibility,
   onViewRequirement,
   onEditRequirement,
+  onDeleteRequirement,
   onExportCSV,
-  onImportCSV
+  onImportCSV,
 }) => {
-  const [showFilters, setShowFilters] = useState(false);
-  const [showColumnSelector, setShowColumnSelector] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
   const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'ascending' });
-  const [selectedRows, setSelectedRows] = useState(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
+  const [showColumnSelector, setShowColumnSelector] = useState(false);
+  const columnSelectorRef = useRef(null);
 
-  const PAGE_SIZE = 15;
+  const requestSort = useCallback((key) => {
+    let direction = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  }, [sortConfig]);
 
-  const sortedRequirements = useMemo(() => {
+  const sortedItems = useMemo(() => {
     let sortableItems = [...filteredRequirements];
     if (sortConfig.key !== null) {
       sortableItems.sort((a, b) => {
-        const aVal = a[sortConfig.key];
-        const bVal = b[sortConfig.key];
-        if (aVal < bVal) return sortConfig.direction === 'ascending' ? -1 : 1;
-        if (aVal > bVal) return sortConfig.direction === 'ascending' ? 1 : -1;
+        // Handle nested properties like maturityLevel.score
+        if (sortConfig.key.includes('.')) {
+          const [parent, child] = sortConfig.key.split('.');
+          const aValue = a[parent] ? a[parent][child] : null;
+          const bValue = b[parent] ? b[parent][child] : null;
+          
+          if (aValue < bValue) {
+            return sortConfig.direction === 'ascending' ? -1 : 1;
+          }
+          if (aValue > bValue) {
+            return sortConfig.direction === 'ascending' ? 1 : -1;
+          }
+          return 0;
+        }
+        
+        // Regular property sorting
+        if (a[sortConfig.key] < b[sortConfig.key]) {
+          return sortConfig.direction === 'ascending' ? -1 : 1;
+        }
+        if (a[sortConfig.key] > b[sortConfig.key]) {
+          return sortConfig.direction === 'ascending' ? 1 : -1;
+        }
         return 0;
       });
     }
     return sortableItems;
   }, [filteredRequirements, sortConfig]);
 
-  const paginatedRequirements = useMemo(() => {
+  const totalPages = Math.ceil(sortedItems.length / PAGE_SIZE) || 1;
+  const paginatedItems = useMemo(() => {
     const startIndex = (currentPage - 1) * PAGE_SIZE;
-    return sortedRequirements.slice(startIndex, startIndex + PAGE_SIZE);
-  }, [sortedRequirements, currentPage]);
+    return sortedItems.slice(startIndex, startIndex + PAGE_SIZE);
+  }, [sortedItems, currentPage]);
 
-  const totalPages = Math.ceil(sortedRequirements.length / PAGE_SIZE);
+  /* Reset page when data set changes */
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, searchTerm, sortConfig]);
 
-  const handleSort = (key) => {
-    let direction = 'ascending';
-    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
-      direction = 'descending';
-    }
-    setSortConfig({ key, direction });
+  const getCapabilityName = (id) => {
+    const capability = capabilities.find(c => c.id === id);
+    return capability ? capability.name : 'N/A';
   };
 
-  const handleSelectAll = (e) => {
-    if (e.target.checked) {
-      setSelectedRows(new Set(paginatedRequirements.map(r => r.id)));
-    } else {
-      setSelectedRows(new Set());
-    }
+  const toggleColumnSelector = () => {
+    setShowColumnSelector(!showColumnSelector);
   };
 
-  const handleRowSelect = (id) => {
-    const newSelection = new Set(selectedRows);
-    if (newSelection.has(id)) {
-      newSelection.delete(id);
-    } else {
-      newSelection.add(id);
-    }
-    setSelectedRows(newSelection);
-  };
-
-  const columns = useMemo(() => [
-    { key: 'id', label: 'ID', sortable: true },
-    { key: 'description', label: 'Description', sortable: true },
-    { key: 'capabilityId', label: 'Capability', sortable: true },
-    { key: 'progressStatus', label: 'Progress Status', sortable: true },
-    { key: 'businessValueScore', label: 'Business Value', sortable: true },
-    { key: 'maturityLevel', label: 'Maturity', sortable: true },
-    { key: 'applicability', label: 'Applicability', sortable: true },
-    { key: 'status', label: 'Status', sortable: true },
-    { key: 'area', label: 'Area', sortable: true },
-    { key: 'type', label: 'Type', sortable: true },
-    { key: 'priority', label: 'Priority', sortable: true },
-    { key: 'assignee', label: 'Assignee', sortable: true },
-    { key: 'dueDate', label: 'Due Date', sortable: true },
-    { key: 'actions', label: 'Actions', sortable: false },
-  ], []);
-
-  const visibleColumns = useMemo(() => columns.filter(c => columnVisibility[c.key]), [columns, columnVisibility]);
-
-  const activeFiltersCount = Object.values(filters).filter(Boolean).length;
+  /* --------------------------------------------------------------------
+   * Close the column selector pop-over when user clicks outside of it.
+   * ------------------------------------------------------------------ */
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (showColumnSelector &&
+          columnSelectorRef.current &&
+          !columnSelectorRef.current.contains(e.target)) {
+        setShowColumnSelector(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showColumnSelector]);
 
   return (
-    <div className="dashboard-card overflow-hidden">
-      <TableToolbar
-        onSearchChange={onSearchChange}
-        searchTerm={searchTerm}
-        onClearSearch={onClearSearch}
-        showFilters={showFilters}
-        setShowFilters={setShowFilters}
-        activeFiltersCount={activeFiltersCount}
-        showColumnSelector={showColumnSelector}
-        setShowColumnSelector={setShowColumnSelector}
-        onImportCSV={onImportCSV}
-        onExportCSV={onExportCSV}
-      />
-      
-      {showFilters && (
-        <FilterPanel
-          filters={filters}
-          capabilities={capabilities}
-          onFilterChange={onFilterChange}
-          onClearFilters={onClearFilters}
-        />
-      )}
-
-      {showColumnSelector && (
-        <div className="p-4 bg-secondary-50 dark:bg-secondary-900/50 border-b border-secondary-200 dark:border-secondary-700">
-          <h4 className="text-sm font-medium mb-2">Select Columns to Display</h4>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-            {columns.map(col => (
-              <label key={col.key} className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={!!columnVisibility[col.key]} onChange={() => onToggleColumnVisibility(col.key)} className="rounded text-primary-600 focus:ring-primary-500" />
-                {col.label}
-              </label>
-            ))}
+    <div className="dashboard-card flex-grow flex flex-col">
+      {/* Toolbar */}
+      <div className="p-4 border-b border-secondary-200 dark:border-secondary-700">
+        <div className="flex justify-between mb-4">
+          <div className="text-sm text-secondary-600 dark:text-secondary-400">
+            Showing <span className="font-medium">{paginatedItems.length}</span> of <span className="font-medium">{filteredRequirements.length}</span> requirements
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {/* Column Selector */}
+            <div className="relative" ref={columnSelectorRef}>
+              <Button 
+                variant="outline" 
+                onClick={toggleColumnSelector}
+                className="flex items-center gap-1 h-10"
+              >
+                <Columns className="h-4 w-4" /> Columns
+              </Button>
+              
+              {showColumnSelector && (
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-secondary-800 rounded-md shadow-lg z-10 border border-secondary-200 dark:border-secondary-700">
+                  <div className="p-2">
+                    <div className="text-sm font-medium text-secondary-700 dark:text-secondary-300 mb-2 pb-2 border-b border-secondary-200 dark:border-secondary-700">
+                      Toggle Columns
+                    </div>
+                    <div className="space-y-2">
+                      {Object.entries(columnVisibility).map(([column, isVisible]) => (
+                        <label key={column} className="flex items-center justify-between cursor-pointer p-1 hover:bg-secondary-50 dark:hover:bg-secondary-700 rounded">
+                          <span className="text-sm text-secondary-700 dark:text-secondary-300 capitalize">
+                            {column === 'id' ? 'ID' : column}
+                          </span>
+                          <div 
+                            onClick={() => onToggleColumnVisibility(column)}
+                            className={`w-5 h-5 flex items-center justify-center rounded ${isVisible ? 'bg-primary-500 text-white' : 'bg-secondary-200 dark:bg-secondary-700'}`}
+                          >
+                            {isVisible && <Check className="h-3 w-3" />}
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <Button variant="outline" onClick={onImportCSV} className="h-10">
+              <Upload className="h-4 w-4 mr-2" /> Import
+            </Button>
+            <Button variant="outline" onClick={onExportCSV} className="h-10">
+              <Download className="h-4 w-4 mr-2" /> Export
+            </Button>
           </div>
         </div>
-      )}
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-secondary-200 dark:divide-secondary-700">
-          <thead className="bg-secondary-50 dark:bg-secondary-700/50">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1">
+          <Input
+            placeholder="Search requirements..."
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
+            onClear={onClearSearch}
+            leadingIcon={Search}
+            className="h-10"
+          />
+          
+          <select 
+            value={filters.status || ''} 
+            onChange={(e) => onFilterChange('status', e.target.value)} 
+            className="w-full h-10 text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600"
+          >
+            <option value="">All Statuses</option>
+            <option value="Not Started">Not Started</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+          </select>
+          
+          <select 
+            value={filters.capabilityId || ''} 
+            onChange={(e) => onFilterChange('capabilityId', e.target.value)} 
+            className="w-full h-10 text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600"
+          >
+            <option value="">All Capabilities</option>
+            {capabilities.map(cap => (
+              <option key={cap.id} value={cap.id}>{cap.name}</option>
+            ))}
+          </select>
+          
+          <select 
+            value={filters.priority || ''} 
+            onChange={(e) => onFilterChange('priority', e.target.value)} 
+            className="w-full h-10 text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600"
+          >
+            <option value="">All Priorities</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+          
+          <select 
+            value={filters.maturityLevel || ''} 
+            onChange={(e) => onFilterChange('maturityLevel', e.target.value)} 
+            className="w-full h-10 text-sm border-secondary-300 rounded-md dark:bg-secondary-800 dark:border-secondary-600"
+          >
+            <option value="">All Maturity Levels</option>
+            <option value="1">Initial (1)</option>
+            <option value="2">Developing (2)</option>
+            <option value="3">Defined (3)</option>
+            <option value="4">Managed (4)</option>
+            <option value="5">Optimizing (5)</option>
+          </select>
+          
+          <Button 
+            variant="ghost" 
+            onClick={onClearFilters} 
+            className="h-10 flex items-center justify-center gap-1"
+          >
+            <RefreshCw className="h-4 w-4" /> Reset Filters
+          </Button>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto flex-grow">
+        <table className="min-w-full divide-y divide-secondary-200 dark:divide-secondary-700 table-auto">
+          <thead className="bg-secondary-50 dark:bg-secondary-800/50 group">
             <tr>
-              <th className="px-4 py-3 text-left">
-                <input type="checkbox" onChange={handleSelectAll} checked={selectedRows.size > 0 && selectedRows.size === paginatedRequirements.length} className="rounded" />
-              </th>
-              {visibleColumns.map(col => (
-                <th key={col.key} className="px-4 py-3 text-left text-xs font-medium text-secondary-500 dark:text-secondary-400 uppercase tracking-wider">
-                  {col.sortable ? (
-                    <button onClick={() => handleSort(col.key)} className="flex items-center gap-1">
-                      {col.label}
-                      {sortConfig.key === col.key ? (sortConfig.direction === 'ascending' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : null}
-                    </button>
-                  ) : col.label}
-                </th>
-              ))}
+              {columnVisibility.id && <SortableHeader columnId="id" sortConfig={sortConfig} requestSort={requestSort}>ID</SortableHeader>}
+              {columnVisibility.description && <SortableHeader columnId="description" sortConfig={sortConfig} requestSort={requestSort}>Description</SortableHeader>}
+              {columnVisibility.capability && <SortableHeader columnId="capabilityId" sortConfig={sortConfig} requestSort={requestSort}>Capability</SortableHeader>}
+              {columnVisibility.status && <SortableHeader columnId="status" sortConfig={sortConfig} requestSort={requestSort}>Status</SortableHeader>}
+              {columnVisibility.priority && <SortableHeader columnId="priority" sortConfig={sortConfig} requestSort={requestSort}>Priority</SortableHeader>}
+              {columnVisibility.maturity && <SortableHeader columnId="maturityLevel.score" sortConfig={sortConfig} requestSort={requestSort}>Maturity</SortableHeader>}
+              {columnVisibility.actions && <th className="p-3 text-left text-xs font-semibold text-secondary-600 dark:text-secondary-400 uppercase tracking-wider">Actions</th>}
             </tr>
           </thead>
-          <tbody className="bg-white dark:bg-secondary-800 divide-y divide-secondary-200 dark:divide-secondary-700">
-            {paginatedRequirements.map(req => (
-              <tr key={req.id} className="hover:bg-secondary-50 dark:hover:bg-secondary-700/50 group">
-                <td className="px-4 py-3"><input type="checkbox" checked={selectedRows.has(req.id)} onChange={() => handleRowSelect(req.id)} className="rounded" /></td>
-                {visibleColumns.map(col => (
-                  <td key={col.key} className="px-4 py-3 whitespace-nowrap text-sm">
-                    {(() => {
-                      switch (col.key) {
-                        case 'id': return <span className="font-mono text-primary-600 dark:text-primary-300">{req.id}</span>;
-                        case 'description': return (
-                          <div className="relative max-w-xs">
-                            <span className="text-secondary-800 dark:text-secondary-200 truncate block">{req.description}</span>
-                            <div className="absolute hidden group-hover:block top-full left-0 mt-1 p-2 bg-black text-white text-xs rounded-md shadow-lg z-10 w-96 whitespace-normal">
-                              {req.description}
-                            </div>
-                          </div>
-                        );
-                        case 'capabilityId': return <Badge variant="info">{req.capabilityId || 'N/A'}</Badge>;
-                        case 'progressStatus': return <ProgressStatus status={req.progressStatus} percentage={req.progress} />;
-                        case 'businessValueScore': return <div className="flex items-center gap-1"><Star className="w-4 h-4 text-yellow-500" /> {req.businessValueScore?.toFixed(1)}</div>;
-                        case 'maturityLevel': return <MaturityIndicator score={req.maturityLevel?.score} />;
-                        case 'applicability': return <Badge variant={req.applicability === 'Not Applicable' ? 'default' : 'success'}>{req.applicability}</Badge>;
-                        case 'status': return <Badge variant={req.status === 'Completed' ? 'success' : 'default'}>{req.status}</Badge>;
-                        case 'area': return <span>{req.area}</span>;
-                        case 'type': return <span>{req.type}</span>;
-                        case 'priority': return <Badge variant={req.priority === 'Critical' ? 'error' : req.priority === 'High' ? 'warning' : 'default'}>{req.priority}</Badge>;
-                        case 'assignee': return <span>{req.assignee}</span>;
-                        case 'dueDate': return <span>{req.dueDate}</span>;
-                        case 'actions': return (
-                          <div className="flex items-center gap-1">
-                            <Button size="sm" variant="ghost" onClick={() => onViewRequirement(req)} title="View"><Eye className="w-4 h-4" /></Button>
-                            <Button size="sm" variant="ghost" onClick={() => onEditRequirement(req)} title="Edit"><Edit className="w-4 h-4" /></Button>
-                          </div>
-                        );
-                        default: return req[col.key];
-                      }
-                    })()}
-                  </td>
-                ))}
+          <tbody className="bg-white dark:bg-secondary-900 divide-y divide-secondary-200 dark:divide-secondary-700">
+            {paginatedItems.length > 0 ? (
+              paginatedItems.map((req) => (
+                <tr key={req.id} className="hover:bg-secondary-50 dark:hover:bg-secondary-800/50">
+                  {columnVisibility.id && <td className="p-3 text-sm font-mono text-primary-600 dark:text-primary-400 whitespace-nowrap">{req.id}</td>}
+                  {columnVisibility.description && <td className="p-3 text-sm text-secondary-700 dark:text-secondary-300 max-w-xs truncate">{req.description}</td>}
+                  {columnVisibility.capability && <td className="p-3 text-sm text-secondary-600 dark:text-secondary-400 whitespace-nowrap">{getCapabilityName(req.capabilityId)}</td>}
+                  {columnVisibility.status && (
+                    <td className="p-3 text-sm whitespace-nowrap">
+                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                        req.status === 'Completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' :
+                        req.status === 'In Progress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300' :
+                        'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                      }`}>
+                        {req.status}
+                      </span>
+                    </td>
+                  )}
+                  {columnVisibility.priority && (
+                    <td className="p-3 text-sm whitespace-nowrap">
+                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                        req.priority === 'High' ? 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300' :
+                        req.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300' :
+                        'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300'
+                      }`}>
+                        {req.priority}
+                      </span>
+                    </td>
+                  )}
+                  {columnVisibility.maturity && (
+                    <td className="p-3 text-sm whitespace-nowrap">
+                      <MaturityIndicator 
+                        level={req.maturityLevel?.level} 
+                        score={req.maturityLevel?.score} 
+                      />
+                    </td>
+                  )}
+                  {columnVisibility.actions && (
+                    <td className="p-3 text-sm whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="ghost" onClick={() => onViewRequirement(req)} title="View">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => onEditRequirement(req)} title="Edit">
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => onDeleteRequirement(req)} title="Delete">
+                          <Trash2 className="h-4 w-4 text-status-error" />
+                        </Button>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={Object.values(columnVisibility).filter(Boolean).length} className="p-6 text-center text-secondary-500">
+                  No requirements found. Try adjusting your filters.
+                </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
 
-      {paginatedRequirements.length === 0 && (
-        <div className="text-center py-16">
-          <p className="text-secondary-500">No requirements found.</p>
-          {activeFiltersCount > 0 && <Button variant="link" onClick={onClearFilters} className="mt-2">Clear filters</Button>}
-        </div>
-      )}
-
+      {/* Pagination */}
       {totalPages > 1 && (
         <div className="p-4 border-t border-secondary-200 dark:border-secondary-700 flex items-center justify-between">
-          <span className="text-sm text-secondary-600">Page {currentPage} of {totalPages}</span>
+          <span className="text-sm text-secondary-600 dark:text-secondary-400">
+            Page {currentPage} of {totalPages}
+          </span>
           <div className="flex items-center gap-1">
-            <Button size="sm" variant="secondary" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}><ChevronsLeft className="w-4 h-4" /></Button>
-            <Button size="sm" variant="secondary" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}><ChevronLeft className="w-4 h-4" /></Button>
-            <span className="px-2 text-sm">...</span>
-            <Button size="sm" variant="secondary" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages}><ChevronRight className="w-4 h-4" /></Button>
-            <Button size="sm" variant="secondary" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}><ChevronsRight className="w-4 h-4" /></Button>
+            <Button size="sm" variant="secondary" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
+              <ChevronsLeft className="w-4 h-4" />
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}>
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <span className="px-2 text-sm font-semibold">{currentPage}</span>
+            <Button size="sm" variant="secondary" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages}>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>
+              <ChevronsRight className="w-4 h-4" />
+            </Button>
           </div>
-        </div>
-      )}
-
-      {selectedRows.size > 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-white dark:bg-secondary-700 shadow-lg rounded-lg p-3 flex items-center gap-4 border border-secondary-200 dark:border-secondary-600 z-20">
-          <span className="text-sm font-medium">{selectedRows.size} selected</span>
-          <Button size="sm" variant="secondary">Bulk Edit</Button>
-          <Button size="sm" variant="danger" leadingIcon={Trash2}>Delete</Button>
-          <button onClick={() => setSelectedRows(new Set())} className="p-1 hover:bg-secondary-100 dark:hover:bg-secondary-600 rounded-full"><X className="w-4 h-4" /></button>
         </div>
       )}
     </div>
@@ -371,6 +447,7 @@ RequirementsTable.propTypes = {
   onToggleColumnVisibility: PropTypes.func.isRequired,
   onViewRequirement: PropTypes.func.isRequired,
   onEditRequirement: PropTypes.func.isRequired,
+  onDeleteRequirement: PropTypes.func.isRequired,
   onExportCSV: PropTypes.func.isRequired,
   onImportCSV: PropTypes.func.isRequired,
 };
