@@ -14,6 +14,8 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Search,
+  Download,
+  Upload,
 } from 'lucide-react';
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
@@ -49,19 +51,22 @@ MetricCard.defaultProps = { color: 'primary' };
  */
 const RiskRatingIndicator = ({ level, score }) => {
   const getRatingStyles = (lvl) => {
+    if (!lvl) return 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+    
     switch (lvl) {
       case 'Critical': return 'bg-red-500 text-white';
       case 'High': return 'bg-orange-500 text-white';
       case 'Medium': return 'bg-yellow-400 text-yellow-900';
       case 'Low': return 'bg-green-500 text-white';
-      default: return 'bg-secondary-200 text-secondary-800';
+      default: return 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
     }
   };
+  
   return (
     <div className="flex items-center gap-2">
-      <Badge variant="default" className={getRatingStyles(level)}>
-        {level}
-      </Badge>
+      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getRatingStyles(level)}`}>
+        {level || 'Unknown'}
+      </span>
       <span className="font-mono text-sm text-secondary-600 dark:text-secondary-400">({score})</span>
     </div>
   );
@@ -92,6 +97,7 @@ const RiskManagementView = ({
   const [sortConfig, setSortConfig] = useState({ key: 'rating.score', direction: 'desc' });
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 10;
+  const [deleteConfirmation, setDeleteConfirmation] = useState({ isOpen: false, riskId: null });
 
   // ------------------ Requirement modal state ------------------ //
   const [selectedRisk, setSelectedRisk] = useState(null);
@@ -144,6 +150,22 @@ const RiskManagementView = ({
     },
     [onAddRisk, closeCreateModal]
   );
+
+  // ------------------ Delete Risk handlers ------------------ //
+  const handleDeleteClick = useCallback((riskId) => {
+    setDeleteConfirmation({ isOpen: true, riskId });
+  }, []);
+
+  const handleConfirmDelete = useCallback(() => {
+    if (deleteConfirmation.riskId) {
+      onDeleteRisk(deleteConfirmation.riskId);
+      setDeleteConfirmation({ isOpen: false, riskId: null });
+    }
+  }, [onDeleteRisk, deleteConfirmation.riskId]);
+
+  const handleCancelDelete = useCallback(() => {
+    setDeleteConfirmation({ isOpen: false, riskId: null });
+  }, []);
 
   const handleSort = useCallback((key) => {
     setSortConfig(prev => {
@@ -211,6 +233,20 @@ const RiskManagementView = ({
       <div className="dashboard-card flex-grow flex flex-col">
         {/* Filter Bar */}
         <div className="p-4 border-b border-secondary-200 dark:border-secondary-700">
+          <div className="flex justify-between mb-4">
+            <div className="text-sm text-secondary-600 dark:text-secondary-400">
+              Showing <span className="font-medium">{sortedAndPaginatedRisks.length}</span> of <span className="font-medium">{risks.length}</span> risks
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" className="h-10">
+                <Upload className="h-4 w-4 mr-2" /> Import
+              </Button>
+              <Button variant="outline" className="h-10">
+                <Download className="h-4 w-4 mr-2" /> Export
+              </Button>
+            </div>
+          </div>
+          
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <Input
               placeholder="Search by ID or title..."
@@ -282,7 +318,14 @@ const RiskManagementView = ({
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => onDeleteRisk(risk.id)} title="Delete"><Trash2 className="w-4 h-4 text-status-error" /></Button>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        onClick={() => handleDeleteClick(risk.id)} 
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4 text-status-error" />
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -328,6 +371,22 @@ const RiskManagementView = ({
       onClose={closeCreateModal}
       onSave={handleCreateRisk}
     />
+
+    {/* Delete Confirmation Dialog */}
+    {deleteConfirmation.isOpen && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white dark:bg-secondary-800 rounded-lg shadow-xl p-6 max-w-md w-full">
+          <h3 className="text-lg font-semibold text-secondary-900 dark:text-white mb-2">Confirm Delete</h3>
+          <p className="text-secondary-600 dark:text-secondary-400 mb-4">
+            Are you sure you want to delete this risk? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={handleCancelDelete}>Cancel</Button>
+            <Button variant="danger" onClick={handleConfirmDelete}>Delete</Button>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   );
 };
