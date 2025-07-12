@@ -31,6 +31,8 @@ const TrustPage = lazy(() => import('./components/pages/TrustPage'));
 const IncidentManagementPage = lazy(() => import('./components/pages/IncidentManagementPage'));
 // Evidence Page
 const EvidencePage = lazy(() => import('./components/pages/EvidencePage'));
+// Advanced Evidence Demo Page
+const AdvancedEvidenceDemoPage = lazy(() => import('./components/pages/AdvancedEvidenceDemo'));
 
 // A simple wrapper for providers to keep the App component clean
 const AppProviders = ({ children }) => {
@@ -119,6 +121,8 @@ function App() {
                       <Route path="trust" element={<TrustPage />} />
                       <Route path="incident-management" element={<IncidentManagementPage />} />
                       <Route path="evidence" element={<EvidencePage />} />
+                      {/* Advanced visualisation demo */}
+                      <Route path="evidence-demo" element={<AdvancedEvidenceDemoPage />} />
                       
                       {/* Default route within the dashboard */}
                       <Route path="*" element={<Navigate to="/dashboard/overview" replace />} />

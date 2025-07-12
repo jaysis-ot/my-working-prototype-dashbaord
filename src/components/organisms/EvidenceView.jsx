@@ -34,10 +34,13 @@ import {
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
 import Input from '../atoms/Input';
+import EvidenceLifecycleTimeline from '../molecules/EvidenceLifecycleTimeline';
+import EvidenceGraph from '../molecules/EvidenceGraph';
 import EvidenceJourneyMap from '../molecules/EvidenceJourneyMap';
 import EvidenceHealthCard from '../molecules/EvidenceHealthCard';
 import EvidenceAutomationMarketplace from '../molecules/EvidenceAutomationMarketplace';
 import useEvidenceSuggestions from '../../hooks/useEvidenceSuggestions';
+import useEvidenceScoring from '../../hooks/useEvidenceScoring';
 
 /**
  * EvidenceHealthMetric Component
