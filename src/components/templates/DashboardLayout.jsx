@@ -18,6 +18,7 @@ import {
   Layers,
   BookOpen,
   Building2,
+  ClipboardList,
   Heart,
   Settings as SettingsIcon,
 } from 'lucide-react';
@@ -55,6 +56,7 @@ const DashboardLayout = ({ children }) => {
     Layers,
     BookOpen,
     Building2,
+    ClipboardList,
     Heart,
     Settings: SettingsIcon,
   };
@@ -75,6 +77,7 @@ const DashboardLayout = ({ children }) => {
     { id: 'standards-frameworks', label: 'Standards & Frameworks', icon: 'BookOpen' },
     { id: 'threat-intelligence', label: 'Threat Intelligence', icon: 'AlertTriangle' },
     { id: 'incident-management', label: 'Incident Management', icon: 'AlertCircle' },
+    { id: 'evidence', label: 'Evidence', icon: 'ClipboardList' },
     { id: 'risk-management', label: 'Risk Management', icon: 'Target' },
     { id: 'trust', label: 'Trust', icon: 'Heart' },
     { id: 'settings', label: 'Settings', icon: 'Settings' },

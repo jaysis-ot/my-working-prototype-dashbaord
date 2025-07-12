@@ -29,6 +29,8 @@ const MaturityAnalysisPage = lazy(() => import('./components/pages/MaturityAnaly
 const TrustPage = lazy(() => import('./components/pages/TrustPage'));
 // ✅ ADD MISSING IMPORT
 const IncidentManagementPage = lazy(() => import('./components/pages/IncidentManagementPage'));
+// Evidence Page
+const EvidencePage = lazy(() => import('./components/pages/EvidencePage'));
 
 // A simple wrapper for providers to keep the App component clean
 const AppProviders = ({ children }) => {
@@ -116,6 +118,7 @@ function App() {
                       {/* ✅ ADD MISSING ROUTES */}
                       <Route path="trust" element={<TrustPage />} />
                       <Route path="incident-management" element={<IncidentManagementPage />} />
+                      <Route path="evidence" element={<EvidencePage />} />
                       
                       {/* Default route within the dashboard */}
                       <Route path="*" element={<Navigate to="/dashboard/overview" replace />} />
