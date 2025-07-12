@@ -1,90 +1,21 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 /**
- * useEvidenceScoring - A sophisticated hook for ML-driven evidence scoring
+ * useEvidenceScoring Hook
  * 
- * This hook provides comprehensive scoring of evidence quality across multiple dimensions:
- * - Completeness: How thorough and comprehensive the evidence is
- * - Consistency: How well the evidence aligns with other related evidence
- * - Recency: How current and up-to-date the evidence is
- * - Relevance: How applicable the evidence is to the specific control or requirement
- * - Reliability: How trustworthy the evidence source and collection method are
- * - Verifiability: How easily the evidence can be independently verified
+ * A sophisticated hook that simulates ML-driven evidence quality scoring
+ * across multiple dimensions. It evaluates evidence quality, provides
+ * improvement suggestions, and offers predictive analysis.
  * 
- * Features:
- * - Evidence-type specific scoring algorithms with appropriate weights
- * - Improvement suggestions based on dimension scores
- * - Predictive analysis of score changes over time
- * - Decay modeling for evidence freshness
- * - Confidence scoring for each dimension
- * 
- * @param {Object} evidence - The evidence item to score
- * @param {Array} relatedEvidence - Array of related evidence items for consistency scoring
- * @param {Object} requirements - Requirements or controls the evidence supports
- * @param {Object} options - Configuration options for scoring algorithms
- * @returns {Object} Scores, suggestions, and prediction functions
+ * @param {Object} selectedEvidence - The evidence item to score
+ * @param {Array} otherEvidence - Other evidence items for context and comparison
+ * @param {Object} requirements - Requirements mapped by ID for relevance assessment
+ * @returns {Object} Scoring data, suggestions, predictions, and improvement actions
  */
-const useEvidenceScoring = (
-  evidence,
-  relatedEvidence = [],
-  requirements = {},
-  options = {}
-) => {
-  // Default options with sensible defaults
-  const scoringOptions = {
-    decayRates: {
-      Intent: 0.05, // 5% per month
-      Implementation: 0.08, // 8% per month
-      Behavioral: 0.15, // 15% per month
-      Validation: 0.1, // 10% per month
-    },
-    thresholds: {
-      critical: 40,
-      poor: 60,
-      adequate: 75,
-      good: 85,
-      excellent: 95
-    },
-    weights: {
-      Intent: {
-        completeness: 0.25,
-        consistency: 0.20,
-        recency: 0.10,
-        relevance: 0.20,
-        reliability: 0.15,
-        verifiability: 0.10
-      },
-      Implementation: {
-        completeness: 0.20,
-        consistency: 0.15,
-        recency: 0.15,
-        relevance: 0.20,
-        reliability: 0.15,
-        verifiability: 0.15
-      },
-      Behavioral: {
-        completeness: 0.15,
-        consistency: 0.10,
-        recency: 0.25,
-        relevance: 0.20,
-        reliability: 0.20,
-        verifiability: 0.10
-      },
-      Validation: {
-        completeness: 0.20,
-        consistency: 0.15,
-        recency: 0.15,
-        relevance: 0.15,
-        reliability: 0.15,
-        verifiability: 0.20
-      }
-    },
-    ...options
-  };
-
-  // State for storing calculated scores
+const useEvidenceScoring = (selectedEvidence, otherEvidence = [], requirements = {}) => {
   const [scores, setScores] = useState({
     overall: 0,
+    rating: 'poor',
     dimensions: {
       completeness: 0,
       consistency: 0,
@@ -92,22 +23,11 @@ const useEvidenceScoring = (
       relevance: 0,
       reliability: 0,
       verifiability: 0
-    },
-    confidence: {
-      completeness: 0,
-      consistency: 0,
-      recency: 0,
-      relevance: 0,
-      reliability: 0,
-      verifiability: 0
-    },
-    rating: 'unknown'
+    }
   });
-
-  // State for improvement suggestions
+  
   const [suggestions, setSuggestions] = useState([]);
-
-  // State for prediction data
+  
   const [predictions, setPredictions] = useState({
     decayRate: 0,
     nextMonthScore: 0,
@@ -118,1347 +38,856 @@ const useEvidenceScoring = (
       critical: null
     }
   });
-
+  
+  // Calculate scores when evidence changes
+  useEffect(() => {
+    if (!selectedEvidence) {
+      return;
+    }
+    
+    // Calculate dimension scores
+    const dimensionScores = calculateDimensionScores(selectedEvidence, otherEvidence, requirements);
+    
+    // Calculate overall score (weighted average)
+    const weights = getEvidenceTypeWeights(selectedEvidence.type);
+    const weightedSum = Object.keys(dimensionScores).reduce(
+      (sum, dimension) => sum + dimensionScores[dimension] * weights[dimension],
+      0
+    );
+    const weightSum = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
+    const overallScore = Math.round(weightedSum / weightSum);
+    
+    // Determine rating
+    let rating;
+    if (overallScore >= 90) rating = 'excellent';
+    else if (overallScore >= 75) rating = 'good';
+    else if (overallScore >= 60) rating = 'adequate';
+    else if (overallScore >= 40) rating = 'poor';
+    else rating = 'critical';
+    
+    setScores({
+      overall: overallScore,
+      rating,
+      dimensions: dimensionScores
+    });
+    
+    // Generate improvement suggestions
+    const newSuggestions = generateSuggestions(dimensionScores, selectedEvidence);
+    setSuggestions(newSuggestions);
+    
+    // Calculate decay predictions
+    const decayPredictions = calculateDecayPredictions(overallScore, selectedEvidence);
+    setPredictions(decayPredictions);
+    
+  }, [selectedEvidence, otherEvidence, requirements]);
+  
   /**
-   * Calculate completeness score based on evidence type and content
-   * 
-   * Factors considered:
-   * - Percentage of required fields present
-   * - Depth of information provided
-   * - Presence of supporting documentation
-   * - Coverage of requirement scope
+   * Calculate scores for each dimension based on evidence attributes
    */
-  const calculateCompletenessScore = useCallback(() => {
-    if (!evidence) return { score: 0, confidence: 0 };
-
-    const { type, content, metadata, attachments } = evidence;
-    let score = 0;
-    let confidence = 0.7; // Base confidence level
-
-    // Different completeness criteria based on evidence type
-    switch (type) {
+  const calculateDimensionScores = (evidence, otherEvidence, requirements) => {
+    if (!evidence) {
+      return {
+        completeness: 0,
+        consistency: 0,
+        recency: 0,
+        relevance: 0,
+        reliability: 0,
+        verifiability: 0
+      };
+    }
+    
+    // Initialize scores object
+    const scores = {};
+    
+    // Completeness: Based on content, metadata, and attachments
+    scores.completeness = calculateCompletenessScore(evidence);
+    
+    // Consistency: Compare with other related evidence
+    scores.consistency = calculateConsistencyScore(evidence, otherEvidence);
+    
+    // Recency: Based on timestamp and evidence type
+    scores.recency = calculateRecencyScore(evidence);
+    
+    // Relevance: How well it addresses requirements
+    scores.relevance = calculateRelevanceScore(evidence, requirements);
+    
+    // Reliability: Based on source, methodology, and type
+    scores.reliability = calculateReliabilityScore(evidence);
+    
+    // Verifiability: How easily it can be verified
+    scores.verifiability = calculateVerifiabilityScore(evidence);
+    
+    return scores;
+  };
+  
+  /**
+   * Calculate completeness score based on evidence content and structure
+   */
+  const calculateCompletenessScore = (evidence) => {
+    let score = 70; // Base score
+    
+    // Check for key attributes based on evidence type
+    if (evidence.type === 'Intent') {
+      // Policy/intent documents should have scope, purpose, policy text
+      if (evidence.content?.scope) score += 5;
+      if (evidence.content?.purpose) score += 5;
+      if (evidence.content?.policy) score += 10;
+      if (evidence.content?.responsibilities) score += 5;
+      if (evidence.content?.approval) score += 5;
+    } 
+    else if (evidence.type === 'Implementation') {
+      // Implementation evidence should have implementation details and testing
+      if (evidence.content?.description) score += 5;
+      if (evidence.content?.implementationSteps && 
+          evidence.content.implementationSteps.length > 0) score += 10;
+      if (evidence.content?.testResults) score += 15;
+      if (evidence.attachments && evidence.attachments.length > 0) score += 10;
+    }
+    else if (evidence.type === 'Behavioral') {
+      // Behavioral evidence should have observations and metrics
+      if (evidence.content?.observations && 
+          evidence.content.observations.length > 0) score += 10;
+      if (evidence.content?.metrics) score += 15;
+      if (evidence.content?.duration) score += 5;
+      if (evidence.content?.sampleSize) score += 10;
+    }
+    else if (evidence.type === 'Validation') {
+      // Validation evidence should have methodology, findings, conclusion
+      if (evidence.content?.methodology) score += 10;
+      if (evidence.content?.findings && 
+          evidence.content.findings.length > 0) score += 15;
+      if (evidence.content?.conclusion) score += 10;
+      if (evidence.content?.recommendations) score += 5;
+    }
+    
+    // Penalize if description is missing or too short
+    if (!evidence.description || evidence.description.length < 10) {
+      score -= 10;
+    }
+    
+    // Adjust based on metadata completeness
+    if (evidence.metadata) {
+      const metadataKeys = Object.keys(evidence.metadata);
+      score += Math.min(10, metadataKeys.length * 2);
+    }
+    
+    return Math.min(100, Math.max(0, score));
+  };
+  
+  /**
+   * Calculate consistency score by comparing with other evidence
+   */
+  const calculateConsistencyScore = (evidence, otherEvidence) => {
+    if (!otherEvidence || otherEvidence.length === 0) {
+      return 75; // Default score when no comparison is possible
+    }
+    
+    let score = 80; // Base score
+    
+    // Find related evidence (same capability or control)
+    const relatedEvidence = otherEvidence.filter(item => {
+      // Check if they share relationships
+      if (!evidence.relationships || !item.relationships) return false;
+      
+      const evidenceRelations = evidence.relationships.map(r => r.label);
+      const itemRelations = item.relationships.map(r => r.label);
+      
+      return evidenceRelations.some(rel => itemRelations.includes(rel));
+    });
+    
+    if (relatedEvidence.length === 0) {
+      return 70; // No related evidence found
+    }
+    
+    // Check for contradictions or support
+    let contradictions = 0;
+    let supportingItems = 0;
+    
+    relatedEvidence.forEach(item => {
+      // Simple simulation of contradiction detection
+      // In a real ML system, this would use NLP to detect semantic contradictions
+      if (item.type === 'Validation' && evidence.type === 'Implementation') {
+        // Validation evidence might contradict implementation claims
+        const randomFactor = item.id.charCodeAt(0) % 10; // Deterministic "random" factor
+        if (randomFactor < 3) {
+          contradictions++;
+        } else {
+          supportingItems++;
+        }
+      } 
+      else if (item.type === evidence.type) {
+        // Same type evidence should be consistent
+        const randomFactor = (item.id.charCodeAt(0) + evidence.id.charCodeAt(0)) % 10;
+        if (randomFactor < 1) {
+          contradictions++;
+        } else {
+          supportingItems++;
+        }
+      }
+      else {
+        // Different evidence types should complement each other
+        supportingItems += 0.5;
+      }
+    });
+    
+    // Adjust score based on contradictions and support
+    score -= contradictions * 15;
+    score += supportingItems * 5;
+    
+    return Math.min(100, Math.max(0, score));
+  };
+  
+  /**
+   * Calculate recency score based on timestamp and evidence type
+   */
+  const calculateRecencyScore = (evidence) => {
+    if (!evidence.timestamp) {
+      return 30; // Poor score if no timestamp
+    }
+    
+    const now = new Date();
+    const evidenceDate = new Date(evidence.timestamp);
+    const ageInDays = Math.max(0, (now - evidenceDate) / (1000 * 60 * 60 * 24));
+    
+    // Different recency thresholds based on evidence type
+    let score;
+    switch (evidence.type) {
       case 'Intent':
-        // For policy/intent documents, check for key sections
-        const requiredSections = ['scope', 'purpose', 'policy', 'responsibilities', 'approval'];
-        const presentSections = requiredSections.filter(section => 
-          content && content[section] && content[section].length > 0
-        );
-        
-        // Base score on percentage of required sections
-        score = (presentSections.length / requiredSections.length) * 100;
-        
-        // Adjust for depth of content
-        if (content && content.policy && content.policy.length > 500) score += 10;
-        if (content && content.scope && content.scope.length > 200) score += 5;
-        
-        // Adjust for approval signatures
-        if (metadata && metadata.approvedBy) score += 10;
-        
-        // Cap at 100
-        score = Math.min(100, score);
-        
-        // Adjust confidence based on metadata quality
-        confidence = metadata && metadata.version ? 0.85 : 0.7;
+        // Policy documents can be valid for longer
+        if (ageInDays < 180) score = 100; // 6 months
+        else if (ageInDays < 365) score = 80; // 1 year
+        else if (ageInDays < 730) score = 60; // 2 years
+        else if (ageInDays < 1095) score = 40; // 3 years
+        else score = 20;
         break;
         
       case 'Implementation':
-        // For implementation evidence, check for technical details
-        const implFactors = [
-          content && content.description && content.description.length > 100,
-          content && content.implementationSteps && content.implementationSteps.length > 0,
-          content && content.testResults,
-          attachments && attachments.length > 0,
-          metadata && metadata.implementedBy,
-          metadata && metadata.implementationDate
-        ];
-        
-        // Count present factors
-        const presentImplFactors = implFactors.filter(Boolean).length;
-        
-        // Base score on percentage of factors
-        score = (presentImplFactors / implFactors.length) * 100;
-        
-        // Bonus for code samples or configuration files
-        if (attachments && attachments.some(a => 
-          a.type === 'code' || a.type === 'config' || a.type === 'screenshot'
-        )) {
-          score += 15;
-        }
-        
-        // Cap at 100
-        score = Math.min(100, score);
-        
-        // Higher confidence with test results
-        confidence = content && content.testResults ? 0.9 : 0.75;
+        // Implementation evidence should be updated periodically
+        if (ageInDays < 90) score = 100; // 3 months
+        else if (ageInDays < 180) score = 80; // 6 months
+        else if (ageInDays < 365) score = 60; // 1 year
+        else if (ageInDays < 730) score = 30; // 2 years
+        else score = 10;
         break;
         
       case 'Behavioral':
-        // For behavioral evidence, check for runtime data
-        const behavioralFactors = [
-          content && content.observations && content.observations.length > 0,
-          content && content.metrics && Object.keys(content.metrics).length > 0,
-          content && content.duration && content.duration > 0,
-          content && content.sampleSize && content.sampleSize > 0,
-          metadata && metadata.collectionMethod,
-          metadata && metadata.collectionDate
-        ];
-        
-        // Count present factors
-        const presentBehavioralFactors = behavioralFactors.filter(Boolean).length;
-        
-        // Base score on percentage of factors
-        score = (presentBehavioralFactors / behavioralFactors.length) * 100;
-        
-        // Bonus for large sample sizes
-        if (content && content.sampleSize > 100) score += 10;
-        if (content && content.duration > 30) score += 10; // 30 days of data
-        
-        // Cap at 100
-        score = Math.min(100, score);
-        
-        // Confidence based on sample size and duration
-        confidence = content && content.sampleSize > 50 ? 0.85 : 0.7;
+        // Runtime/behavioral evidence should be very recent
+        if (ageInDays < 30) score = 100; // 1 month
+        else if (ageInDays < 90) score = 75; // 3 months
+        else if (ageInDays < 180) score = 50; // 6 months
+        else if (ageInDays < 365) score = 25; // 1 year
+        else score = 5;
         break;
         
       case 'Validation':
-        // For validation evidence, check for assessment details
-        const validationFactors = [
-          content && content.methodology && content.methodology.length > 0,
-          content && content.findings && content.findings.length > 0,
-          content && content.conclusion,
-          content && content.recommendations && content.recommendations.length > 0,
-          metadata && metadata.assessor,
-          metadata && metadata.validationDate
-        ];
-        
-        // Count present factors
-        const presentValidationFactors = validationFactors.filter(Boolean).length;
-        
-        // Base score on percentage of factors
-        score = (presentValidationFactors / validationFactors.length) * 100;
-        
-        // Bonus for independent validation
-        if (metadata && metadata.independent === true) score += 15;
-        
-        // Cap at 100
-        score = Math.min(100, score);
-        
-        // Higher confidence for independent validation
-        confidence = metadata && metadata.independent === true ? 0.95 : 0.8;
+        // Validation should be recent but not as critical as behavioral
+        if (ageInDays < 60) score = 100; // 2 months
+        else if (ageInDays < 180) score = 80; // 6 months
+        else if (ageInDays < 365) score = 60; // 1 year
+        else if (ageInDays < 730) score = 30; // 2 years
+        else score = 10;
         break;
         
       default:
-        score = 50; // Default middle score
-        confidence = 0.5; // Low confidence for unknown types
+        // Default recency scoring
+        if (ageInDays < 90) score = 100;
+        else if (ageInDays < 180) score = 75;
+        else if (ageInDays < 365) score = 50;
+        else if (ageInDays < 730) score = 25;
+        else score = 10;
     }
     
-    // Ensure score is within 0-100 range
-    score = Math.max(0, Math.min(100, score));
-    
-    return { score, confidence };
-  }, [evidence]);
-
+    return score;
+  };
+  
   /**
-   * Calculate consistency score based on alignment with related evidence
-   * 
-   * Factors considered:
-   * - Alignment with related evidence items
-   * - Internal consistency within the evidence
-   * - Consistency with requirements and controls
-   * - Historical consistency over time
+   * Calculate relevance score based on how well evidence addresses requirements
    */
-  const calculateConsistencyScore = useCallback(() => {
-    if (!evidence || !relatedEvidence || relatedEvidence.length === 0) {
-      return { score: 50, confidence: 0.5 }; // Neutral score with low confidence if no related evidence
-    }
-
-    let score = 0;
-    let confidence = 0.6; // Base confidence level
-    
-    // Check for contradictions in related evidence
-    let contradictions = 0;
-    let alignments = 0;
-    let neutralItems = 0;
-    
-    // Compare with related evidence
-    relatedEvidence.forEach(relItem => {
-      // Skip self-comparison
-      if (relItem.id === evidence.id) return;
-      
-      // Check if evidence types are complementary
-      const isComplementary = (
-        (evidence.type === 'Intent' && relItem.type === 'Implementation') ||
-        (evidence.type === 'Implementation' && relItem.type === 'Behavioral') ||
-        (evidence.type === 'Behavioral' && relItem.type === 'Validation') ||
-        (evidence.type === 'Validation' && relItem.type === 'Intent')
-      );
-      
-      // Check timestamps for temporal consistency
-      const evidenceDate = new Date(evidence.timestamp || evidence.metadata?.date || Date.now());
-      const relItemDate = new Date(relItem.timestamp || relItem.metadata?.date || Date.now());
-      const timeDiff = Math.abs(evidenceDate - relItemDate);
-      const isTimeConsistent = timeDiff < (90 * 24 * 60 * 60 * 1000); // Within 90 days
-      
-      // Check content consistency (simplified simulation)
-      const contentConsistency = Math.random() > 0.3 ? 'consistent' : 'inconsistent';
-      
-      // Determine overall relationship
-      if (isComplementary && isTimeConsistent && contentConsistency === 'consistent') {
-        alignments++;
-      } else if (!isComplementary && !isTimeConsistent && contentConsistency === 'inconsistent') {
-        contradictions++;
-      } else {
-        neutralItems++;
-      }
-    });
-    
-    // Calculate consistency score based on alignments vs contradictions
-    const totalRelationships = alignments + contradictions + neutralItems;
-    if (totalRelationships > 0) {
-      // Weighted formula favoring alignments and penalizing contradictions
-      score = (alignments / totalRelationships) * 100 - (contradictions / totalRelationships) * 50;
-      
-      // Adjust confidence based on number of relationships
-      confidence = Math.min(0.9, 0.6 + (totalRelationships / 20) * 0.3);
-    } else {
-      score = 50; // Neutral score
-      confidence = 0.5; // Low confidence
+  const calculateRelevanceScore = (evidence, requirements) => {
+    if (!evidence.relationships || evidence.relationships.length === 0) {
+      return 40; // Poor score if no relationships defined
     }
     
-    // Check internal consistency (if evidence has multiple parts)
-    if (evidence.content && typeof evidence.content === 'object') {
-      const contentKeys = Object.keys(evidence.content);
-      if (contentKeys.length > 1) {
-        // Simulate internal consistency check
-        const internalConsistencyScore = Math.random() * 30 + 70; // Random score between 70-100
-        
-        // Blend with relationship score
-        score = (score * 0.7) + (internalConsistencyScore * 0.3);
-        
-        // Slightly increase confidence due to internal analysis
-        confidence = Math.min(0.95, confidence + 0.1);
-      }
+    let score = 60; // Base score
+    
+    // Check if evidence is linked to requirements
+    const linkedRequirements = evidence.relationships.filter(rel => 
+      rel.type === 'requirement' || rel.type === 'framework'
+    );
+    
+    if (linkedRequirements.length === 0) {
+      return 50; // Below average if not linked to any requirements
     }
     
-    // Check consistency with requirements
-    if (requirements && Object.keys(requirements).length > 0) {
-      // Simulate requirement consistency check
-      const reqConsistencyScore = Math.random() * 20 + 80; // Random score between 80-100
-      
-      // Blend with current score
-      score = (score * 0.8) + (reqConsistencyScore * 0.2);
+    // More links to requirements = higher score
+    score += Math.min(20, linkedRequirements.length * 5);
+    
+    // Check if evidence is linked to controls
+    const linkedControls = evidence.relationships.filter(rel => 
+      rel.type === 'control' || rel.type === 'capability'
+    );
+    
+    if (linkedControls.length > 0) {
+      score += Math.min(10, linkedControls.length * 3);
     }
     
-    // Ensure score is within 0-100 range
-    score = Math.max(0, Math.min(100, score));
+    // Check if evidence addresses risks
+    const linkedRisks = evidence.relationships.filter(rel => 
+      rel.type === 'risk' || rel.type === 'threat'
+    );
     
-    return { score, confidence };
-  }, [evidence, relatedEvidence, requirements]);
-
+    if (linkedRisks.length > 0) {
+      score += Math.min(10, linkedRisks.length * 3);
+    }
+    
+    // Evaluate relationship strength if available
+    const strongRelationships = evidence.relationships.filter(rel => 
+      rel.strength === 'strong'
+    );
+    
+    if (strongRelationships.length > 0) {
+      score += Math.min(10, strongRelationships.length * 2);
+    }
+    
+    return Math.min(100, score);
+  };
+  
   /**
-   * Calculate recency score based on evidence age and type
-   * 
-   * Factors considered:
-   * - Age of evidence relative to type-specific freshness thresholds
-   * - Update frequency compared to expected frequency
-   * - Presence of superseding evidence
-   * - Regulatory or compliance refresh requirements
+   * Calculate reliability score based on evidence source and methodology
    */
-  const calculateRecencyScore = useCallback(() => {
-    if (!evidence) return { score: 0, confidence: 0 };
-
-    const { type, timestamp, metadata } = evidence;
-    let score = 0;
-    let confidence = 0.9; // High confidence for time-based calculations
+  const calculateReliabilityScore = (evidence) => {
+    let score = 70; // Base score
     
-    // Get evidence date
-    const evidenceDate = new Date(timestamp || metadata?.date || Date.now());
-    const now = new Date();
-    const ageInDays = Math.max(0, (now - evidenceDate) / (1000 * 60 * 60 * 24));
-    const ageInMonths = ageInDays / 30;
-    
-    // Different recency thresholds based on evidence type (in months)
-    const recencyThresholds = {
-      Intent: { fresh: 6, aging: 12, stale: 24 }, // Policy/intent documents
-      Implementation: { fresh: 3, aging: 6, stale: 12 }, // Implementation evidence
-      Behavioral: { fresh: 1, aging: 3, stale: 6 }, // Behavioral/runtime evidence
-      Validation: { fresh: 2, aging: 6, stale: 12 } // Validation evidence
-    };
-    
-    const thresholds = recencyThresholds[type] || recencyThresholds.Validation;
-    
-    // Calculate recency score based on age thresholds
-    if (ageInMonths <= 0) {
-      score = 100; // Future evidence (shouldn't happen, but just in case)
-    } else if (ageInMonths <= thresholds.fresh) {
-      score = 100 - ((ageInMonths / thresholds.fresh) * 20); // Fresh (100-80)
-    } else if (ageInMonths <= thresholds.aging) {
-      score = 80 - (((ageInMonths - thresholds.fresh) / (thresholds.aging - thresholds.fresh)) * 30); // Aging (80-50)
-    } else if (ageInMonths <= thresholds.stale) {
-      score = 50 - (((ageInMonths - thresholds.aging) / (thresholds.stale - thresholds.aging)) * 30); // Stale (50-20)
-    } else {
-      score = Math.max(10, 20 - ((ageInMonths - thresholds.stale) / 12) * 10); // Very stale (20-10)
-    }
-    
-    // Check if evidence has been superseded
-    if (metadata && metadata.supersededBy) {
-      score = Math.max(10, score - 40); // Heavily penalize superseded evidence
-      confidence = 0.95; // High confidence that it's superseded
-    }
-    
-    // Check for update frequency metadata
-    if (metadata && metadata.updateFrequency) {
-      const expectedUpdateFrequency = metadata.updateFrequency; // in months
-      const expectedUpdates = Math.floor(ageInMonths / expectedUpdateFrequency);
-      const actualUpdates = metadata.updateHistory ? metadata.updateHistory.length : 0;
-      
-      if (expectedUpdates > 0) {
-        const updateRatio = actualUpdates / expectedUpdates;
-        // Adjust score based on update adherence
-        if (updateRatio >= 1) {
-          score = Math.min(100, score + 10); // Bonus for meeting or exceeding update frequency
-        } else {
-          score = Math.max(0, score - (20 * (1 - updateRatio))); // Penalty for missing updates
-        }
-      }
-    }
-    
-    // Check for regulatory/compliance refresh requirements
-    if (metadata && metadata.complianceRefreshRequired) {
-      const refreshRequired = new Date(metadata.complianceRefreshRequired);
-      if (refreshRequired < now) {
-        score = Math.max(10, score - 30); // Heavy penalty for missing compliance refresh
-        confidence = 0.95; // High confidence in this assessment
-      }
-    }
-    
-    // Ensure score is within 0-100 range
-    score = Math.max(0, Math.min(100, score));
-    
-    return { score, confidence };
-  }, [evidence]);
-
-  /**
-   * Calculate relevance score based on alignment with requirements
-   * 
-   * Factors considered:
-   * - Direct mapping to requirements or controls
-   * - Specificity to the requirement
-   * - Coverage of requirement scope
-   * - Contextual relevance to the organization
-   */
-  const calculateRelevanceScore = useCallback(() => {
-    if (!evidence || !requirements || Object.keys(requirements).length === 0) {
-      return { score: 50, confidence: 0.6 }; // Neutral score with medium confidence
-    }
-
-    let score = 0;
-    let confidence = 0.7; // Base confidence level
-    
-    const { relationships, content, metadata, type } = evidence;
-    
-    // Check for explicit relationships to requirements
-    const hasExplicitRelationships = relationships && 
-      relationships.some(rel => 
-        rel.type === 'requirement' || 
-        rel.type === 'control' || 
-        rel.type === 'framework'
-      );
-    
-    if (hasExplicitRelationships) {
-      score += 40; // Good starting point for explicitly linked evidence
-      confidence += 0.1;
-      
-      // Check if relationships match our current requirements
-      const matchingRelationships = relationships.filter(rel => 
-        (rel.type === 'requirement' && requirements[rel.id]) ||
-        (rel.type === 'control' && Object.values(requirements).some(req => req.controlId === rel.id)) ||
-        (rel.type === 'framework' && Object.values(requirements).some(req => req.framework === rel.label))
-      );
-      
-      if (matchingRelationships.length > 0) {
-        // Bonus for matching our specific requirements
-        score += 20 * (matchingRelationships.length / relationships.filter(r => 
-          r.type === 'requirement' || r.type === 'control' || r.type === 'framework'
-        ).length);
-        confidence += 0.1;
-      }
-    } else {
-      score += 20; // Lower starting point for implicitly linked evidence
-    }
-    
-    // Check content for requirement-specific keywords (simplified simulation)
-    if (content) {
-      // Extract requirement keywords (in a real implementation, this would analyze the requirements)
-      const requirementKeywords = Object.values(requirements).flatMap(req => 
-        [req.name, req.description, req.controlId, req.framework].filter(Boolean)
-      );
-      
-      // Simulate keyword matching with random score
-      const keywordMatchScore = Math.random() * 30 + 10; // 10-40 points
-      score += keywordMatchScore;
-      
-      // Adjust confidence based on content size (more content = more confident assessment)
-      const contentSize = typeof content === 'string' 
-        ? content.length 
-        : JSON.stringify(content).length;
-      
-      confidence += Math.min(0.1, contentSize / 10000); // Up to 0.1 extra confidence for 10KB content
-    }
-    
-    // Evidence type-specific relevance factors
-    switch (type) {
+    // Adjust based on evidence type
+    switch (evidence.type) {
       case 'Intent':
-        // Intent documents are more relevant for policy requirements
-        if (Object.values(requirements).some(req => req.type === 'policy')) {
-          score += 15;
-          confidence += 0.05;
-        }
+        // Policy reliability depends on approval and governance
+        if (evidence.metadata?.approvedBy) score += 10;
+        if (evidence.content?.approval) score += 5;
+        if (evidence.metadata?.version) score += 5;
         break;
         
       case 'Implementation':
-        // Implementation evidence is more relevant for technical requirements
-        if (Object.values(requirements).some(req => req.type === 'technical')) {
-          score += 15;
-          confidence += 0.05;
-        }
-        break;
-        
-      case 'Behavioral':
-        // Behavioral evidence is more relevant for operational requirements
-        if (Object.values(requirements).some(req => req.type === 'operational')) {
-          score += 15;
-          confidence += 0.05;
-        }
-        break;
-        
-      case 'Validation':
-        // Validation evidence is generally relevant for all requirements
-        score += 10;
-        confidence += 0.03;
-        break;
-    }
-    
-    // Contextual relevance based on organizational scope
-    if (metadata && metadata.scope) {
-      const orgScope = metadata.scope;
-      
-      // Check if requirements match the evidence scope
-      const scopeMatch = Object.values(requirements).some(req => 
-        req.scope === orgScope || req.scope === 'all'
-      );
-      
-      if (scopeMatch) {
-        score += 15;
-        confidence += 0.05;
-      } else {
-        score -= 10; // Penalty for scope mismatch
-      }
-    }
-    
-    // Ensure score is within 0-100 range
-    score = Math.max(0, Math.min(100, score));
-    
-    // Cap confidence at 0.95
-    confidence = Math.min(0.95, confidence);
-    
-    return { score, confidence };
-  }, [evidence, requirements]);
-
-  /**
-   * Calculate reliability score based on source and collection method
-   * 
-   * Factors considered:
-   * - Source credibility and independence
-   * - Collection methodology rigor
-   * - Sample size and statistical significance
-   * - Verification and validation methods
-   * - Chain of custody and integrity controls
-   */
-  const calculateReliabilityScore = useCallback(() => {
-    if (!evidence) return { score: 50, confidence: 0.6 }; // Neutral score with medium confidence
-
-    let score = 50; // Start with neutral score
-    let confidence = 0.7; // Base confidence level
-    
-    const { metadata, type, content } = evidence;
-    
-    // Source credibility factors
-    if (metadata && metadata.source) {
-      const sourceTypes = {
-        'internal': 60, // Base score for internal sources
-        'external': 70, // Base score for external sources
-        'independent': 85, // Base score for independent sources
-        'regulatory': 90, // Base score for regulatory bodies
-        'automated': 75, // Base score for automated systems
-      };
-      
-      score = sourceTypes[metadata.source] || 50;
-      
-      // Adjust for source authority
-      if (metadata.sourceAuthority) {
-        switch (metadata.sourceAuthority) {
-          case 'high':
-            score += 15;
-            confidence += 0.1;
-            break;
-          case 'medium':
-            score += 5;
-            confidence += 0.05;
-            break;
-          case 'low':
-            score -= 5;
-            confidence -= 0.05;
-            break;
-        }
-      }
-    }
-    
-    // Collection methodology factors
-    if (metadata && metadata.collectionMethod) {
-      const methodScores = {
-        'manual': 60,
-        'automated': 75,
-        'hybrid': 70,
-        'continuous': 85,
-        'sampling': 65,
-        'census': 80,
-        'interview': 60,
-        'observation': 70,
-        'systemLog': 80,
-        'audit': 85
-      };
-      
-      // Blend with current score
-      score = (score + (methodScores[metadata.collectionMethod] || 60)) / 2;
-      
-      // Adjust confidence based on method rigor
-      const rigorousMethodologies = ['continuous', 'census', 'audit', 'systemLog'];
-      if (rigorousMethodologies.includes(metadata.collectionMethod)) {
-        confidence += 0.1;
-      }
-    }
-    
-    // Sample size and statistical significance
-    if (content && content.sampleSize) {
-      const sampleSize = content.sampleSize;
-      const populationSize = content.populationSize || 1000; // Default assumption
-      
-      // Calculate statistical confidence (simplified)
-      const sampleRatio = sampleSize / populationSize;
-      
-      if (sampleRatio >= 0.5) {
-        score += 15; // Excellent sample size
-        confidence += 0.15;
-      } else if (sampleRatio >= 0.3) {
-        score += 10; // Very good sample size
-        confidence += 0.1;
-      } else if (sampleRatio >= 0.1) {
-        score += 5; // Good sample size
-        confidence += 0.05;
-      } else if (sampleSize < 10) {
-        score -= 10; // Very small sample
-        confidence -= 0.1;
-      }
-    }
-    
-    // Verification methods
-    if (metadata && metadata.verificationMethod) {
-      const verificationScores = {
-        'peerReview': 10,
-        'expertReview': 15,
-        'crossValidation': 15,
-        'technicalTesting': 12,
-        'documentReview': 8,
-        'none': -10
-      };
-      
-      score += verificationScores[metadata.verificationMethod] || 0;
-      
-      if (metadata.verificationMethod !== 'none') {
-        confidence += 0.1;
-      } else {
-        confidence -= 0.1;
-      }
-    }
-    
-    // Chain of custody and integrity
-    if (metadata && metadata.integrityControls) {
-      const integrityControls = Array.isArray(metadata.integrityControls) 
-        ? metadata.integrityControls 
-        : [metadata.integrityControls];
-      
-      const integrityScores = {
-        'digitalSignature': 10,
-        'hashVerification': 8,
-        'accessControls': 5,
-        'auditTrail': 7,
-        'timestamping': 5,
-        'immutableStorage': 10
-      };
-      
-      let integrityScore = 0;
-      integrityControls.forEach(control => {
-        integrityScore += integrityScores[control] || 0;
-      });
-      
-      // Cap integrity bonus at 20 points
-      score += Math.min(20, integrityScore);
-      confidence += Math.min(0.15, integrityControls.length * 0.03);
-    }
-    
-    // Evidence type-specific reliability factors
-    switch (type) {
-      case 'Intent':
-        // Intent documents are more reliable with formal approval
-        if (metadata && metadata.approvedBy) {
-          score += 10;
-          confidence += 0.05;
-        }
-        break;
-        
-      case 'Implementation':
-        // Implementation evidence is more reliable with test results
-        if (content && content.testResults) {
-          score += 15;
-          confidence += 0.1;
-        }
-        break;
-        
-      case 'Behavioral':
-        // Behavioral evidence is more reliable with longer observation periods
-        if (content && content.duration) {
-          if (content.duration >= 90) { // 90+ days
-            score += 15;
-            confidence += 0.1;
-          } else if (content.duration >= 30) { // 30+ days
-            score += 10;
-            confidence += 0.05;
+        // Implementation reliability depends on testing and verification
+        if (evidence.content?.testResults) {
+          const testResults = evidence.content.testResults;
+          const passCount = Object.values(testResults).filter(result => result === 'Pass').length;
+          const totalTests = Object.values(testResults).length;
+          
+          if (totalTests > 0) {
+            score += (passCount / totalTests) * 20;
           }
         }
+        if (evidence.metadata?.implementedBy) score += 5;
+        break;
+        
+      case 'Behavioral':
+        // Behavioral evidence reliability depends on collection method and sample size
+        if (evidence.metadata?.collectionMethod === 'automated') score += 15;
+        if (evidence.metadata?.source) score += 5;
+        
+        if (evidence.content?.sampleSize) {
+          const sampleSize = evidence.content.sampleSize;
+          if (sampleSize > 10000) score += 15;
+          else if (sampleSize > 1000) score += 10;
+          else if (sampleSize > 100) score += 5;
+        }
+        
+        if (evidence.content?.duration) {
+          const duration = evidence.content.duration;
+          if (duration > 90) score += 10; // 3+ months
+          else if (duration > 30) score += 5; // 1+ month
+        }
         break;
         
       case 'Validation':
-        // Validation evidence is more reliable when independent
-        if (metadata && metadata.independent === true) {
-          score += 20;
-          confidence += 0.15;
-        }
+        // Validation reliability depends on assessor independence and methodology
+        if (evidence.metadata?.independent === true) score += 15;
+        if (evidence.metadata?.assessor && 
+            evidence.metadata.assessor.includes('External')) score += 10;
+        if (evidence.content?.methodology) score += 10;
+        break;
+        
+      default:
+        // No adjustment for unknown types
         break;
     }
     
-    // Ensure score is within 0-100 range
-    score = Math.max(0, Math.min(100, score));
+    // Check for attachments that support reliability
+    if (evidence.attachments && evidence.attachments.length > 0) {
+      // More attachments = more supporting evidence
+      score += Math.min(10, evidence.attachments.length * 3);
+    }
     
-    // Cap confidence at 0.95
-    confidence = Math.min(0.95, confidence);
-    
-    return { score, confidence };
-  }, [evidence]);
-
+    return Math.min(100, Math.max(0, score));
+  };
+  
   /**
    * Calculate verifiability score based on how easily evidence can be verified
-   * 
-   * Factors considered:
-   * - Presence of supporting documentation and artifacts
-   * - Clarity and specificity of evidence
-   * - Accessibility of evidence sources
-   * - Reproducibility of evidence collection
-   * - Traceability to original sources
    */
-  const calculateVerifiabilityScore = useCallback(() => {
-    if (!evidence) return { score: 50, confidence: 0.6 }; // Neutral score with medium confidence
-
-    let score = 50; // Start with neutral score
-    let confidence = 0.7; // Base confidence level
+  const calculateVerifiabilityScore = (evidence) => {
+    let score = 65; // Base score
     
-    const { metadata, content, attachments, type } = evidence;
-    
-    // Supporting documentation and artifacts
-    if (attachments && attachments.length > 0) {
-      // More attachments = more verifiable
-      score += Math.min(20, attachments.length * 5);
-      confidence += Math.min(0.15, attachments.length * 0.03);
-      
-      // Check attachment types
-      const verifiableTypes = ['screenshot', 'log', 'report', 'data', 'config', 'code'];
-      const verifiableAttachments = attachments.filter(a => 
-        verifiableTypes.includes(a.type)
-      );
-      
-      if (verifiableAttachments.length > 0) {
-        score += Math.min(15, verifiableAttachments.length * 5);
-        confidence += 0.1;
-      }
-    }
-    
-    // Clarity and specificity
-    if (content) {
-      // Simulate clarity assessment (in a real implementation, this would use NLP)
-      // Here we use content length as a proxy for detail level
-      const contentSize = typeof content === 'string' 
-        ? content.length 
-        : JSON.stringify(content).length;
-      
-      if (contentSize > 5000) {
-        score += 15; // Very detailed
-        confidence += 0.1;
-      } else if (contentSize > 1000) {
-        score += 10; // Detailed
-        confidence += 0.05;
-      } else if (contentSize < 200) {
-        score -= 10; // Very brief
-        confidence -= 0.05;
-      }
-      
-      // Check for specific details that increase verifiability
-      const hasSpecificDetails = (
-        (content.specificLocations) ||
-        (content.timestamps && content.timestamps.length > 0) ||
-        (content.identifiers) ||
-        (content.steps && content.steps.length > 0) ||
-        (content.metrics && Object.keys(content.metrics).length > 0)
-      );
-      
-      if (hasSpecificDetails) {
-        score += 15;
-        confidence += 0.1;
-      }
-    }
-    
-    // Accessibility of evidence sources
-    if (metadata && metadata.accessibility) {
-      const accessibilityScores = {
-        'public': 20,
-        'internal': 10,
-        'restricted': 0,
-        'confidential': -10
-      };
-      
-      score += accessibilityScores[metadata.accessibility] || 0;
-      
-      // Lower confidence for less accessible evidence
-      if (metadata.accessibility === 'confidential' || metadata.accessibility === 'restricted') {
-        confidence -= 0.1;
-      }
-    }
-    
-    // Reproducibility of evidence collection
-    if (metadata && metadata.reproducible === true) {
-      score += 15;
-      confidence += 0.1;
-    } else if (metadata && metadata.reproducible === false) {
-      score -= 10;
-      confidence -= 0.05;
-    }
-    
-    // Traceability to original sources
-    if (metadata && metadata.sources && metadata.sources.length > 0) {
-      score += Math.min(15, metadata.sources.length * 5);
-      confidence += 0.1;
-    }
-    
-    // Evidence type-specific verifiability factors
-    switch (type) {
+    // Different verifiability criteria based on evidence type
+    switch (evidence.type) {
       case 'Intent':
-        // Intent documents are more verifiable with formal documentation
-        if (metadata && metadata.documentId) {
-          score += 10;
-          confidence += 0.05;
+        // Policy verifiability depends on documentation and references
+        if (evidence.content?.policy) score += 10;
+        if (evidence.metadata?.documentId) score += 10;
+        if (evidence.metadata?.version) score += 5;
+        if (evidence.attachments && evidence.attachments.length > 0) {
+          const policyDocs = evidence.attachments.filter(a => 
+            a.type === 'document' || a.type === 'policy'
+          );
+          score += Math.min(10, policyDocs.length * 5);
         }
         break;
         
       case 'Implementation':
-        // Implementation evidence is more verifiable with detailed steps
-        if (content && content.implementationSteps && content.implementationSteps.length > 3) {
-          score += 15;
-          confidence += 0.1;
+        // Implementation verifiability depends on configuration evidence
+        if (evidence.content?.implementationSteps && 
+            evidence.content.implementationSteps.length > 2) score += 10;
+        if (evidence.attachments && evidence.attachments.length > 0) {
+          const configDocs = evidence.attachments.filter(a => 
+            a.type === 'config' || a.type === 'screenshot'
+          );
+          score += Math.min(15, configDocs.length * 5);
         }
+        if (evidence.content?.testResults) score += 10;
         break;
         
       case 'Behavioral':
-        // Behavioral evidence is more verifiable with raw data
-        if (attachments && attachments.some(a => a.type === 'data' || a.type === 'log')) {
-          score += 20;
-          confidence += 0.15;
+        // Behavioral verifiability depends on data and logs
+        if (evidence.attachments && evidence.attachments.length > 0) {
+          const dataDocs = evidence.attachments.filter(a => 
+            a.type === 'data' || a.type === 'log'
+          );
+          score += Math.min(20, dataDocs.length * 7);
         }
+        if (evidence.content?.metrics && Object.keys(evidence.content.metrics).length > 0) {
+          score += Math.min(15, Object.keys(evidence.content.metrics).length * 3);
+        }
+        if (evidence.metadata?.source) score += 5;
         break;
         
       case 'Validation':
-        // Validation evidence is more verifiable with methodology details
-        if (content && content.methodology && content.methodology.length > 200) {
-          score += 15;
-          confidence += 0.1;
+        // Validation verifiability depends on findings and methodology
+        if (evidence.content?.methodology) score += 10;
+        if (evidence.content?.findings && evidence.content.findings.length > 0) {
+          score += Math.min(15, evidence.content.findings.length * 3);
         }
+        if (evidence.attachments && evidence.attachments.length > 0) {
+          const reportDocs = evidence.attachments.filter(a => 
+            a.type === 'report' || a.type === 'assessment'
+          );
+          score += Math.min(15, reportDocs.length * 5);
+        }
+        break;
+        
+      default:
+        // No adjustment for unknown types
         break;
     }
     
-    // Ensure score is within 0-100 range
-    score = Math.max(0, Math.min(100, score));
-    
-    // Cap confidence at 0.95
-    confidence = Math.min(0.95, confidence);
-    
-    return { score, confidence };
-  }, [evidence]);
-
+    return Math.min(100, Math.max(0, score));
+  };
+  
   /**
-   * Calculate overall evidence score based on dimension scores and type-specific weights
+   * Get dimension weights based on evidence type
    */
-  const calculateOverallScore = useCallback((dimensionScores, confidenceScores, type) => {
-    if (!dimensionScores || !type) return 0;
-    
-    // Get weights for the evidence type
-    const weights = scoringOptions.weights[type] || {
-      completeness: 0.2,
-      consistency: 0.15,
-      recency: 0.15,
-      relevance: 0.2,
-      reliability: 0.15,
-      verifiability: 0.15
-    };
-    
-    // Calculate confidence-weighted dimension scores
-    const confidenceWeightedScores = {};
-    let totalConfidenceWeight = 0;
-    
-    Object.keys(dimensionScores).forEach(dimension => {
-      const score = dimensionScores[dimension];
-      const confidence = confidenceScores[dimension];
-      
-      confidenceWeightedScores[dimension] = score * weights[dimension] * confidence;
-      totalConfidenceWeight += weights[dimension] * confidence;
-    });
-    
-    // Calculate overall score
-    let overallScore = 0;
-    
-    if (totalConfidenceWeight > 0) {
-      // Sum all confidence-weighted scores and normalize by total confidence weight
-      overallScore = Object.values(confidenceWeightedScores).reduce((sum, score) => sum + score, 0) / totalConfidenceWeight;
-    } else {
-      // Fallback to simple weighted average if confidence data is missing
-      overallScore = Object.keys(dimensionScores).reduce((sum, dimension) => {
-        return sum + (dimensionScores[dimension] * (weights[dimension] || 0));
-      }, 0);
+  const getEvidenceTypeWeights = (evidenceType) => {
+    switch (evidenceType) {
+      case 'Intent':
+        return {
+          completeness: 0.25,
+          consistency: 0.15,
+          recency: 0.15,
+          relevance: 0.20,
+          reliability: 0.15,
+          verifiability: 0.10
+        };
+        
+      case 'Implementation':
+        return {
+          completeness: 0.20,
+          consistency: 0.15,
+          recency: 0.15,
+          relevance: 0.15,
+          reliability: 0.15,
+          verifiability: 0.20
+        };
+        
+      case 'Behavioral':
+        return {
+          completeness: 0.15,
+          consistency: 0.10,
+          recency: 0.25,
+          relevance: 0.15,
+          reliability: 0.20,
+          verifiability: 0.15
+        };
+        
+      case 'Validation':
+        return {
+          completeness: 0.15,
+          consistency: 0.20,
+          recency: 0.15,
+          relevance: 0.15,
+          reliability: 0.20,
+          verifiability: 0.15
+        };
+        
+      default:
+        return {
+          completeness: 0.17,
+          consistency: 0.17,
+          recency: 0.17,
+          relevance: 0.17,
+          reliability: 0.17,
+          verifiability: 0.15
+        };
     }
-    
-    return Math.round(overallScore);
-  }, [scoringOptions.weights]);
-
+  };
+  
   /**
    * Generate improvement suggestions based on dimension scores
    */
-  const generateSuggestions = useCallback((dimensionScores, evidenceType) => {
-    if (!dimensionScores || !evidenceType) return [];
+  const generateSuggestions = (dimensionScores, evidence) => {
+    if (!evidence) return [];
     
     const suggestions = [];
-    const thresholds = scoringOptions.thresholds;
     
-    // Get the lowest scoring dimensions (up to 3)
-    const sortedDimensions = Object.entries(dimensionScores)
-      .sort(([, scoreA], [, scoreB]) => scoreA - scoreB)
-      .slice(0, 3);
-    
-    sortedDimensions.forEach(([dimension, score]) => {
-      if (score < thresholds.good) {
-        // Generate dimension-specific suggestions
-        switch (dimension) {
-          case 'completeness':
-            if (score < thresholds.critical) {
-              suggestions.push({
-                dimension,
-                priority: 'critical',
-                suggestion: `The ${evidenceType} evidence is severely incomplete. Add essential information such as ${getCompletionRequirements(evidenceType)}.`
-              });
-            } else if (score < thresholds.poor) {
-              suggestions.push({
-                dimension,
-                priority: 'high',
-                suggestion: `Enhance the completeness of this ${evidenceType} evidence by adding more detail on ${getCompletionRequirements(evidenceType)}.`
-              });
-            } else if (score < thresholds.adequate) {
-              suggestions.push({
-                dimension,
-                priority: 'medium',
-                suggestion: `Consider improving the completeness by adding supporting documentation for this ${evidenceType} evidence.`
-              });
-            } else {
-              suggestions.push({
-                dimension,
-                priority: 'low',
-                suggestion: `For even better completeness, consider adding more context to this ${evidenceType} evidence.`
-              });
-            }
-            break;
-            
-          case 'consistency':
-            if (score < thresholds.critical) {
-              suggestions.push({
-                dimension,
-                priority: 'critical',
-                suggestion: `This evidence contradicts other related evidence. Resolve the inconsistencies between this ${evidenceType} evidence and related items.`
-              });
-            } else if (score < thresholds.poor) {
-              suggestions.push({
-                dimension,
-                priority: 'high',
-                suggestion: `Significant inconsistencies exist. Align this ${evidenceType} evidence with related evidence and requirements.`
-              });
-            } else if (score < thresholds.adequate) {
-              suggestions.push({
-                dimension,
-                priority: 'medium',
-                suggestion: `Some inconsistencies detected. Review this ${evidenceType} evidence against related items for better alignment.`
-              });
-            } else {
-              suggestions.push({
-                dimension,
-                priority: 'low',
-                suggestion: `Minor inconsistencies exist. Consider reviewing for complete alignment with other evidence.`
-              });
-            }
-            break;
-            
-          case 'recency':
-            if (score < thresholds.critical) {
-              suggestions.push({
-                dimension,
-                priority: 'critical',
-                suggestion: `This ${evidenceType} evidence is critically outdated and requires immediate refresh.`
-              });
-            } else if (score < thresholds.poor) {
-              suggestions.push({
-                dimension,
-                priority: 'high',
-                suggestion: `This ${evidenceType} evidence is significantly outdated. Schedule a refresh soon.`
-              });
-            } else if (score < thresholds.adequate) {
-              suggestions.push({
-                dimension,
-                priority: 'medium',
-                suggestion: `This ${evidenceType} evidence is aging. Consider updating in the next review cycle.`
-              });
-            } else {
-              suggestions.push({
-                dimension,
-                priority: 'low',
-                suggestion: `This ${evidenceType} evidence will need refreshing in the near future. Plan accordingly.`
-              });
-            }
-            break;
-            
-          case 'relevance':
-            if (score < thresholds.critical) {
-              suggestions.push({
-                dimension,
-                priority: 'critical',
-                suggestion: `This evidence has minimal relevance to the requirements. Replace with directly relevant ${evidenceType} evidence.`
-              });
-            } else if (score < thresholds.poor) {
-              suggestions.push({
-                dimension,
-                priority: 'high',
-                suggestion: `Low relevance to requirements. Collect new ${evidenceType} evidence that directly addresses the requirements.`
-              });
-            } else if (score < thresholds.adequate) {
-              suggestions.push({
-                dimension,
-                priority: 'medium',
-                suggestion: `Moderate relevance. Enhance this ${evidenceType} evidence to better address specific requirements.`
-              });
-            } else {
-              suggestions.push({
-                dimension,
-                priority: 'low',
-                suggestion: `Good relevance but could be more specific. Consider tailoring this ${evidenceType} evidence more precisely to requirements.`
-              });
-            }
-            break;
-            
-          case 'reliability':
-            if (score < thresholds.critical) {
-              suggestions.push({
-                dimension,
-                priority: 'critical',
-                suggestion: `This ${evidenceType} evidence has critical reliability issues. Recollect using rigorous methodology and credible sources.`
-              });
-            } else if (score < thresholds.poor) {
-              suggestions.push({
-                dimension,
-                priority: 'high',
-                suggestion: `Low reliability. Enhance this ${evidenceType} evidence with better source verification and collection methods.`
-              });
-            } else if (score < thresholds.adequate) {
-              suggestions.push({
-                dimension,
-                priority: 'medium',
-                suggestion: `Moderate reliability. Consider improving the collection methodology for this ${evidenceType} evidence.`
-              });
-            } else {
-              suggestions.push({
-                dimension,
-                priority: 'low',
-                suggestion: `Good reliability but could be improved. Consider independent verification of this ${evidenceType} evidence.`
-              });
-            }
-            break;
-            
-          case 'verifiability':
-            if (score < thresholds.critical) {
-              suggestions.push({
-                dimension,
-                priority: 'critical',
-                suggestion: `This ${evidenceType} evidence cannot be verified. Add supporting documentation, specific details, and traceable sources.`
-              });
-            } else if (score < thresholds.poor) {
-              suggestions.push({
-                dimension,
-                priority: 'high',
-                suggestion: `Low verifiability. Add specific artifacts and documentation to make this ${evidenceType} evidence verifiable.`
-              });
-            } else if (score < thresholds.adequate) {
-              suggestions.push({
-                dimension,
-                priority: 'medium',
-                suggestion: `Moderate verifiability. Add more supporting documentation to this ${evidenceType} evidence.`
-              });
-            } else {
-              suggestions.push({
-                dimension,
-                priority: 'low',
-                suggestion: `Good verifiability but could be improved. Consider adding more specific details to this ${evidenceType} evidence.`
-              });
-            }
-            break;
-        }
+    // Check each dimension and add suggestions for low scores
+    if (dimensionScores.completeness < 60) {
+      let suggestion = {
+        dimension: 'completeness',
+        priority: dimensionScores.completeness < 40 ? 'high' : 'medium',
+        suggestion: ''
+      };
+      
+      if (evidence.type === 'Intent') {
+        suggestion.suggestion = 'Add more detail to the policy document, including scope, purpose, and responsibilities.';
+      } else if (evidence.type === 'Implementation') {
+        suggestion.suggestion = 'Include implementation steps, test results, and configuration details.';
+      } else if (evidence.type === 'Behavioral') {
+        suggestion.suggestion = 'Add more metrics and observations about system behavior over time.';
+      } else if (evidence.type === 'Validation') {
+        suggestion.suggestion = 'Include detailed methodology, findings, and recommendations in the validation report.';
+      } else {
+        suggestion.suggestion = 'Add more details and supporting information to make this evidence more complete.';
       }
-    });
-    
-    return suggestions;
-  }, [scoringOptions.thresholds]);
-
-  /**
-   * Get completion requirements based on evidence type
-   */
-  const getCompletionRequirements = useCallback((type) => {
-    switch (type) {
-      case 'Intent':
-        return 'scope, purpose, policy details, and approval information';
-      case 'Implementation':
-        return 'implementation steps, configurations, and test results';
-      case 'Behavioral':
-        return 'observation data, metrics, and sample sizes';
-      case 'Validation':
-        return 'methodology, findings, and recommendations';
-      default:
-        return 'key details and supporting documentation';
+      
+      suggestions.push(suggestion);
     }
-  }, []);
-
-  /**
-   * Predict evidence score decay over time
-   */
-  const predictScoreDecay = useCallback((currentScore, evidenceType, months = 6) => {
-    if (!currentScore || !evidenceType) return { score: currentScore, confidence: 0.5 };
     
-    const decayRate = scoringOptions.decayRates[evidenceType] || 0.1;
-    const decayedScore = Math.max(10, currentScore * Math.pow(1 - decayRate, months));
+    if (dimensionScores.consistency < 60) {
+      suggestions.push({
+        dimension: 'consistency',
+        priority: dimensionScores.consistency < 40 ? 'high' : 'medium',
+        suggestion: 'Ensure this evidence aligns with other related evidence. There may be contradictions or gaps.'
+      });
+    }
     
-    // Confidence decreases with prediction distance
-    const confidence = Math.max(0.3, 0.9 - (months * 0.05));
-    
-    return { 
-      score: Math.round(decayedScore), 
-      confidence
-    };
-  }, [scoringOptions.decayRates]);
-
-  /**
-   * Calculate time until score reaches a threshold
-   */
-  const calculateTimeToThreshold = useCallback((currentScore, threshold, evidenceType) => {
-    if (!currentScore || !evidenceType || currentScore <= threshold) return 0;
-    
-    const decayRate = scoringOptions.decayRates[evidenceType] || 0.1;
-    
-    // Solve for months: threshold = currentScore * (1 - decayRate)^months
-    // months = log(threshold/currentScore) / log(1 - decayRate)
-    const months = Math.log(threshold / currentScore) / Math.log(1 - decayRate);
-    
-    return Math.ceil(months);
-  }, [scoringOptions.decayRates]);
-
-  /**
-   * Predict score improvement with specific actions
-   */
-  const predictScoreImprovement = useCallback((currentScores, actions, evidenceType) => {
-    if (!currentScores || !actions || !evidenceType) return currentScores;
-    
-    const improvedScores = { ...currentScores };
-    
-    actions.forEach(action => {
-      switch (action.type) {
-        case 'refresh':
-          // Refreshing evidence primarily improves recency
-          improvedScores.recency = 100;
-          // Also slightly improves other dimensions
-          improvedScores.relevance = Math.min(100, improvedScores.relevance + 5);
-          improvedScores.consistency = Math.min(100, improvedScores.consistency + 5);
-          break;
-          
-        case 'addDetails':
-          // Adding details improves completeness and verifiability
-          improvedScores.completeness = Math.min(100, improvedScores.completeness + 15);
-          improvedScores.verifiability = Math.min(100, improvedScores.verifiability + 10);
-          break;
-          
-        case 'addAttachments':
-          // Adding attachments improves verifiability and completeness
-          improvedScores.verifiability = Math.min(100, improvedScores.verifiability + 20);
-          improvedScores.completeness = Math.min(100, improvedScores.completeness + 10);
-          break;
-          
-        case 'improveMethodology':
-          // Improving methodology primarily affects reliability
-          improvedScores.reliability = Math.min(100, improvedScores.reliability + 20);
-          improvedScores.verifiability = Math.min(100, improvedScores.verifiability + 10);
-          break;
-          
-        case 'alignRequirements':
-          // Aligning with requirements improves relevance and consistency
-          improvedScores.relevance = Math.min(100, improvedScores.relevance + 20);
-          improvedScores.consistency = Math.min(100, improvedScores.consistency + 15);
-          break;
-          
-        case 'independentVerification':
-          // Independent verification improves reliability and verifiability
-          improvedScores.reliability = Math.min(100, improvedScores.reliability + 25);
-          improvedScores.verifiability = Math.min(100, improvedScores.verifiability + 15);
-          break;
+    if (dimensionScores.recency < 60) {
+      let suggestion = {
+        dimension: 'recency',
+        priority: dimensionScores.recency < 40 ? 'high' : 'medium',
+        suggestion: ''
+      };
+      
+      if (evidence.type === 'Intent') {
+        suggestion.suggestion = 'This policy document is becoming outdated. Consider reviewing and updating it.';
+      } else if (evidence.type === 'Implementation') {
+        suggestion.suggestion = 'Implementation evidence is aging. Verify it still reflects the current state and update if needed.';
+      } else if (evidence.type === 'Behavioral') {
+        suggestion.suggestion = 'Behavioral evidence is too old. Collect fresh runtime data to ensure it represents current system behavior.';
+      } else if (evidence.type === 'Validation') {
+        suggestion.suggestion = 'Validation results are outdated. Perform a new validation assessment.';
+      } else {
+        suggestion.suggestion = 'This evidence is becoming outdated. Consider refreshing it with current information.';
       }
-    });
+      
+      suggestions.push(suggestion);
+    }
     
-    // Calculate new overall score
-    const overall = calculateOverallScore(
-      improvedScores, 
-      { // Assume high confidence for predictions
-        completeness: 0.8,
-        consistency: 0.8,
-        recency: 0.9,
-        relevance: 0.8,
-        reliability: 0.8,
-        verifiability: 0.8
-      }, 
-      evidenceType
-    );
+    if (dimensionScores.relevance < 60) {
+      suggestions.push({
+        dimension: 'relevance',
+        priority: dimensionScores.relevance < 40 ? 'high' : 'medium',
+        suggestion: 'Link this evidence to specific requirements, controls, or risks to improve its relevance.'
+      });
+    }
+    
+    if (dimensionScores.reliability < 60) {
+      let suggestion = {
+        dimension: 'reliability',
+        priority: dimensionScores.reliability < 40 ? 'high' : 'medium',
+        suggestion: ''
+      };
+      
+      if (evidence.type === 'Intent') {
+        suggestion.suggestion = 'Improve reliability by adding formal approval information and governance details.';
+      } else if (evidence.type === 'Implementation') {
+        suggestion.suggestion = 'Add test results and verification details to improve implementation reliability.';
+      } else if (evidence.type === 'Behavioral') {
+        suggestion.suggestion = 'Increase sample size or collection duration to improve behavioral evidence reliability.';
+      } else if (evidence.type === 'Validation') {
+        suggestion.suggestion = 'Consider using independent assessors and documenting methodology to improve validation reliability.';
+      } else {
+        suggestion.suggestion = 'Improve the reliability of this evidence by adding more information about its source and methodology.';
+      }
+      
+      suggestions.push(suggestion);
+    }
+    
+    if (dimensionScores.verifiability < 60) {
+      let suggestion = {
+        dimension: 'verifiability',
+        priority: dimensionScores.verifiability < 40 ? 'high' : 'medium',
+        suggestion: ''
+      };
+      
+      if (evidence.type === 'Intent') {
+        suggestion.suggestion = 'Add document references and version information to make the policy more verifiable.';
+      } else if (evidence.type === 'Implementation') {
+        suggestion.suggestion = 'Include configuration files, screenshots, or logs that demonstrate the implementation.';
+      } else if (evidence.type === 'Behavioral') {
+        suggestion.suggestion = 'Attach raw data or logs that can be independently verified.';
+      } else if (evidence.type === 'Validation') {
+        suggestion.suggestion = 'Include detailed findings and testing methodology to make validation results verifiable.';
+      } else {
+        suggestion.suggestion = 'Add supporting documents or data that would allow independent verification of this evidence.';
+      }
+      
+      suggestions.push(suggestion);
+    }
+    
+    // Sort suggestions by priority (high first)
+    return suggestions.sort((a, b) => {
+      const priorityOrder = { high: 0, medium: 1, low: 2 };
+      return priorityOrder[a.priority] - priorityOrder[b.priority];
+    });
+  };
+  
+  /**
+   * Calculate decay predictions based on evidence type and current score
+   */
+  const calculateDecayPredictions = (currentScore, evidence) => {
+    if (!evidence) {
+      return {
+        decayRate: 0,
+        nextMonthScore: currentScore,
+        threeMonthScore: currentScore,
+        sixMonthScore: currentScore,
+        timeToThreshold: {
+          poor: null,
+          critical: null
+        }
+      };
+    }
+    
+    // Different decay rates based on evidence type (% per month)
+    let monthlyDecayRate;
+    switch (evidence.type) {
+      case 'Intent':
+        monthlyDecayRate = 0.5; // 0.5% per month
+        break;
+      case 'Implementation':
+        monthlyDecayRate = 1.0; // 1% per month
+        break;
+      case 'Behavioral':
+        monthlyDecayRate = 3.0; // 3% per month
+        break;
+      case 'Validation':
+        monthlyDecayRate = 1.5; // 1.5% per month
+        break;
+      default:
+        monthlyDecayRate = 1.0; // Default 1% per month
+    }
+    
+    // Adjust decay rate based on current status
+    if (evidence.status === 'fresh') {
+      // Fresh evidence decays slower initially
+      monthlyDecayRate *= 0.8;
+    } else if (evidence.status === 'aging') {
+      // Aging evidence decays at normal rate
+      monthlyDecayRate *= 1.0;
+    } else if (evidence.status === 'stale') {
+      // Stale evidence decays faster
+      monthlyDecayRate *= 1.2;
+    }
+    
+    // Calculate future scores
+    const nextMonthScore = Math.max(0, Math.round(currentScore * (1 - (monthlyDecayRate / 100))));
+    const threeMonthScore = Math.max(0, Math.round(currentScore * Math.pow(1 - (monthlyDecayRate / 100), 3)));
+    const sixMonthScore = Math.max(0, Math.round(currentScore * Math.pow(1 - (monthlyDecayRate / 100), 6)));
+    
+    // Calculate time to threshold (in months)
+    // When will score drop below 60 (poor) or 40 (critical)?
+    let monthsToPoor = null;
+    let monthsToCritical = null;
+    
+    if (currentScore > 60) {
+      monthsToPoor = Math.ceil(
+        Math.log(60 / currentScore) / Math.log(1 - (monthlyDecayRate / 100))
+      );
+    }
+    
+    if (currentScore > 40) {
+      monthsToCritical = Math.ceil(
+        Math.log(40 / currentScore) / Math.log(1 - (monthlyDecayRate / 100))
+      );
+    }
     
     return {
-      ...improvedScores,
-      overall
+      decayRate: monthlyDecayRate.toFixed(1),
+      nextMonthScore,
+      threeMonthScore,
+      sixMonthScore,
+      timeToThreshold: {
+        poor: monthsToPoor,
+        critical: monthsToCritical
+      }
     };
-  }, [calculateOverallScore]);
-
+  };
+  
   /**
-   * Get improvement actions based on current scores
+   * Get improvement actions for specific dimensions
    */
-  const getImprovementActions = useCallback((dimensionScores, evidenceType) => {
-    if (!dimensionScores || !evidenceType) return [];
-    
+  const getImprovementActions = (dimensionScores, evidenceType) => {
     const actions = [];
-    const thresholds = scoringOptions.thresholds;
     
-    // Check each dimension for potential improvements
-    if (dimensionScores.recency < thresholds.good) {
+    // Add actions for the lowest scoring dimensions
+    const dimensions = Object.entries(dimensionScores)
+      .sort(([, scoreA], [, scoreB]) => scoreA - scoreB)
+      .slice(0, 3) // Focus on the 3 lowest scores
+      .map(([dimension]) => dimension);
+    
+    // Completeness actions
+    if (dimensions.includes('completeness')) {
+      if (evidenceType === 'Intent') {
+        actions.push({
+          description: 'Enhance policy document with missing sections',
+          impact: 'High impact on completeness',
+          effort: 'Medium',
+          dimensions: ['completeness', 'verifiability']
+        });
+      } else if (evidenceType === 'Implementation') {
+        actions.push({
+          description: 'Document implementation steps and add test results',
+          impact: 'High impact on completeness',
+          effort: 'Medium',
+          dimensions: ['completeness', 'verifiability', 'reliability']
+        });
+      } else if (evidenceType === 'Behavioral') {
+        actions.push({
+          description: 'Collect additional metrics and increase observation period',
+          impact: 'High impact on completeness and reliability',
+          effort: 'High',
+          dimensions: ['completeness', 'reliability']
+        });
+      } else if (evidenceType === 'Validation') {
+        actions.push({
+          description: 'Expand validation scope and document findings in detail',
+          impact: 'High impact on completeness',
+          effort: 'High',
+          dimensions: ['completeness', 'verifiability']
+        });
+      }
+    }
+    
+    // Recency actions
+    if (dimensions.includes('recency')) {
       actions.push({
-        type: 'refresh',
-        description: `Refresh ${evidenceType} evidence`,
-        impact: 'High impact on recency score',
-        effort: 'Medium',
-        dimensions: ['recency', 'relevance', 'consistency']
+        description: 'Refresh evidence with current information',
+        impact: 'Immediate improvement in recency score',
+        effort: evidenceType === 'Behavioral' ? 'Medium' : 'High',
+        dimensions: ['recency']
       });
     }
     
-    if (dimensionScores.completeness < thresholds.good) {
+    // Relevance actions
+    if (dimensions.includes('relevance')) {
       actions.push({
-        type: 'addDetails',
-        description: `Add more detailed information to ${evidenceType} evidence`,
-        impact: 'High impact on completeness score',
-        effort: 'Medium',
-        dimensions: ['completeness', 'verifiability']
-      });
-    }
-    
-    if (dimensionScores.verifiability < thresholds.good) {
-      actions.push({
-        type: 'addAttachments',
-        description: `Add supporting documentation and artifacts to ${evidenceType} evidence`,
-        impact: 'High impact on verifiability score',
-        effort: 'Medium',
-        dimensions: ['verifiability', 'completeness']
-      });
-    }
-    
-    if (dimensionScores.reliability < thresholds.good) {
-      actions.push({
-        type: 'improveMethodology',
-        description: `Improve collection methodology for ${evidenceType} evidence`,
-        impact: 'High impact on reliability score',
-        effort: 'High',
-        dimensions: ['reliability', 'verifiability']
-      });
-      
-      actions.push({
-        type: 'independentVerification',
-        description: `Obtain independent verification of ${evidenceType} evidence`,
-        impact: 'Very high impact on reliability score',
-        effort: 'High',
-        dimensions: ['reliability', 'verifiability']
-      });
-    }
-    
-    if (dimensionScores.relevance < thresholds.good) {
-      actions.push({
-        type: 'alignRequirements',
-        description: `Better align ${evidenceType} evidence with specific requirements`,
-        impact: 'High impact on relevance score',
-        effort: 'Medium',
+        description: 'Link evidence to specific requirements and controls',
+        impact: 'Direct improvement to relevance score',
+        effort: 'Low',
         dimensions: ['relevance', 'consistency']
       });
     }
     
-    return actions;
-  }, [scoringOptions.thresholds]);
-
-  /**
-   * Calculate scores for all dimensions
-   */
-  useEffect(() => {
-    if (!evidence) return;
-    
-    // Calculate scores for each dimension
-    const completenessResult = calculateCompletenessScore();
-    const consistencyResult = calculateConsistencyScore();
-    const recencyResult = calculateRecencyScore();
-    const relevanceResult = calculateRelevanceScore();
-    const reliabilityResult = calculateReliabilityScore();
-    const verifiabilityResult = calculateVerifiabilityScore();
-    
-    // Collect dimension scores
-    const dimensionScores = {
-      completeness: Math.round(completenessResult.score),
-      consistency: Math.round(consistencyResult.score),
-      recency: Math.round(recencyResult.score),
-      relevance: Math.round(relevanceResult.score),
-      reliability: Math.round(reliabilityResult.score),
-      verifiability: Math.round(verifiabilityResult.score)
-    };
-    
-    // Collect confidence scores
-    const confidenceScores = {
-      completeness: completenessResult.confidence,
-      consistency: consistencyResult.confidence,
-      recency: recencyResult.confidence,
-      relevance: relevanceResult.confidence,
-      reliability: reliabilityResult.confidence,
-      verifiability: verifiabilityResult.confidence
-    };
-    
-    // Calculate overall score
-    const overall = calculateOverallScore(dimensionScores, confidenceScores, evidence.type);
-    
-    // Determine rating based on overall score
-    let rating;
-    if (overall >= scoringOptions.thresholds.excellent) {
-      rating = 'excellent';
-    } else if (overall >= scoringOptions.thresholds.good) {
-      rating = 'good';
-    } else if (overall >= scoringOptions.thresholds.adequate) {
-      rating = 'adequate';
-    } else if (overall >= scoringOptions.thresholds.poor) {
-      rating = 'poor';
-    } else {
-      rating = 'critical';
+    // Reliability actions
+    if (dimensions.includes('reliability')) {
+      if (evidenceType === 'Intent') {
+        actions.push({
+          description: 'Add formal approval and governance information',
+          impact: 'Significant reliability improvement',
+          effort: 'Low',
+          dimensions: ['reliability', 'verifiability']
+        });
+      } else if (evidenceType === 'Implementation') {
+        actions.push({
+          description: 'Add verification steps and implementation details',
+          impact: 'Major reliability improvement',
+          effort: 'Medium',
+          dimensions: ['reliability', 'verifiability']
+        });
+      } else if (evidenceType === 'Behavioral') {
+        actions.push({
+          description: 'Increase sample size and use automated collection',
+          impact: 'Substantial reliability improvement',
+          effort: 'Medium',
+          dimensions: ['reliability', 'completeness']
+        });
+      } else if (evidenceType === 'Validation') {
+        actions.push({
+          description: 'Use independent assessors and document methodology',
+          impact: 'Major reliability improvement',
+          effort: 'High',
+          dimensions: ['reliability', 'verifiability']
+        });
+      }
     }
     
-    // Update scores state
-    setScores({
-      overall,
-      dimensions: dimensionScores,
-      confidence: confidenceScores,
-      rating
-    });
+    // Verifiability actions
+    if (dimensions.includes('verifiability')) {
+      actions.push({
+        description: 'Add supporting documentation and raw data',
+        impact: 'Direct improvement to verifiability',
+        effort: 'Medium',
+        dimensions: ['verifiability', 'reliability']
+      });
+    }
     
-    // Generate improvement suggestions
-    const newSuggestions = generateSuggestions(dimensionScores, evidence.type);
-    setSuggestions(newSuggestions);
+    // Consistency actions
+    if (dimensions.includes('consistency')) {
+      actions.push({
+        description: 'Review related evidence and resolve contradictions',
+        impact: 'Improves consistency across evidence portfolio',
+        effort: 'High',
+        dimensions: ['consistency', 'reliability']
+      });
+    }
     
-    // Calculate predictions
-    const decayRate = scoringOptions.decayRates[evidence.type] || 0.1;
-    const nextMonthPrediction = predictScoreDecay(overall, evidence.type, 1);
-    const threeMonthPrediction = predictScoreDecay(overall, evidence.type, 3);
-    const sixMonthPrediction = predictScoreDecay(overall, evidence.type, 6);
+    // Add general improvement actions if we have few specific ones
+    if (actions.length < 3) {
+      actions.push({
+        description: 'Conduct a comprehensive evidence review',
+        impact: 'Holistic improvement across all dimensions',
+        effort: 'High',
+        dimensions: ['completeness', 'consistency', 'reliability', 'verifiability']
+      });
+    }
     
-    // Calculate time to threshold crossings
-    const timeToPoor = calculateTimeToThreshold(
-      overall, 
-      scoringOptions.thresholds.poor, 
-      evidence.type
-    );
-    
-    const timeToCritical = calculateTimeToThreshold(
-      overall, 
-      scoringOptions.thresholds.critical, 
-      evidence.type
-    );
-    
-    // Update predictions state
-    setPredictions({
-      decayRate: decayRate * 100, // Convert to percentage
-      nextMonthScore: nextMonthPrediction.score,
-      threeMonthScore: threeMonthPrediction.score,
-      sixMonthScore: sixMonthPrediction.score,
-      timeToThreshold: {
-        poor: timeToPoor,
-        critical: timeToCritical
-      }
-    });
-  }, [
-    evidence, 
-    relatedEvidence, 
-    requirements, 
-    calculateCompletenessScore, 
-    calculateConsistencyScore, 
-    calculateRecencyScore, 
-    calculateRelevanceScore, 
-    calculateReliabilityScore, 
-    calculateVerifiabilityScore, 
-    calculateOverallScore, 
-    generateSuggestions, 
-    predictScoreDecay, 
-    calculateTimeToThreshold,
-    scoringOptions.thresholds,
-    scoringOptions.decayRates
-  ]);
-
-  // Return the hook's public API
+    return actions;
+  };
+  
+  // Return the scoring data, suggestions, and functions
   return {
-    // Current scores
     scores,
-    
-    // Improvement suggestions
     suggestions,
-    
-    // Predictions
     predictions,
-    
-    // Prediction functions
-    predictScoreDecay,
-    calculateTimeToThreshold,
-    
-    // Improvement functions
-    getImprovementActions,
-    predictScoreImprovement
+    getImprovementActions
   };
 };
 

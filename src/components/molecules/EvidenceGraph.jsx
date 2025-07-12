@@ -31,6 +31,8 @@ const EvidenceGraph = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [simulation, setSimulation] = useState(null);
+  const [isStabilized, setIsStabilized] = useState(false);
+  const nodeBeingDragged = useRef(null);
 
   // Initialize nodes and links from props
   useEffect(() => {
@@ -94,6 +96,7 @@ const EvidenceGraph = ({
 
     setNodes(allNodes);
     setLinks(allLinks);
+    setIsStabilized(false);
 
     // Initialize simulation
     const sim = createSimulation(allNodes, allLinks);
@@ -132,19 +135,37 @@ const EvidenceGraph = ({
       links,
       alpha: 1,
       alphaMin: 0.001,
-      alphaDecay: 0.0228,
+      alphaDecay: 0.0228, // reasonable decay speed
       alphaTarget: 0,
-      velocityDecay: 0.4,
+      velocityDecay: 0.7, // Increased from 0.4 to 0.7 for more damping
+      
+      // Stabilization tracking
+      isStable: false,
+      stabilizationCount: 0,
+      // consider graph stable when max node movement is < 0.1px for 10 ticks
+      stabilizationThreshold: 0.1,
+      maxStabilizationTicks: 300,
+      tickCount: 0,
       
       // Force constants
-      centerForce: { x: 400, y: 300, strength: 0.1 },
+      centerForce: { x: 400, y: 300, strength: 0.05 }, // milder pull to centre
       linkDistance: 100,
-      linkStrength: 0.7,
-      chargeStrength: -30,
+      linkStrength: 0.5,  // gentler spring
+      chargeStrength: -20, // less repulsion
       collideRadius: 5,
       
       tick: function() {
-        if (this.alpha < this.alphaMin) return false;
+        // Check if we should stop simulation
+        if (this.isStable || this.alpha < this.alphaMin) {
+          this.isStable = true;
+          return false;
+        }
+        
+        // Count ticks for cooldown
+        this.tickCount++;
+        
+        // Store previous positions to check for stability
+        const prevPositions = this.nodes.map(n => ({ x: n.x, y: n.y }));
         
         // Apply forces
         this.applyForces();
@@ -152,10 +173,39 @@ const EvidenceGraph = ({
         // Update alpha
         this.alpha += (this.alphaTarget - this.alpha) * this.alphaDecay;
         
+        // Check if the graph has stabilized
+        let maxMovement = 0;
+        for (let i = 0; i < this.nodes.length; i++) {
+          const dx = this.nodes[i].x - prevPositions[i].x;
+          const dy = this.nodes[i].y - prevPositions[i].y;
+          const movement = Math.sqrt(dx * dx + dy * dy);
+          maxMovement = Math.max(maxMovement, movement);
+        }
+        
+        // If movement is below threshold, increment stabilization counter
+        if (maxMovement < this.stabilizationThreshold) {
+          this.stabilizationCount++;
+          if (this.stabilizationCount > 10) {
+            this.isStable = true;
+            return false;
+          }
+        } else {
+          this.stabilizationCount = 0;
+        }
+        
+        // Force stabilization after max ticks to prevent endless simulation
+        if (this.tickCount > this.maxStabilizationTicks) {
+          this.isStable = true;
+          return false;
+        }
+        
         return true;
       },
       
       applyForces: function() {
+        // Skip force application if a node is being dragged
+        if (this.draggedNode) return;
+        
         // Apply center force
         this.nodes.forEach(node => {
           node.vx += (this.centerForce.x - node.x) * this.centerForce.strength;
@@ -221,6 +271,9 @@ const EvidenceGraph = ({
         
         // Update positions
         this.nodes.forEach(node => {
+          // Skip position update for dragged node
+          if (node === this.draggedNode) return;
+          
           node.vx *= this.velocityDecay;
           node.vy *= this.velocityDecay;
           node.x += node.vx;
@@ -229,7 +282,15 @@ const EvidenceGraph = ({
       },
       
       restart: function() {
-        this.alpha = 1;
+        // resume with moderate energy to avoid violent oscillations
+        this.alpha = 0.5;
+        this.isStable = false;
+        this.stabilizationCount = 0;
+        this.tickCount = 0;
+      },
+      
+      setDraggedNode: function(node) {
+        this.draggedNode = node;
       }
     };
     
@@ -303,12 +364,17 @@ const EvidenceGraph = ({
       const isSelected = node.id === selectedNodeId;
       const isHighlighted = highlightedPath && highlightedPath.includes(node.id);
       const isHovered = node.id === hoveredNode;
+      const isDragged = node === nodeBeingDragged.current;
       
       // Draw node circle
       ctx.beginPath();
       ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
       
-      if (isSelected) {
+      if (isDragged) {
+        ctx.fillStyle = '#3B82F6';
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 3;
+      } else if (isSelected) {
         ctx.fillStyle = '#2563EB';
         ctx.strokeStyle = '#FFFFFF';
         ctx.lineWidth = 3;
@@ -327,7 +393,7 @@ const EvidenceGraph = ({
       }
       
       ctx.fill();
-      if (isSelected || isHighlighted || isHovered) {
+      if (isSelected || isHighlighted || isHovered || isDragged) {
         ctx.stroke();
       }
       
@@ -349,7 +415,7 @@ const EvidenceGraph = ({
       ctx.fillText(typeSymbol, node.x, node.y);
       
       // Draw node label if selected, highlighted, or hovered
-      if (isSelected || isHighlighted || isHovered) {
+      if (isSelected || isHighlighted || isHovered || isDragged) {
         ctx.fillStyle = '#1E293B';
         ctx.strokeStyle = '#FFFFFF';
         ctx.lineWidth = 3;
@@ -371,13 +437,32 @@ const EvidenceGraph = ({
     if (!simulation) return;
     
     const animate = () => {
-      const didUpdate = simulation.tick();
+      // Only update if simulation is not stable or we're dragging
+      const didUpdate = !simulation.isStable || isDragging || nodeBeingDragged.current;
+      
+      // Run simulation tick if not stable
+      if (!simulation.isStable && !isDragging && !nodeBeingDragged.current) {
+        simulation.tick();
+      }
+      
+      // Always draw the graph
       drawGraph();
       
-      if (didUpdate) {
-        animationRef.current = requestAnimationFrame(animate);
+      // Update stabilized state for UI
+      if (simulation.isStable && !isStabilized) {
+        setIsStabilized(true);
       }
+      
+      // Continue animation loop
+      animationRef.current = requestAnimationFrame(animate);
     };
+    
+    // Initial layout phase - run simulation for a set number of ticks
+    let initialTicks = 100;
+    while (initialTicks > 0 && !simulation.isStable) {
+      simulation.tick();
+      initialTicks--;
+    }
     
     animationRef.current = requestAnimationFrame(animate);
     
@@ -386,7 +471,7 @@ const EvidenceGraph = ({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [simulation, drawGraph]);
+  }, [simulation, drawGraph, isDragging, isStabilized]);
 
   // Handle canvas resize
   useEffect(() => {
@@ -403,6 +488,11 @@ const EvidenceGraph = ({
             y: height / (2 * scale) - offset.y / scale, 
             strength: 0.1 
           };
+          
+          // Only restart simulation if it was already stable
+          if (simulation.isStable) {
+            simulation.restart();
+          }
         }
         
         drawGraph();
@@ -445,10 +535,22 @@ const EvidenceGraph = ({
         y: offset.y + (y - dragStart.y)
       });
       setDragStart({ x, y });
+    } else if (nodeBeingDragged.current) {
+      // Update node position directly when dragging a node
+      const graphX = (x - offset.x) / scale;
+      const graphY = (y - offset.y) / scale;
+      
+      nodeBeingDragged.current.x = graphX;
+      nodeBeingDragged.current.y = graphY;
+      nodeBeingDragged.current.vx = 0;
+      nodeBeingDragged.current.vy = 0;
+      
+      // Redraw without running simulation
+      drawGraph();
     } else {
       handleNodeHover(x, y);
     }
-  }, [isDragging, dragStart, offset, handleNodeHover]);
+  }, [isDragging, dragStart, offset, scale, handleNodeHover, drawGraph]);
 
   const handleMouseDown = useCallback((e) => {
     const rect = canvasRef.current.getBoundingClientRect();
@@ -466,22 +568,42 @@ const EvidenceGraph = ({
     });
     
     if (clickedNode) {
+      // Start dragging the node
+      nodeBeingDragged.current = clickedNode;
+      if (simulation) {
+        simulation.setDraggedNode(clickedNode);
+      }
       onNodeSelect(clickedNode.id);
     } else {
-      // Start dragging
+      // Start dragging the canvas
       setIsDragging(true);
       setDragStart({ x, y });
     }
-  }, [nodes, offset, scale, onNodeSelect]);
+  }, [nodes, offset, scale, onNodeSelect, simulation]);
 
   const handleMouseUp = useCallback(() => {
+    if (nodeBeingDragged.current) {
+      // Release the dragged node
+      if (simulation) {
+        simulation.setDraggedNode(null);
+        // Restart simulation briefly to adjust other nodes
+        simulation.restart();
+      }
+      nodeBeingDragged.current = null;
+    }
     setIsDragging(false);
-  }, []);
+  }, [simulation]);
 
   const handleMouseLeave = useCallback(() => {
+    if (nodeBeingDragged.current) {
+      if (simulation) {
+        simulation.setDraggedNode(null);
+      }
+      nodeBeingDragged.current = null;
+    }
     setIsDragging(false);
     setHoveredNode(null);
-  }, []);
+  }, [simulation]);
 
   // Zoom controls
   const handleZoomIn = useCallback(() => {
@@ -504,7 +626,7 @@ const EvidenceGraph = ({
     <div className={`relative ${className || 'h-[500px]'}`} ref={containerRef}>
       <canvas
         ref={canvasRef}
-        className="w-full h-full cursor-grab"
+        className={`w-full h-full ${isDragging || nodeBeingDragged.current ? 'cursor-grabbing' : 'cursor-grab'}`}
         onMouseMove={handleMouseMove}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
