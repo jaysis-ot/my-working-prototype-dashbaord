@@ -77,7 +77,8 @@ const AdvancedEvidenceDemo = () => {
       title: 'MFA Implementation',
       description: 'Technical implementation of multi-factor authentication across all systems',
       type: 'Implementation',
-      status: 'fresh',
+      /* Mark as “aging” so the timeline shows a richer mix. */
+      status: 'aging',
       timestamp: '2025-05-15T14:30:00Z',
       owner: 'IT Security Team',
       metadata: {
@@ -268,6 +269,67 @@ const AdvancedEvidenceDemo = () => {
         { label: 'Database Encryption Implementation', type: 'implementation' },
         { label: 'Data Protection', type: 'capability' }
       ]
+    },
+    /* ---------- Additional mock evidence to enrich timeline ---------- */
+    {
+      id: 'ev-008',
+      title: 'Legacy System Encryption Road-Map',
+      description: 'Project plan to remediate legacy systems lacking encryption',
+      type: 'Intent',
+      status: 'fresh',
+      /* Very recent – shows right-most of the timeline */
+      timestamp: '2025-08-05T08:00:00Z',
+      owner: 'Transformation PMO',
+      metadata: { approvedBy: 'CTO', version: '0.9-draft' },
+      content: { scope: 'Legacy on-prem systems', purpose: 'Define path to full encryption' },
+      relationships: [
+        { label: 'Data Encryption Policy', type: 'intent' },
+        { label: 'Data Breach', type: 'risk' }
+      ]
+    },
+    {
+      id: 'ev-009',
+      title: 'Quarterly Access Review – Q4 2024',
+      description: 'Behavioral evidence showing completion of quarterly access reviews',
+      type: 'Behavioral',
+      status: 'stale',
+      /* ~10 months old to appear mid-timeline in “stale” zone */
+      timestamp: '2024-10-10T12:00:00Z',
+      owner: 'IT Compliance',
+      metadata: {
+        collectionMethod: 'manual',
+        collectionDate: '2024-10-10T12:00:00Z'
+      },
+      content: {
+        observations: ['All 152 privileged accounts reviewed', '12 removals executed'],
+        metrics: { totalAccountsReviewed: 152, removals: 12 },
+        duration: 7,
+        sampleSize: 152
+      },
+      relationships: [
+        { label: 'Access Reviews', type: 'control' },
+        { label: 'Unauthorized Access', type: 'risk' }
+      ]
+    },
+    {
+      id: 'ev-010',
+      title: 'MFA Roll-Out Post-Implementation Review',
+      description: 'Validation assessment 18 months ago to confirm MFA adoption',
+      type: 'Validation',
+      status: 'stale',
+      /* ~18 months ago to hit left side of timeline */
+      timestamp: '2024-02-01T09:00:00Z',
+      owner: 'External Auditor',
+      metadata: { assessor: 'Big 4 Audit', independent: true },
+      content: {
+        methodology: 'Sampled 500 users; verified successful MFA challenges',
+        findings: ['Adoption rate 92%', '15 legacy apps without MFA'],
+        conclusion: 'Overall effective with minor gaps'
+      },
+      relationships: [
+        { label: 'MFA Implementation', type: 'implementation' },
+        { label: 'ISO 27001', type: 'framework' }
+      ]
     }
   ];
   
@@ -408,6 +470,20 @@ const AdvancedEvidenceDemo = () => {
       refreshIntervalMonths: 9,
       evidenceTypes: ['Intent', 'Implementation', 'Validation'],
       frameworks: ['NIST CSF']
+    },
+    /* New requirement: short cycle to create dense refresh markers */
+    {
+      name: 'PCI DSS 12.3',
+      refreshIntervalMonths: 3,
+      evidenceTypes: ['Behavioral', 'Validation'],
+      frameworks: ['PCI DSS']
+    },
+    /* New requirement: long-term to show sparse markers */
+    {
+      name: 'GDPR Article 32',
+      refreshIntervalMonths: 24,
+      evidenceTypes: ['Intent', 'Validation'],
+      frameworks: ['GDPR']
     }
   ];
   
