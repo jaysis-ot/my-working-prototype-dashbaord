@@ -239,13 +239,29 @@ export const DashboardUIProvider = ({ children }) => {
   
   // Set the current view mode and navigate to the corresponding route
   const setViewMode = useCallback((mode) => {
-    // Debug helper – useful while investigating pages that fail to load.
-    // Remove or guard with `process.env.NODE_ENV !== 'production'` in production.
-    // eslint-disable-next-line no-console
-    console.log(`Setting view mode to: ${mode} and navigating to /dashboard/${mode}`);
+    // --------- Enhanced NAVIGATION DEBUG ---------
+    // These logs provide a step-by-step trace of what happens
+    // whenever navigation is triggered via setViewMode.
+    // Guard or remove for production builds if necessary.
+    /* eslint-disable no-console */
+    console.log('--------- NAVIGATION DEBUG ---------');
+    console.log(`Current location      : ${location.pathname}`);
+    console.log(`Current viewMode      : ${state.ui.viewMode}`);
+    console.log(`Requested viewMode    : ${mode}`);
+    console.log(`Target route          : /dashboard/${mode}`);
+
+    // Dispatch action to update the viewMode in local UI state
     dispatch({ type: ACTIONS.SET_VIEW_MODE, payload: mode });
+
+    console.log('Dispatch completed, about to navigate…');
+
+    // Perform the actual navigation
     navigate(`/dashboard/${mode}`);
-  }, [navigate]);
+
+    console.log('Navigation call completed.');
+    console.log('------------------------------------');
+    /* eslint-enable no-console */
+  }, [navigate, location.pathname, state.ui.viewMode]);
   
   // Toggle a modal's visibility
   const toggleModal = useCallback((modalName) => {

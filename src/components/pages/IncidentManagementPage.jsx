@@ -1,23 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, CheckCircle, AlertTriangle, Search, Filter, Plus, RefreshCw, Trash2, Edit, Eye } from 'lucide-react';
+import IncidentCreateModal from '../molecules/IncidentCreateModal';
+import LoadingSpinner from '../atoms/LoadingSpinner';
+import ErrorDisplay from '../molecules/ErrorDisplay';
 
 /**
  * IncidentManagementPage Component
  * 
- * A simple incident management dashboard that provides:
- * - Basic dashboard view with incident statistics
- * - Mock incident data generation
+ * A comprehensive incident management dashboard that provides:
+ * - Dashboard view with incident statistics
+ * - Mock incident data generation  
  * - Filtering and search functionality
- * - Placeholder for incident creation and management
+ * - Incident creation and management
  */
 const IncidentManagementPage = () => {
   // State for incidents and UI
   const [incidents, setIncidents] = useState([]);
   const [filteredIncidents, setFilteredIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [severityFilter, setSeverityFilter] = useState('');
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   
   // Mock metrics
   const [metrics, setMetrics] = useState({
@@ -26,6 +31,22 @@ const IncidentManagementPage = () => {
     critical: 0,
     resolved: 0
   });
+
+  /**
+   * Handle creation of a new incident from the modal
+   */
+  const handleCreateIncident = (newIncident) => {
+    setIncidents((prev) => [newIncident, ...prev]);
+    setFilteredIncidents((prev) => [newIncident, ...prev]);
+
+    // Update metrics accordingly
+    setMetrics((prev) => ({
+      ...prev,
+      total: prev.total + 1,
+      open: prev.open + 1,
+      critical: newIncident.severity === 'CRITICAL' ? prev.critical + 1 : prev.critical,
+    }));
+  };
 
   // Generate mock incident data
   useEffect(() => {
@@ -59,34 +80,40 @@ const IncidentManagementPage = () => {
     };
     
     setLoading(true);
+    setError(null);
     
     // Simulate API call delay
     setTimeout(() => {
-      const mockIncidents = generateMockIncidents();
-      setIncidents(mockIncidents);
-      setFilteredIncidents(mockIncidents);
-      
-      // Calculate metrics
-      const openIncidents = mockIncidents.filter(i => 
-        i.status !== 'RESOLVED' && i.status !== 'CLOSED'
-      );
-      
-      const criticalIncidents = mockIncidents.filter(i => 
-        i.severity === 'CRITICAL'
-      );
-      
-      const resolvedIncidents = mockIncidents.filter(i => 
-        i.status === 'RESOLVED' || i.status === 'CLOSED'
-      );
-      
-      setMetrics({
-        total: mockIncidents.length,
-        open: openIncidents.length,
-        critical: criticalIncidents.length,
-        resolved: resolvedIncidents.length
-      });
-      
-      setLoading(false);
+      try {
+        const mockIncidents = generateMockIncidents();
+        setIncidents(mockIncidents);
+        setFilteredIncidents(mockIncidents);
+        
+        // Calculate metrics
+        const openIncidents = mockIncidents.filter(i => 
+          i.status !== 'RESOLVED' && i.status !== 'CLOSED'
+        );
+        
+        const criticalIncidents = mockIncidents.filter(i => 
+          i.severity === 'CRITICAL'
+        );
+        
+        const resolvedIncidents = mockIncidents.filter(i => 
+          i.status === 'RESOLVED' || i.status === 'CLOSED'
+        );
+        
+        setMetrics({
+          total: mockIncidents.length,
+          open: openIncidents.length,
+          critical: criticalIncidents.length,
+          resolved: resolvedIncidents.length
+        });
+        
+        setLoading(false);
+      } catch (err) {
+        setError(err);
+        setLoading(false);
+      }
     }, 1000);
   }, []);
   
@@ -126,11 +153,11 @@ const IncidentManagementPage = () => {
   // Get severity badge
   const getSeverityBadge = (severity) => {
     const classes = {
-      CRITICAL: 'bg-red-100 text-red-800',
-      HIGH: 'bg-orange-100 text-orange-800',
-      MEDIUM: 'bg-yellow-100 text-yellow-800',
-      LOW: 'bg-blue-100 text-blue-800',
-      INFORMATIONAL: 'bg-gray-100 text-gray-800'
+      CRITICAL: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+      HIGH: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
+      MEDIUM: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+      LOW: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+      INFORMATIONAL: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
     };
     
     return (
@@ -143,11 +170,11 @@ const IncidentManagementPage = () => {
   // Get status badge
   const getStatusBadge = (status) => {
     const classes = {
-      NEW: 'bg-purple-100 text-purple-800',
-      INVESTIGATING: 'bg-blue-100 text-blue-800',
-      IN_PROGRESS: 'bg-yellow-100 text-yellow-800',
-      RESOLVED: 'bg-green-100 text-green-800',
-      CLOSED: 'bg-gray-100 text-gray-800'
+      NEW: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
+      INVESTIGATING: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+      IN_PROGRESS: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+      RESOLVED: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+      CLOSED: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
     };
     
     return (
@@ -160,288 +187,309 @@ const IncidentManagementPage = () => {
   // Handle refresh
   const handleRefresh = () => {
     setLoading(true);
-    // Simulate refresh delay
     setTimeout(() => {
       setLoading(false);
     }, 1000);
   };
-  
-  // Loading state
+
+  // --- Render Logic Following RiskManagementPage Pattern ---
+
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <div className="flex flex-col items-center">
-          <RefreshCw className="w-12 h-12 text-primary-600 animate-spin" />
-          <p className="mt-4 text-secondary-600">Loading incidents...</p>
+      <div className="fade-in h-full flex flex-col">
+        <div className="flex items-center justify-center h-full">
+          <LoadingSpinner size="lg" message="Loading Incident Management..." />
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="fade-in h-full flex flex-col">
+        <ErrorDisplay
+          title="Failed to Load Incident Data"
+          message={error.message || 'An unexpected error occurred. Please try refreshing the page.'}
+          onRetry={() => window.location.reload()}
+        />
       </div>
     );
   }
   
   return (
-    <div className="h-full p-6 overflow-auto">
-      <div className="flex flex-col space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-secondary-900">
-              Incident Management
-            </h1>
-            <p className="text-secondary-500 mt-1">
-              Monitor and manage security incidents
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleRefresh}
-              className="p-2 rounded-md bg-secondary-100 hover:bg-secondary-200 text-secondary-700 transition-colors"
-              aria-label="Refresh incidents"
-            >
-              <RefreshCw className="w-5 h-5" />
-            </button>
-            
-            <button
-              className="px-4 py-2 rounded-md bg-primary-600 hover:bg-primary-700 text-white font-medium flex items-center gap-2 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              <span>New Incident</span>
-            </button>
-          </div>
-        </div>
-        
-        {/* Metrics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Total Incidents */}
-          <div className="bg-white rounded-lg shadow-sm p-4 border border-secondary-200">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-secondary-500">
-                  Total Incidents
-                </p>
-                <p className="text-2xl font-bold text-secondary-900 mt-1">
-                  {metrics.total}
-                </p>
-              </div>
-              <div className="p-2 bg-primary-100 rounded-md">
-                <AlertCircle className="w-5 h-5 text-primary-600" />
-              </div>
-            </div>
-          </div>
-          
-          {/* Open Incidents */}
-          <div className="bg-white rounded-lg shadow-sm p-4 border border-secondary-200">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-secondary-500">
-                  Open Incidents
-                </p>
-                <p className="text-2xl font-bold text-secondary-900 mt-1">
-                  {metrics.open}
-                </p>
-              </div>
-              <div className="p-2 bg-yellow-100 rounded-md">
-                <AlertTriangle className="w-5 h-5 text-yellow-600" />
-              </div>
-            </div>
-          </div>
-          
-          {/* Critical Incidents */}
-          <div className="bg-white rounded-lg shadow-sm p-4 border border-secondary-200">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-secondary-500">
-                  Critical Incidents
-                </p>
-                <p className="text-2xl font-bold text-secondary-900 mt-1">
-                  {metrics.critical}
-                </p>
-              </div>
-              <div className="p-2 bg-red-100 rounded-md">
-                <AlertCircle className="w-5 h-5 text-red-600" />
-              </div>
-            </div>
-          </div>
-          
-          {/* Resolved Incidents */}
-          <div className="bg-white rounded-lg shadow-sm p-4 border border-secondary-200">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-secondary-500">
-                  Resolved Incidents
-                </p>
-                <p className="text-2xl font-bold text-secondary-900 mt-1">
-                  {metrics.resolved}
-                </p>
-              </div>
-              <div className="p-2 bg-green-100 rounded-md">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Filter Toolbar */}
-        <div className="bg-white rounded-lg shadow-sm p-4 border border-secondary-200">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-secondary-400" aria-hidden="true" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search incidents..."
-                  className="block w-full pl-10 pr-3 py-2 border border-secondary-300 rounded-md bg-white text-secondary-900 placeholder-secondary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </div>
-            
-            {/* Status Filter */}
-            <div className="w-full md:w-48">
-              <select
-                className="block w-full pl-3 pr-10 py-2 border border-secondary-300 rounded-md bg-white text-secondary-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option value="">All Statuses</option>
-                <option value="NEW">New</option>
-                <option value="INVESTIGATING">Investigating</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="RESOLVED">Resolved</option>
-                <option value="CLOSED">Closed</option>
-              </select>
-            </div>
-            
-            {/* Severity Filter */}
-            <div className="w-full md:w-48">
-              <select
-                className="block w-full pl-3 pr-10 py-2 border border-secondary-300 rounded-md bg-white text-secondary-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                value={severityFilter}
-                onChange={(e) => setSeverityFilter(e.target.value)}
-              >
-                <option value="">All Severities</option>
-                <option value="CRITICAL">Critical</option>
-                <option value="HIGH">High</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="LOW">Low</option>
-                <option value="INFORMATIONAL">Informational</option>
-              </select>
-            </div>
-            
-            {/* Reset Filters */}
+    <div className="fade-in h-full flex flex-col">
+      <div className="h-full p-6 overflow-auto">
+        <div className="flex flex-col space-y-6">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Incident Management
+              </h1>
+              <p className="text-gray-500 dark:text-gray-400 mt-1">
+                Monitor and manage security incidents
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-3">
               <button
-                onClick={() => {
-                  setSearchTerm('');
-                  setStatusFilter('');
-                  setSeverityFilter('');
-                }}
-                className="flex items-center justify-center w-full px-4 py-2 border border-secondary-300 rounded-md bg-white text-secondary-900 hover:bg-secondary-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                onClick={handleRefresh}
+                className="p-2 rounded-md bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 transition-colors"
+                aria-label="Refresh incidents"
               >
-                <Filter className="w-4 h-4 mr-2" />
-                <span>Reset</span>
+                <RefreshCw className="w-5 h-5" />
+              </button>
+              
+              <button
+                onClick={() => setCreateModalOpen(true)}
+                className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-medium flex items-center gap-2 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>New Incident</span>
               </button>
             </div>
           </div>
-        </div>
-        
-        {/* Incidents Table */}
-        <div className="flex-1 overflow-hidden flex flex-col bg-white rounded-lg shadow-sm border border-secondary-200">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-secondary-200">
-              <thead className="bg-secondary-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
-                    ID
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
-                    Title
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
-                    Severity
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
-                    Created
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-secondary-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
+          
+          {/* Metrics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Total Incidents */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    Total Incidents
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                    {metrics.total}
+                  </p>
+                </div>
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-md">
+                  <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+              </div>
+            </div>
+            
+            {/* Open Incidents */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    Open Incidents
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                    {metrics.open}
+                  </p>
+                </div>
+                <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-md">
+                  <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                </div>
+              </div>
+            </div>
+            
+            {/* Critical Incidents */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    Critical Incidents
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                    {metrics.critical}
+                  </p>
+                </div>
+                <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-md">
+                  <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                </div>
+              </div>
+            </div>
+            
+            {/* Resolved Incidents */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    Resolved Incidents
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                    {metrics.resolved}
+                  </p>
+                </div>
+                <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-md">
+                  <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Filter Toolbar */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Search */}
+              <div className="flex-1">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Search className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Search incidents..."
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
               
-              <tbody className="bg-white divide-y divide-secondary-200">
-                {filteredIncidents.length === 0 ? (
+              {/* Status Filter */}
+              <div className="w-full md:w-48">
+                <select
+                  className="block w-full pl-3 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <option value="">All Statuses</option>
+                  <option value="NEW">New</option>
+                  <option value="INVESTIGATING">Investigating</option>
+                  <option value="IN_PROGRESS">In Progress</option>
+                  <option value="RESOLVED">Resolved</option>
+                  <option value="CLOSED">Closed</option>
+                </select>
+              </div>
+              
+              {/* Severity Filter */}
+              <div className="w-full md:w-48">
+                <select
+                  className="block w-full pl-3 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={severityFilter}
+                  onChange={(e) => setSeverityFilter(e.target.value)}
+                >
+                  <option value="">All Severities</option>
+                  <option value="CRITICAL">Critical</option>
+                  <option value="HIGH">High</option>
+                  <option value="MEDIUM">Medium</option>
+                  <option value="LOW">Low</option>
+                  <option value="INFORMATIONAL">Informational</option>
+                </select>
+              </div>
+              
+              {/* Reset Filters */}
+              <div>
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setStatusFilter('');
+                    setSeverityFilter('');
+                  }}
+                  className="flex items-center justify-center w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <Filter className="w-4 h-4 mr-2" />
+                  <span>Reset</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Incidents Table */}
+          <div className="flex-1 overflow-hidden flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
-                    <td colSpan="6" className="px-6 py-4 text-center text-secondary-500">
-                      No incidents found
-                    </td>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      ID
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Title
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Severity
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Created
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
-                ) : (
-                  filteredIncidents.map((incident) => (
-                    <tr key={incident.id} className="hover:bg-secondary-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-900">
-                        {incident.id}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-secondary-900">
-                        <div className="font-medium">{incident.title}</div>
-                        <div className="text-xs text-secondary-500">
-                          {incident.description.length > 60 
-                            ? `${incident.description.substring(0, 60)}...` 
-                            : incident.description}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(incident.status)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getSeverityBadge(incident.severity)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">
-                        {formatDate(incident.createdAt)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex items-center justify-end space-x-2">
-                          <button className="text-primary-600 hover:text-primary-900" aria-label="View incident details">
-                            <Eye className="w-5 h-5" />
-                          </button>
-                          <button className="text-blue-600 hover:text-blue-900" aria-label="Edit incident">
-                            <Edit className="w-5 h-5" />
-                          </button>
-                          <button className="text-red-600 hover:text-red-900" aria-label="Delete incident">
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        </div>
+                </thead>
+                
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {filteredIncidents.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                        No incidents found
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-          
-          {/* Pagination Placeholder */}
-          <div className="px-6 py-3 border-t border-secondary-200 flex items-center justify-between">
-            <div className="text-sm text-secondary-700">
-              Showing <span className="font-medium">{filteredIncidents.length}</span> of <span className="font-medium">{incidents.length}</span> incidents
+                  ) : (
+                    filteredIncidents.map((incident) => (
+                      <tr key={incident.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                          {incident.id}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                          <div className="font-medium">{incident.title}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {incident.description.length > 60 
+                              ? `${incident.description.substring(0, 60)}...` 
+                              : incident.description}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getStatusBadge(incident.status)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getSeverityBadge(incident.severity)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                          {formatDate(incident.createdAt)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex items-center justify-end space-x-2">
+                            <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300" aria-label="View incident details">
+                              <Eye className="w-5 h-5" />
+                            </button>
+                            <button className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300" aria-label="Edit incident">
+                              <Edit className="w-5 h-5" />
+                            </button>
+                            <button className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300" aria-label="Delete incident">
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
             
-            <div className="flex items-center space-x-2">
-              <button className="px-3 py-1 border border-secondary-300 rounded bg-white text-secondary-700 hover:bg-secondary-50">
-                Previous
-              </button>
-              <button className="px-3 py-1 border border-secondary-300 rounded bg-white text-secondary-700 hover:bg-secondary-50">
-                Next
-              </button>
+            {/* Pagination */}
+            <div className="px-6 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <div className="text-sm text-gray-700 dark:text-gray-300">
+                Showing <span className="font-medium">{filteredIncidents.length}</span> of <span className="font-medium">{incidents.length}</span> incidents
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <button className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
+                  Previous
+                </button>
+                <button className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
+                  Next
+                </button>
+              </div>
             </div>
           </div>
         </div>
+        
+        {/* Create Incident Modal */}
+        <IncidentCreateModal
+          isOpen={createModalOpen}
+          onClose={() => setCreateModalOpen(false)}
+          onSubmit={handleCreateIncident}
+        />
       </div>
     </div>
   );

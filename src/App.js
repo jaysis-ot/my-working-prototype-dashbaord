@@ -8,11 +8,6 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { JWTAuthProvider } from './auth/JWTAuthProvider';
 import { DashboardUIProvider } from './contexts/DashboardUIContext';
 
-// Feature Context Providers - to be created
-// import { RequirementsProvider } from './features/requirements/RequirementsContext';
-// import { CapabilitiesProvider } from './features/capabilities/CapabilitiesContext';
-// import { TeamProvider } from './features/team/TeamContext';
-
 // Templates
 import DashboardLayout from './components/templates/DashboardLayout';
 import ModalManager from './components/templates/ModalManager';
@@ -31,18 +26,9 @@ const StandardsFrameworksPage = lazy(() => import('./components/pages/StandardsF
 const AnalyticsPage = lazy(() => import('./components/pages/AnalyticsPage'));
 const BusinessPlanPage = lazy(() => import('./components/pages/BusinessPlanPage'));
 const MaturityAnalysisPage = lazy(() => import('./components/pages/MaturityAnalysisPage'));
-
-// NOTE:
-// The following pages are referenced only as placeholder <div> routes
-// and do not yet have real components.  Their lazy imports are removed
-// to avoid build-time resolution errors.  Add them back once the files exist.
-// const RequirementsPage     = lazy(() => import('./components/pages/RequirementsPage'));
-// const CapabilitiesPage     = lazy(() => import('./components/pages/CapabilitiesPage'));
-// const ResourcePlanningPage = lazy(() => import('./components/pages/ResourcePlanningPage'));
-// const MaturityAnalysisPage = lazy(() => import('./components/pages/MaturityAnalysisPage'));
-// const ThreatIntelligencePage = lazy(() => import('./components/pages/ThreatIntelligencePage'));
-// const RiskManagementPage   = lazy(() => import('./components/pages/RiskManagementPage'));
-// const AnalyticsPage        = lazy(() => import('./components/pages/AnalyticsPage'));
+const TrustPage = lazy(() => import('./components/pages/TrustPage'));
+// ✅ ADD MISSING IMPORT
+const IncidentManagementPage = lazy(() => import('./components/pages/IncidentManagementPage'));
 
 // A simple wrapper for providers to keep the App component clean
 const AppProviders = ({ children }) => {
@@ -115,7 +101,7 @@ function App() {
                       <Route path="overview" element={<OverviewPage />} />
                       <Route path="settings" element={<SettingsPage />} />
 
-                      {/* Placeholder Pages */}
+                      {/* Existing Pages */}
                       <Route path="requirements" element={<RequirementsPage />} />
                       <Route path="capabilities" element={<CapabilitiesPage />} />
                       <Route path="resources" element={<ResourcePlanningPage />} />
@@ -126,6 +112,10 @@ function App() {
                       <Route path="standards-frameworks" element={<StandardsFrameworksPage />} />
                       <Route path="analytics" element={<AnalyticsPage />} />
                       <Route path="business-plan" element={<BusinessPlanPage />} />
+                      
+                      {/* ✅ ADD MISSING ROUTES */}
+                      <Route path="trust" element={<TrustPage />} />
+                      <Route path="incident-management" element={<IncidentManagementPage />} />
                       
                       {/* Default route within the dashboard */}
                       <Route path="*" element={<Navigate to="/dashboard/overview" replace />} />

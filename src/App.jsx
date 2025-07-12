@@ -1,60 +1,49 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
+import useAuth from './auth/useAuth';
 
 // Context Providers
 import { ThemeProvider } from './contexts/ThemeContext';
-import { AuthProvider } from './auth/AuthContext.js';
+import { JWTAuthProvider } from './auth/JWTAuthProvider';
 import { DashboardUIProvider } from './contexts/DashboardUIContext';
-
-// Feature Context Providers - to be created
-// import { RequirementsProvider } from './features/requirements/RequirementsContext';
-// import { CapabilitiesProvider } from './features/capabilities/CapabilitiesContext';
-// import { TeamProvider } from './features/team/TeamContext';
 
 // Templates
 import DashboardLayout from './components/templates/DashboardLayout';
-
-// Authentication Pages (eager-loaded for faster initial render)
-import LoginPage from './components/pages/LoginPage';
-import ProtectedRoute from './auth/ProtectedRoute';
+import ModalManager from './components/templates/ModalManager';
 
 // Lazy-loaded Pages
 const OverviewPage = lazy(() => import('./components/pages/OverviewPage'));
-const RequirementsPage = lazy(() => import('./components/pages/RequirementsPage'));
-const CapabilitiesPage = lazy(() => import('./components/pages/CapabilitiesPage'));
-const ResourcePlanningPage = lazy(() => import('./components/pages/ResourcePlanningPage'));
-const MaturityAnalysisPage = lazy(() => import('./components/pages/MaturityAnalysisPage'));
-const BusinessPlanPage = lazy(() => import('./components/pages/BusinessPlanPage'));
-const ThreatIntelligencePage = lazy(() => import('./components/pages/ThreatIntelligencePage'));
-const MitreAttackPage = lazy(() => import('./components/pages/MitreAttackPage'));
-const StandardsFrameworksPage = lazy(() => import('./components/pages/StandardsFrameworksPage'));
-const RiskManagementPage = lazy(() => import('./components/pages/RiskManagementPage'));
-const AnalyticsPage = lazy(() => import('./components/pages/AnalyticsPage'));
-const IncidentManagementPage = lazy(() =>import('./components/pages/IncidentManagementPage'));
 const SettingsPage = lazy(() => import('./components/pages/SettingsPage'));
+const LoginPage = lazy(() => import('./components/pages/LoginPage'));
+const CapabilitiesPage = lazy(() => import('./components/pages/CapabilitiesPage'));
+const RequirementsPage = lazy(() => import('./components/pages/RequirementsPage'));
+const ResourcePlanningPage = lazy(() => import('./components/pages/ResourcePlanningPage'));
+const MitreAttackPage = lazy(() => import('./components/pages/MitreAttackPage'));
+const ThreatIntelligencePage = lazy(() => import('./components/pages/ThreatIntelligencePage'));
+const RiskManagementPage = lazy(() => import('./components/pages/RiskManagementPage'));
+const StandardsFrameworksPage = lazy(() => import('./components/pages/StandardsFrameworksPage'));
+const AnalyticsPage = lazy(() => import('./components/pages/AnalyticsPage'));
+const BusinessPlanPage = lazy(() => import('./components/pages/BusinessPlanPage'));
+const MaturityAnalysisPage = lazy(() => import('./components/pages/MaturityAnalysisPage'));
 const TrustPage = lazy(() => import('./components/pages/TrustPage'));
+const IncidentManagementPage = lazy(() => import('./components/pages/IncidentManagementPage'));
 
-// A simple wrapper for providers to keep the App component clean
+// AppProviders wrapper
 const AppProviders = ({ children }) => {
   return (
     <ThemeProvider>
-      <AuthProvider>
-          <DashboardUIProvider>
-            {/* <RequirementsProvider> */}
-              {/* <CapabilitiesProvider> */}
-                {/* <TeamProvider> */}
-                  {children}
-                {/* </TeamProvider> */}
-              {/* </CapabilitiesProvider> */}
-            {/* </RequirementsProvider> */}
-          </DashboardUIProvider>
-      </AuthProvider>
+      <JWTAuthProvider>
+        <DashboardUIProvider>
+          {children}
+          <ModalManager />
+        </DashboardUIProvider>
+      </JWTAuthProvider>
     </ThemeProvider>
   );
 };
 
-// Loading Fallback Component
+// Fallback while loading lazy components
 const LoadingFallback = () => (
   <div className="flex items-center justify-center min-h-screen bg-background-light dark:bg-background-dark">
     <div className="flex flex-col items-center">
@@ -64,76 +53,61 @@ const LoadingFallback = () => (
   </div>
 );
 
-/**
- * Main App Component for the Cyber Trust Sensor Dashboard
- * 
- * This component serves as the entry point for the application and sets up:
- * 1. Global and feature-specific context providers
- * 2. Routing with React Router
- * 3. Lazy loading for performance optimization
- * 
- * The architecture follows atomic design principles with a feature-based modular approach
- * as outlined in the technical architecture design.
- */
+// Protected route wrapper
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) return <LoadingFallback />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return children;
+};
+
+// Main App
 function App() {
   return (
     <BrowserRouter>
       <AppProviders>
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
-            {/* Authentication Route - Placeholder */}
+            {/* Login route */}
             <Route path="/login" element={<LoginPage />} />
-            
-            {/* Dashboard Routes */}
+
+            {/* Dashboard routes */}
             <Route
               path="/dashboard/*"
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                  {/* Inner Suspense prevents heavy spinner between page switches */}
-                  {/* Inner Suspense now shows a minimal indicator – avoids large spinner flash */}
-                  <Suspense fallback={<div className="p-4 text-sm">Loading…</div>}>
-                  <Routes>
-                    {/* Implemented Pages */}
-                    <Route path="overview" element={<OverviewPage />} />
-                    <Route path="settings" element={<SettingsPage />} />
+                    <Routes>
+                      <Route path="overview" element={<OverviewPage />} />
+                      <Route path="settings" element={<SettingsPage />} />
+                      <Route path="requirements" element={<RequirementsPage />} />
+                      <Route path="capabilities" element={<CapabilitiesPage />} />
+                      <Route path="resources" element={<ResourcePlanningPage />} />
+                      <Route path="mitre-attack" element={<MitreAttackPage />} />
+                      <Route path="maturity-analysis" element={<MaturityAnalysisPage />} />
+                      <Route path="threat-intelligence" element={<ThreatIntelligencePage />} />
+                      <Route path="risk-management" element={<RiskManagementPage />} />
+                      <Route path="standards-frameworks" element={<StandardsFrameworksPage />} />
+                      <Route path="analytics" element={<AnalyticsPage />} />
+                      <Route path="business-plan" element={<BusinessPlanPage />} />
 
-                    {/* Placeholder Pages */}
-                    <Route path="requirements" element={<RequirementsPage />} />
-                    <Route path="capabilities" element={<CapabilitiesPage />} />
-                    <Route path="resources" element={<ResourcePlanningPage />} />
-                    <Route path="maturity-analysis" element={<MaturityAnalysisPage />} />
+                      {/* ✅ Newly added working routes */}
+                      <Route path="trust-page" element={<TrustPage />} />
+                      <Route path="incident-management" element={<IncidentManagementPage />} />
 
-                    {/* Business Plan */}
-                    <Route path="business-plan" element={<BusinessPlanPage />} />
-
-                    <Route path="threat-intelligence" element={<ThreatIntelligencePage />} />
-
-                    {/* --- Debugging specific pages not loading --- */}
-                    <Route path="incident-management" element={<IncidentManagementPage />} />
-                    <Route path="trust" element={<TrustPage />} />
-
-                    {/* MITRE ATT&CK Framework */}
-                    <Route path="mitre-attack" element={<MitreAttackPage />} />
-                    {/* Standards & Frameworks */}
-                    <Route path="standards-frameworks" element={<StandardsFrameworksPage />} />
-                    <Route path="risk-management" element={<RiskManagementPage />} />
-
-                    <Route path="analytics" element={<AnalyticsPage />} />
-                    
-                    {/* Default route within the dashboard */}
-                    <Route path="*" element={<Navigate to="/dashboard/overview" replace />} />
-                  </Routes>
-                  </Suspense>
+                      {/* Dashboard fallback */}
+                      <Route path="*" element={<Navigate to="/dashboard/overview" replace />} />
+                    </Routes>
                   </DashboardLayout>
                 </ProtectedRoute>
               }
             />
-            
-            {/* Redirect root to dashboard */}
+
+            {/* Default root redirect */}
             <Route path="/" element={<Navigate to="/dashboard/overview" replace />} />
-            
-            {/* Catch-all for 404 - redirects to dashboard */}
+
+            {/* 404 fallback */}
             <Route path="*" element={<Navigate to="/dashboard/overview" replace />} />
           </Routes>
         </Suspense>
