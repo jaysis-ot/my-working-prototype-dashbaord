@@ -29,7 +29,8 @@ import {
   RefreshCw,
   X,
   Layers,
-  Activity
+  Activity,
+  Network
 } from 'lucide-react';
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
@@ -415,6 +416,14 @@ const EvidenceView = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [marketplaceFilters, setMarketplaceFilters] = useState({});
   
+  // State for evidence graph
+  const [selectedNodeId, setSelectedNodeId] = useState(null);
+  const [highlightedPath, setHighlightedPath] = useState(null);
+  
+  // State for timeline
+  const [selectedEvidence, setSelectedEvidence] = useState(null);
+  const [timeRange, setTimeRange] = useState({ months: 24 });
+  
   // Use evidence suggestions hook
   const {
     suggestions,
@@ -492,6 +501,166 @@ const EvidenceView = ({
     setHighlightedElement({ type: nodeType, id: node.id });
     // In a real implementation, this might show details or highlight related elements
   }, []);
+  
+  // Handle graph node selection
+  const handleNodeSelect = useCallback((nodeId) => {
+    setSelectedNodeId(nodeId);
+    console.log(`Selected node: ${nodeId}`);
+  }, []);
+  
+  // Handle graph path highlighting
+  const handleHighlightPath = useCallback((path) => {
+    setHighlightedPath(path);
+    console.log(`Highlighted path: ${path}`);
+  }, []);
+  
+  // Handle timeline time point selection
+  const handleTimePointSelect = useCallback((date) => {
+    console.log('Time point selected:', date);
+    // In a real implementation, this might show details or highlight related elements
+  }, []);
+  
+  // Handle timeline evidence selection
+  const handleEvidenceSelect = useCallback((evidence) => {
+    setSelectedEvidence(evidence.id);
+    console.log(`Selected evidence: ${evidence.id}`);
+  }, []);
+  
+  // Sample data for the graph view
+  const controls = [
+    {
+      id: 'ctrl-001',
+      name: 'Multi-Factor Authentication',
+      description: 'Implementation of MFA across all systems',
+      status: 'complete'
+    },
+    {
+      id: 'ctrl-002',
+      name: 'Access Reviews',
+      description: 'Regular review of user access rights',
+      status: 'partial'
+    },
+    {
+      id: 'ctrl-003',
+      name: 'Data Encryption',
+      description: 'Encryption of sensitive data at rest and in transit',
+      status: 'complete'
+    },
+    {
+      id: 'ctrl-004',
+      name: 'Security Monitoring',
+      description: 'Continuous monitoring of security events',
+      status: 'partial'
+    }
+  ];
+  
+  const requirements = [
+    {
+      id: 'req-001',
+      name: 'NIST CSF PR.AC-1',
+      description: 'Identities and credentials are managed for authorized devices and users',
+      framework: 'NIST CSF'
+    },
+    {
+      id: 'req-002',
+      name: 'ISO 27001 A.9.2.3',
+      description: 'Management of privileged access rights',
+      framework: 'ISO 27001'
+    },
+    {
+      id: 'req-003',
+      name: 'NIST CSF PR.DS-1',
+      description: 'Data-at-rest is protected',
+      framework: 'NIST CSF'
+    }
+  ];
+  
+  const risks = [
+    {
+      id: 'risk-001',
+      name: 'Unauthorized Access',
+      description: 'Risk of unauthorized access to systems and data',
+      impact: 5,
+      likelihood: 3,
+      score: 15
+    },
+    {
+      id: 'risk-002',
+      name: 'Data Breach',
+      description: 'Risk of sensitive data exposure',
+      impact: 5,
+      likelihood: 2,
+      score: 10
+    },
+    {
+      id: 'risk-003',
+      name: 'Compliance Violation',
+      description: 'Risk of failing to meet regulatory or compliance requirements',
+      impact: 4,
+      likelihood: 2,
+      score: 8
+    }
+  ];
+  
+  const relationships = [
+    // Evidence to Control relationships
+    { source: 'EV-1001', target: 'ctrl-001', type: 'supports', strength: 'strong' },
+    { source: 'EV-1002', target: 'ctrl-003', type: 'supports', strength: 'strong' },
+    { source: 'EV-1003', target: 'ctrl-001', type: 'validates', strength: 'medium' },
+    { source: 'EV-1004', target: 'ctrl-001', type: 'validates', strength: 'strong' },
+    { source: 'EV-1004', target: 'ctrl-002', type: 'validates', strength: 'medium' },
+    { source: 'EV-1005', target: 'ctrl-004', type: 'supports', strength: 'strong' },
+    { source: 'EV-1006', target: 'ctrl-004', type: 'implements', strength: 'strong' },
+    { source: 'EV-1007', target: 'ctrl-002', type: 'validates', strength: 'medium' },
+    { source: 'EV-1008', target: 'ctrl-001', type: 'supports', strength: 'medium' },
+    { source: 'EV-1009', target: 'ctrl-004', type: 'supports', strength: 'medium' },
+    
+    // Control to Requirement relationships
+    { source: 'ctrl-001', target: 'req-001', type: 'satisfies', strength: 'strong' },
+    { source: 'ctrl-002', target: 'req-002', type: 'satisfies', strength: 'strong' },
+    { source: 'ctrl-003', target: 'req-003', type: 'satisfies', strength: 'strong' },
+    { source: 'ctrl-004', target: 'req-001', type: 'satisfies', strength: 'medium' },
+    
+    // Control to Risk relationships
+    { source: 'ctrl-001', target: 'risk-001', type: 'mitigates', strength: 'strong' },
+    { source: 'ctrl-002', target: 'risk-001', type: 'mitigates', strength: 'medium' },
+    { source: 'ctrl-003', target: 'risk-002', type: 'mitigates', strength: 'strong' },
+    { source: 'ctrl-004', target: 'risk-003', type: 'mitigates', strength: 'medium' }
+  ];
+  
+  // Sample compliance requirements for timeline
+  const complianceRequirements = [
+    {
+      name: 'ISO 27001 A.9.2.1',
+      refreshIntervalMonths: 12,
+      evidenceTypes: ['Intent', 'Validation'],
+      frameworks: ['ISO 27001']
+    },
+    {
+      name: 'SOC 2 CC7.1',
+      refreshIntervalMonths: 6,
+      evidenceTypes: ['Implementation', 'Behavioral', 'Validation'],
+      frameworks: ['SOC 2']
+    },
+    {
+      name: 'NIST CSF PR.AC-1',
+      refreshIntervalMonths: 9,
+      evidenceTypes: ['Intent', 'Implementation', 'Validation'],
+      frameworks: ['NIST CSF']
+    },
+    {
+      name: 'PCI DSS 12.3',
+      refreshIntervalMonths: 3,
+      evidenceTypes: ['Behavioral', 'Validation'],
+      frameworks: ['PCI DSS']
+    },
+    {
+      name: 'GDPR Article 32',
+      refreshIntervalMonths: 24,
+      evidenceTypes: ['Intent', 'Validation'],
+      frameworks: ['GDPR']
+    }
+  ];
   
   // Apply filters to evidence items
   const filteredEvidence = useMemo(() => {
@@ -826,6 +995,83 @@ const EvidenceView = ({
   // Render the appropriate content based on active tab
   const renderTabContent = () => {
     switch (activeTab) {
+      case 'timeline':
+        return (
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-secondary-800 rounded-lg border border-secondary-200 dark:border-secondary-700 p-4 mb-4">
+              <p className="text-secondary-600 dark:text-secondary-400">
+                The lifecycle timeline visualizes evidence freshness over time with predictive decay modeling.
+                It shows historical events, current state, and forecasts when evidence will need refreshing.
+              </p>
+            </div>
+            
+            <div className="bg-white dark:bg-secondary-800 rounded-lg border border-secondary-200 dark:border-secondary-700 p-4">
+              <EvidenceLifecycleTimeline
+                evidenceItems={evidenceItems}
+                complianceRequirements={complianceRequirements}
+                timeRange={timeRange}
+                onTimePointSelect={handleTimePointSelect}
+                onEvidenceSelect={handleEvidenceSelect}
+                selectedEvidence={selectedEvidence}
+              />
+            </div>
+          </div>
+        );
+        
+      case 'graph':
+        return (
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-secondary-800 rounded-lg border border-secondary-200 dark:border-secondary-700 p-4 mb-4">
+              <p className="text-secondary-600 dark:text-secondary-400">
+                This interactive graph visualizes relationships between evidence artifacts, controls, requirements, and risks.
+                The "golden thread" architecture allows you to trace from risks through controls to the supporting evidence.
+              </p>
+            </div>
+            
+            <div className="bg-white dark:bg-secondary-800 rounded-lg border border-secondary-200 dark:border-secondary-700 p-4">
+              <EvidenceGraph
+                evidenceItems={evidenceItems}
+                controls={controls}
+                requirements={requirements}
+                risks={risks}
+                relationships={relationships}
+                selectedNodeId={selectedNodeId}
+                onNodeSelect={handleNodeSelect}
+                highlightedPath={highlightedPath}
+                className="h-[700px]"
+              />
+            </div>
+            
+            {selectedNodeId && (
+              <div className="bg-white dark:bg-secondary-800 rounded-lg border border-secondary-200 dark:border-secondary-700 p-4">
+                <h3 className="text-lg font-semibold text-secondary-900 dark:text-white mb-2">
+                  Selected Node: {selectedNodeId}
+                </h3>
+                <p className="text-secondary-600 dark:text-secondary-400 mb-4">
+                  View details about the selected node and its relationships.
+                </p>
+                
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setHighlightedPath(['risk-001', 'ctrl-001', 'EV-1001', 'EV-1003'])}
+                  >
+                    Show Sample Path
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setHighlightedPath(null)}
+                  >
+                    Clear Highlighting
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+        
       case 'journey':
         return (
           <div className="space-y-6">
@@ -1235,6 +1481,18 @@ const EvidenceView = ({
               icon={LayoutGrid}
               label="Evidence"
               onClick={() => setActiveTab('evidence')}
+            />
+            <TabButton
+              active={activeTab === 'timeline'}
+              icon={Clock}
+              label="Lifecycle Timeline"
+              onClick={() => setActiveTab('timeline')}
+            />
+            <TabButton
+              active={activeTab === 'graph'}
+              icon={Network}
+              label="Graph"
+              onClick={() => setActiveTab('graph')}
             />
             <TabButton
               active={activeTab === 'journey'}
