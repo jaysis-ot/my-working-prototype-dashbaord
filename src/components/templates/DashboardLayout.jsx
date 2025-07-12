@@ -10,6 +10,7 @@ import {
   Shield,
   Users,
   BarChart3,
+  Beaker,
   PieChart,
   TrendingUp,
   AlertTriangle,
@@ -59,6 +60,7 @@ const DashboardLayout = ({ children }) => {
     ClipboardList,
     Heart,
     Settings: SettingsIcon,
+    Beaker,
   };
 
   const handleSidebarToggle = () => {
@@ -78,6 +80,8 @@ const DashboardLayout = ({ children }) => {
     { id: 'threat-intelligence', label: 'Threat Intelligence', icon: 'AlertTriangle' },
     { id: 'incident-management', label: 'Incident Management', icon: 'AlertCircle' },
     { id: 'evidence', label: 'Evidence', icon: 'ClipboardList' },
+    // Advanced Evidence Demo (cutting-edge visualisations)
+    { id: 'evidence-demo', label: 'Evidence Demo', icon: 'Beaker' },
     { id: 'risk-management', label: 'Risk Management', icon: 'Target' },
     { id: 'trust', label: 'Trust', icon: 'Heart' },
     { id: 'settings', label: 'Settings', icon: 'Settings' },
