@@ -1072,6 +1072,30 @@ const EvidenceView = ({
               </div>
             </div>
             
+            {/* Evidence Health Card */}
+            <EvidenceHealthCard
+              title="Evidence Health"
+              overallScore={87}
+              qualityScore={94}
+              coverageScore={87}
+              freshnessScore={72}
+              trend={+3}
+              trendPeriod="month"
+              detailedMetrics={[
+                { label: 'Evidence Artifacts', value: '1,247', icon: 'info', status: 'neutral' },
+                { label: 'Evidence Gaps', value: '23', icon: 'alert', status: 'warning' },
+                { label: 'Stale Evidence', value: '124', icon: 'alert', status: 'warning' },
+                { label: 'Auto-Collected', value: '76%', icon: 'success', status: 'good' }
+              ]}
+              impactedAreas={[
+                { name: 'Access Control', count: 42, impact: 'low' },
+                { name: 'Data Protection', count: 28, impact: 'medium' },
+                { name: 'Cloud Security', count: 15, impact: 'high' },
+                { name: 'Incident Response', count: 8, impact: 'medium' }
+              ]}
+              onViewDetails={() => console.log('View detailed health report')}
+            />
+            
             {/* Filters Bar */}
             <div className="bg-white dark:bg-secondary-800 rounded-lg border border-secondary-200 dark:border-secondary-700 p-4">
               <div className="flex flex-wrap items-center gap-4">
@@ -1230,29 +1254,6 @@ const EvidenceView = ({
           </div>
         </div>
         
-        {/* Enhanced Health Card */}
-        <EvidenceHealthCard
-          title="Evidence Health"
-          overallScore={87}
-          qualityScore={94}
-          coverageScore={87}
-          freshnessScore={72}
-          trend={+3}
-          trendPeriod="month"
-          detailedMetrics={[
-            { label: 'Evidence Artifacts', value: '1,247', icon: 'info', status: 'neutral' },
-            { label: 'Evidence Gaps', value: '23', icon: 'alert', status: 'warning' },
-            { label: 'Stale Evidence', value: '124', icon: 'alert', status: 'warning' },
-            { label: 'Auto-Collected', value: '76%', icon: 'success', status: 'good' }
-          ]}
-          impactedAreas={[
-            { name: 'Access Control', count: 42, impact: 'low' },
-            { name: 'Data Protection', count: 28, impact: 'medium' },
-            { name: 'Cloud Security', count: 15, impact: 'high' },
-            { name: 'Incident Response', count: 8, impact: 'medium' }
-          ]}
-          onViewDetails={() => console.log('View detailed health report')}
-        />
       </div>
       
       {/* Evidence Intelligence Panel */}
