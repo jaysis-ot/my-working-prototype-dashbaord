@@ -232,13 +232,21 @@ const RiskManagementView = ({
     { key: 'id', label: 'Risk ID', sortable: true },
     { key: 'title', label: 'Title', sortable: true },
     { key: 'createdDate', label: 'Created', sortable: true },
-    { key: 'triageCompletedDate', label: 'Triaged', sortable: true },
-    { key: 'finalResolutionDate', label: 'Resolved', sortable: true },
-    { key: 'outcome', label: 'Outcome', sortable: true },
+    { key: 'triageCompletedDate', label: 'Triage Date', sortable: true },
+    { key: 'finalResolutionDate', label: 'Resolution Date', sortable: true },
+    { key: 'outcome', label: 'Treatment Outcome', sortable: true },
+    { key: 'triageDueDate', label: 'Triage SLA', sortable: true },
+    { key: 'resolutionDueDate', label: 'Resolution SLA', sortable: true },
+    { key: 'technicalRating', label: 'Technical Rating', sortable: true },
+    { key: 'businessRating', label: 'Business Rating', sortable: true },
+    { key: 'auditConfidence', label: 'Audit Confidence', sortable: true },
+    { key: 'residualRiskScore', label: 'Residual Risk Score', sortable: true },
+    { key: 'controlEffectiveness', label: 'Control Effectiveness', sortable: true },
+    { key: 'lastControlTestDate', label: 'Last Control Test', sortable: true },
     { key: 'status', label: 'Status', sortable: true },
     { key: 'category', label: 'Category', sortable: true },
     { key: 'owner', label: 'Owner', sortable: true },
-    { key: 'rating.score', label: 'Rating', sortable: true },
+    { key: 'rating.score', label: 'Risk Score', sortable: true },
     { key: 'actions', label: 'Actions', sortable: false },
   ];
 
@@ -328,8 +336,10 @@ const RiskManagementView = ({
 
         {/* Table */}
         <div className="flex-grow overflow-x-auto">
-          <table className="min-w-full divide-y divide-secondary-200 dark:divide-secondary-700">
-            <thead className="bg-secondary-50 dark:bg-secondary-700/50">
+          {/* allow natural column widths + horizontal drag */}
+          <table className="min-w-max w-full divide-y divide-secondary-200 dark:divide-secondary-700">
+            {/* sticky header so labels stay visible when scrolling */}
+            <thead className="sticky top-0 z-10 bg-secondary-50 dark:bg-secondary-700/50">
               <tr>
                 {columns.map(col => (
                   <th
@@ -395,6 +405,39 @@ const RiskManagementView = ({
                   {/* Outcome */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <Badge>{risk.outcome || '-'}</Badge>
+                  </td>
+                  {/* SLA & Ratings / Metrics */}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {risk.triageDueDate
+                      ? new Date(risk.triageDueDate).toLocaleDateString()
+                      : '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {risk.resolutionDueDate
+                      ? new Date(risk.resolutionDueDate).toLocaleDateString()
+                      : '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {risk.technicalRating ?? '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {risk.businessRating ?? '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {risk.auditConfidence ?? '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {risk.residualRiskScore ?? '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {risk.controlEffectiveness != null
+                      ? `${risk.controlEffectiveness}%`
+                      : '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {risk.lastControlTestDate
+                      ? new Date(risk.lastControlTestDate).toLocaleDateString()
+                      : '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <Badge>{risk.status}</Badge>
