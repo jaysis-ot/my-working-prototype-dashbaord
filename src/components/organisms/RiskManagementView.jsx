@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import {
   ShieldAlert,
+  Network,
   BarChart2,
   Filter,
   Plus,
@@ -28,6 +29,28 @@ import RiskEditModal from '../molecules/RiskEditModal';
 import RiskCreateModal from '../molecules/RiskCreateModal';
 
 // --- Internal Molecules for RiskManagementView ---
+
+/**
+ * TabButton: small reusable button for the sub-tab navigation.
+ */
+const TabButton = ({ active, label, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`px-3 py-1 rounded-md text-xs font-medium whitespace-pre-line transition-colors ${
+      active
+        ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
+        : 'text-secondary-600 dark:text-secondary-400 hover:bg-secondary-100 dark:hover:bg-secondary-800'
+    }`}
+  >
+    {label}
+  </button>
+);
+
+TabButton.propTypes = {
+  active: PropTypes.bool.isRequired,
+  label: PropTypes.string.isRequired,
+  onClick: PropTypes.func.isRequired,
+};
 
 /**
  * MetricCard: Displays a single key statistic for the risk overview.
@@ -94,6 +117,17 @@ const RiskManagementView = ({
   onUpdateRisk,
   onDeleteRisk,
 }) => {
+  // ------------------ Local view tab state ------------------ //
+  const [activeTab, setActiveTab] = useState('correlation');
+  const subTabs = [
+    { key: 'correlation', label: 'Correlation\nNetwork' },
+    { key: 'predictive', label: 'Predictive\nIntelligence' },
+    { key: 'stakeholder', label: 'Stakeholder\nConsensus' },
+    { key: 'timeline', label: 'Lifecycle\nTimeline' },
+    { key: 'impact', label: 'Business\nImpact' },
+    { key: 'effectiveness', label: 'Control\nEffectiveness' },
+  ];
+
   const [sortConfig, setSortConfig] = useState({ key: 'rating.score', direction: 'desc' });
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 10;
@@ -221,13 +255,28 @@ const RiskManagementView = ({
         </Button>
       </div>
 
-      {/* Metrics Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Sub-Tab Navigation */}
+      <div className="flex gap-2 mt-4">
+        {subTabs.map((tab) => (
+          <TabButton
+            key={tab.key}
+            label={tab.label}
+            active={activeTab === tab.key}
+            onClick={() => setActiveTab(tab.key)}
+          />
+        ))}
+      </div>
+
+      {/* -------- Main Content (conditional) -------- */}
+      {activeTab === 'correlation' ? (
+        <>
+        {/* Metrics Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard title="Total Risks" value={metrics.total} color="blue" />
         <MetricCard title="Open Risks" value={metrics.open} color="orange" />
         <MetricCard title="Mitigated" value={metrics.mitigated} color="green" />
         <MetricCard title="Avg. Risk Score" value={metrics.avgScore} color="purple" />
-      </div>
+        </div>
 
       {/* Filters & Table Section */}
       <div className="dashboard-card flex-grow flex flex-col">
@@ -277,29 +326,56 @@ const RiskManagementView = ({
             <thead className="bg-secondary-50 dark:bg-secondary-700/50">
               <tr>
                 {columns.map(col => (
-                  <th key={col.key} className="px-6 py-3 text-left text-xs font-medium text-secondary-500 dark:text-secondary-400 uppercase tracking-wider">
+                  <th
+                    key={col.key}
+                    className="px-6 py-3 text-left text-xs font-medium text-secondary-500 dark:text-secondary-400 uppercase tracking-wider"
+                  >
                     {col.sortable ? (
-                      <button onClick={() => handleSort(col.key)} className="flex items-center gap-1 group">
+                      <button
+                        onClick={() => handleSort(col.key)}
+                        className="flex items-center gap-1 group"
+                      >
                         {col.label}
                         <ArrowDownUp className="w-3 h-3 text-secondary-400 group-hover:text-secondary-600" />
                       </button>
-                    ) : col.label}
+                    ) : (
+                      col.label
+                    )}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-secondary-800 divide-y divide-secondary-200 dark:divide-secondary-700">
               {sortedAndPaginatedRisks.map(risk => (
-                <tr key={risk.id} className="hover:bg-secondary-50 dark:hover:bg-secondary-700/50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-primary-600 dark:text-primary-300">{risk.id}</td>
-                  <td className="px-6 py-4 max-w-sm">
-                    <p className="text-sm font-semibold text-secondary-900 dark:text-white truncate" title={risk.title}>{risk.title}</p>
-                    <p className="text-xs text-secondary-500 dark:text-secondary-400 truncate" title={risk.description}>{risk.description}</p>
+                <tr
+                  key={risk.id}
+                  className="hover:bg-secondary-50 dark:hover:bg-secondary-700/50"
+                >
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-primary-600 dark:text-primary-300">
+                    {risk.id}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm"><Badge>{risk.status}</Badge></td>
+                  <td className="px-6 py-4 max-w-sm">
+                    <p
+                      className="text-sm font-semibold text-secondary-900 dark:text-white truncate"
+                      title={risk.title}
+                    >
+                      {risk.title}
+                    </p>
+                    <p
+                      className="text-xs text-secondary-500 dark:text-secondary-400 truncate"
+                      title={risk.description}
+                    >
+                      {risk.description}
+                    </p>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <Badge>{risk.status}</Badge>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">{risk.category}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">{risk.owner}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm"><RiskRatingIndicator {...risk.rating} /></td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <RiskRatingIndicator {...risk.rating} />
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <div className="flex items-center gap-2">
                       <Button
@@ -318,10 +394,10 @@ const RiskManagementView = ({
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        onClick={() => handleDeleteClick(risk.id)} 
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteClick(risk.id)}
                         title="Delete"
                       >
                         <Trash2 className="w-4 h-4 text-status-error" />
@@ -337,17 +413,58 @@ const RiskManagementView = ({
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="p-4 border-t border-secondary-200 dark:border-secondary-700 flex items-center justify-between">
-            <span className="text-sm text-secondary-600">Page {currentPage} of {totalPages}</span>
+            <span className="text-sm text-secondary-600">
+              Page {currentPage} of {totalPages}
+            </span>
             <div className="flex items-center gap-1">
-              <Button size="sm" variant="secondary" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}><ChevronsLeft className="w-4 h-4" /></Button>
-              <Button size="sm" variant="secondary" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}><ChevronLeft className="w-4 h-4" /></Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+              >
+                <ChevronsLeft className="w-4 h-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setCurrentPage(p => p - 1)}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
               <span className="px-2 text-sm font-semibold">{currentPage}</span>
-              <Button size="sm" variant="secondary" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages}><ChevronRight className="w-4 h-4" /></Button>
-              <Button size="sm" variant="secondary" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}><ChevronsRight className="w-4 h-4" /></Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setCurrentPage(p => p + 1)}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronsRight className="w-4 h-4" />
+              </Button>
             </div>
           </div>
         )}
-      </div>
+
+      </div> {/* end dashboard-card */}
+
+        </>
+      ) : (
+        <div className="flex-grow flex items-center justify-center text-secondary-600 dark:text-secondary-400">
+          <p className="text-lg font-medium">
+            {subTabs.find((t) => t.key === activeTab)?.label.replace('\n', ' ')}{' '}
+            view coming soon...
+          </p>
+        </div>
+      )}
     </div>
 
     {/* ----- Requirements Modal ----- */}

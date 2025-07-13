@@ -70,7 +70,8 @@ const GraphTab = ({ evidenceItems }) => {
         </p>
       </div>
 
-      {/* Evidence Relationship Graph */}
+      {/* Tab Navigation */}
+      {/* Graph Content */}
       <div className="bg-white dark:bg-secondary-800 rounded-lg border border-secondary-200 dark:border-secondary-700 p-4">
         <EvidenceGraph
           evidenceItems={evidenceItems}
