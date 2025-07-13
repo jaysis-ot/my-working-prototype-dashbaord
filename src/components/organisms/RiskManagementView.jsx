@@ -118,8 +118,10 @@ const RiskManagementView = ({
   onDeleteRisk,
 }) => {
   // ------------------ Local view tab state ------------------ //
-  const [activeTab, setActiveTab] = useState('correlation');
+  // Default to the Risk Register tab
+  const [activeTab, setActiveTab] = useState('register');
   const subTabs = [
+    { key: 'register', label: 'Risk\nRegister' },
     { key: 'correlation', label: 'Correlation\nNetwork' },
     { key: 'predictive', label: 'Predictive\nIntelligence' },
     { key: 'stakeholder', label: 'Stakeholder\nConsensus' },
@@ -268,7 +270,7 @@ const RiskManagementView = ({
       </div>
 
       {/* -------- Main Content (conditional) -------- */}
-      {activeTab === 'correlation' ? (
+      {activeTab === 'register' ? (
         <>
         {/* Metrics Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
