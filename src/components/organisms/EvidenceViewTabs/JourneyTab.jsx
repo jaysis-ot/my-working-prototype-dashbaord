@@ -45,6 +45,42 @@ const JourneyTab = () => {
         { id: 'ts-3', name: 'Access Score', coverage: 92 }
       ]
     },
+    /* ----------------------------------------------------------------
+     * Compliance journey (Framework → Requirement → Policy → 
+     * Implementation → Validation → Monitoring)
+     * ---------------------------------------------------------------- */
+    compliance: {
+      framework: [
+        { id: 'fw-1', name: 'ISO 27001', coverage: 85 },
+        { id: 'fw-2', name: 'SOC 2', coverage: 78 },
+        { id: 'fw-3', name: 'PCI DSS', coverage: 72 }
+      ],
+      requirement: [
+        { id: 'req-1', name: 'A.9.2.1 User Access', coverage: 80 },
+        { id: 'req-2', name: 'CC7.1 Change Mgmt', coverage: 76 },
+        { id: 'req-3', name: '12.3 Key Mgmt', coverage: 69 }
+      ],
+      policy: [
+        { id: 'pol-1', name: 'Access Control Policy', coverage: 88 },
+        { id: 'pol-2', name: 'Encryption Policy', coverage: 83 },
+        { id: 'pol-3', name: 'Incident Response Policy', coverage: 75 }
+      ],
+      implementation: [
+        { id: 'impl-1', name: 'MFA Config', coverage: 82 },
+        { id: 'impl-2', name: 'Database Encryption', coverage: 71 },
+        { id: 'impl-3', name: 'Backup Automation', coverage: 69 }
+      ],
+      validation: [
+        { id: 'val-1', name: 'Pen-Test Results', status: 'complete', coverage: 90 },
+        { id: 'val-2', name: 'Quarterly Access Review', status: 'partial', coverage: 65 },
+        { id: 'val-3', name: 'DR Test Report', status: 'missing', coverage: 40 }
+      ],
+      monitoring: [
+        { id: 'mon-1', name: 'SIEM Alerts', coverage: 78 },
+        { id: 'mon-2', name: 'CloudTrail Logs', coverage: 74 },
+        { id: 'mon-3', name: 'Vuln Scan Dashboard', coverage: 70 }
+      ]
+    },
     paths: [
       { id: 'p1', name: 'Email Threat Journey' },
       { id: 'p2', name: 'Endpoint Threat Journey' },
