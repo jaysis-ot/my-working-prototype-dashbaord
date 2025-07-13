@@ -36,7 +36,7 @@ import RiskCreateModal from '../molecules/RiskCreateModal';
 const TabButton = ({ active, label, onClick }) => (
   <button
     onClick={onClick}
-    className={`px-3 py-1 rounded-md text-xs font-medium whitespace-pre-line transition-colors ${
+    className={`px-3 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors ${
       active
         ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
         : 'text-secondary-600 dark:text-secondary-400 hover:bg-secondary-100 dark:hover:bg-secondary-800'
@@ -121,13 +121,13 @@ const RiskManagementView = ({
   // Default to the Risk Register tab
   const [activeTab, setActiveTab] = useState('register');
   const subTabs = [
-    { key: 'register', label: 'Risk\nRegister' },
-    { key: 'correlation', label: 'Correlation\nNetwork' },
-    { key: 'predictive', label: 'Predictive\nIntelligence' },
-    { key: 'stakeholder', label: 'Stakeholder\nConsensus' },
-    { key: 'timeline', label: 'Lifecycle\nTimeline' },
-    { key: 'impact', label: 'Business\nImpact' },
-    { key: 'effectiveness', label: 'Control\nEffectiveness' },
+    { key: 'register',       label: 'Risk Register' },
+    { key: 'correlation',    label: 'Correlation Network' },
+    { key: 'predictive',     label: 'Predictive Intelligence' },
+    { key: 'stakeholder',    label: 'Stakeholder Consensus' },
+    { key: 'timeline',       label: 'Lifecycle Timeline' },
+    { key: 'impact',         label: 'Business Impact' },
+    { key: 'effectiveness',  label: 'Control Effectiveness' },
   ];
 
   const [sortConfig, setSortConfig] = useState({ key: 'rating.score', direction: 'desc' });
@@ -231,6 +231,10 @@ const RiskManagementView = ({
   const columns = [
     { key: 'id', label: 'Risk ID', sortable: true },
     { key: 'title', label: 'Title', sortable: true },
+    { key: 'createdDate', label: 'Created', sortable: true },
+    { key: 'triageCompletedDate', label: 'Triaged', sortable: true },
+    { key: 'finalResolutionDate', label: 'Resolved', sortable: true },
+    { key: 'outcome', label: 'Outcome', sortable: true },
     { key: 'status', label: 'Status', sortable: true },
     { key: 'category', label: 'Category', sortable: true },
     { key: 'owner', label: 'Owner', sortable: true },
@@ -369,6 +373,28 @@ const RiskManagementView = ({
                     >
                       {risk.description}
                     </p>
+                  </td>
+                  {/* Created */}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {risk.createdDate
+                      ? new Date(risk.createdDate).toLocaleDateString()
+                      : '-'}
+                  </td>
+                  {/* Triaged */}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {risk.triageCompletedDate
+                      ? new Date(risk.triageCompletedDate).toLocaleDateString()
+                      : '-'}
+                  </td>
+                  {/* Resolved */}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {risk.finalResolutionDate
+                      ? new Date(risk.finalResolutionDate).toLocaleDateString()
+                      : '-'}
+                  </td>
+                  {/* Outcome */}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <Badge>{risk.outcome || '-'}</Badge>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <Badge>{risk.status}</Badge>
