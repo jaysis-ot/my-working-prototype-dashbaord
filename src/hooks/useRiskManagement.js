@@ -22,6 +22,15 @@ const calculateRiskRating = (impact, probability) => {
   return { score, level };
 };
 
+/**
+ * Returns a millisecond offset representing a random number of days
+ * between `min` and `max` (inclusive).
+ * @param {number} min - minimum whole days
+ * @param {number} max - maximum whole days
+ */
+const randomDays = (min, max) =>
+  Math.floor(Math.random() * (max - min + 1) + min) * 24 * 60 * 60 * 1000;
+
 // --- Mock Data Generation ---
 
 /**
@@ -35,6 +44,18 @@ const generateMockRisks = () => {
     const probability = Math.floor(Math.random() * 5) + 1;
     const { score, level } = calculateRiskRating(impact, probability);
 
+    // --- life-cycle dates & metrics ---
+    const created = new Date(
+      Date.now() - randomDays(30, 365) // created sometime in last year
+    );
+
+    // 80 % have triage completed
+    const hasTriaged = Math.random() < 0.8;
+    const triageCompleted = hasTriaged
+      ? new Date(created.getTime() + randomDays(1, 30))
+      : undefined;
+
+    // choose status deterministically (existing logic)
     risks.push({
       id: `RISK-${String(i).padStart(3, '0')}`,
       title: `Risk of Unauthorized Access to System #${i}`,
@@ -45,7 +66,36 @@ const generateMockRisks = () => {
       rating: { score, level },
       owner: MOCK_OWNERS[i % MOCK_OWNERS.length],
       category: RISK_CATEGORIES[i % RISK_CATEGORIES.length],
-      createdDate: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
+      createdDate: created.toISOString(),
+      triageCompletedDate: triageCompleted?.toISOString(),
+      finalResolutionDate:
+        ['Mitigated', 'Accepted'].includes(
+          RISK_STATUSES[i % RISK_STATUSES.length]
+        )
+          ? new Date(created.getTime() + randomDays(31, 90)).toISOString()
+          : undefined,
+      outcome: ['Mitigated', 'Accepted'].includes(
+        RISK_STATUSES[i % RISK_STATUSES.length]
+      )
+        ? RISK_STATUSES[i % RISK_STATUSES.length]
+        : undefined,
+
+      // SLA due dates (simple fixed offsets)
+      triageDueDate: new Date(created.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      resolutionDueDate: new Date(created.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+
+      // Stakeholder ratings
+      technicalRating: Math.floor(Math.random() * 5) + 1,
+      businessRating: Math.floor(Math.random() * 5) + 1,
+      auditConfidence: Math.floor(Math.random() * 5) + 1,
+
+      // Residual risk & control metrics
+      residualRiskScore: Math.floor(Math.random() * score) + 1,
+      controlEffectiveness: Math.floor(Math.random() * 51) + 50, // 50-100
+      lastControlTestDate: new Date(
+        created.getTime() + randomDays(10, Math.max(10, (Date.now() - created.getTime()) / 86400000))
+      ).toISOString(),
+
       lastUpdated: new Date().toISOString(),
     });
   }
