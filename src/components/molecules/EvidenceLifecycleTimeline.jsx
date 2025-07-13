@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { Calendar, Clock, AlertTriangle, CheckCircle, RefreshCw, ZoomIn, ZoomOut } from 'lucide-react';
+import { Calendar, Clock, AlertTriangle, CheckCircle, RefreshCw, ZoomIn, ZoomOut, ArrowDown } from 'lucide-react';
 
 /**
  * EvidenceLifecycleTimeline Component
@@ -14,6 +14,7 @@ import { Calendar, Clock, AlertTriangle, CheckCircle, RefreshCw, ZoomIn, ZoomOut
  * - Timeline zooming and filtering
  * - Critical refresh points highlighting
  * - Time travel capabilities to see past/future states
+ * - Transition point markers showing when evidence changes status
  */
 const EvidenceLifecycleTimeline = ({
   evidenceItems,
@@ -37,6 +38,7 @@ const EvidenceLifecycleTimeline = ({
   const EVIDENCE_RADIUS = 8;
   const MONTH_WIDTH = 60;
   const DECAY_CURVE_HEIGHT = 100;
+  const TRANSITION_MARKER_SIZE = 6;
   
   // Colors for different states
   const COLORS = {
@@ -50,7 +52,8 @@ const EvidenceLifecycleTimeline = ({
     refreshPoint: '#8B5CF6', // purple-500
     selectedEvidence: '#2563EB', // blue-600
     hoveredEvidence: '#3B82F6', // blue-500
-    decayCurve: '#94A3B8' // slate-400
+    decayCurve: '#94A3B8', // slate-400
+    transitionMarker: '#6366F1' // indigo-500
   };
   
   // Calculate current date and date range
@@ -110,6 +113,48 @@ const EvidenceLifecycleTimeline = ({
       ctx.lineTo(width - PADDING, y);
       ctx.stroke();
     }
+    
+    // Draw threshold lines (more visible now)
+    const qualityRange = timelineY - (PADDING + DECAY_CURVE_HEIGHT);
+    
+    // Fresh threshold line (70%)
+    ctx.strokeStyle = COLORS.fresh;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 2]); // More visible dash pattern
+    const freshThresholdY = timelineY - (0.7 * qualityRange);
+    ctx.beginPath();
+    ctx.moveTo(PADDING, freshThresholdY);
+    ctx.lineTo(width - PADDING, freshThresholdY);
+    ctx.stroke();
+    
+    // Add "Fresh" label
+    ctx.fillStyle = COLORS.fresh;
+    ctx.font = 'bold 10px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText("Fresh", PADDING + 5, freshThresholdY - 5);
+    
+    // Aging threshold line (40%)
+    ctx.strokeStyle = COLORS.aging;
+    ctx.lineWidth = 2;
+    const agingThresholdY = timelineY - (0.4 * qualityRange);
+    ctx.beginPath();
+    ctx.moveTo(PADDING, agingThresholdY);
+    ctx.lineTo(width - PADDING, agingThresholdY);
+    ctx.stroke();
+    
+    // Add "Aging" label
+    ctx.fillStyle = COLORS.aging;
+    ctx.font = 'bold 10px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText("Aging", PADDING + 5, agingThresholdY - 5);
+    
+    // Stale region label
+    ctx.fillStyle = COLORS.stale;
+    ctx.font = 'bold 10px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText("Stale", PADDING + 5, agingThresholdY + 15);
+    
+    ctx.setLineDash([]); // Reset dash pattern
     
     // Draw timeline base
     ctx.strokeStyle = COLORS.timeline;
@@ -256,8 +301,8 @@ const EvidenceLifecycleTimeline = ({
       ctx.fill();
       ctx.stroke();
       
-      // Draw evidence decay curve
-      drawDecayCurve(ctx, x, timelineY, item, effectiveMonthWidth);
+      // Draw evidence decay curve with transition markers
+      drawDecayCurve(ctx, x, timelineY, item, effectiveMonthWidth, freshThresholdY, agingThresholdY);
       
       // Draw evidence label if selected or hovered
       if (isSelected || isHovered) {
@@ -307,8 +352,8 @@ const EvidenceLifecycleTimeline = ({
     
   }, [dimensions, evidenceItems, complianceRequirements, zoomLevel, timeOffset, hoveredEvidence, hoveredDate, selectedEvidence, startDate, endDate, timeRange.months]);
   
-  // Draw decay curve for an evidence item
-  const drawDecayCurve = (ctx, x, timelineY, item, effectiveMonthWidth) => {
+  // Draw decay curve for an evidence item with transition markers
+  const drawDecayCurve = (ctx, x, timelineY, item, effectiveMonthWidth, freshThresholdY, agingThresholdY) => {
     // Define decay parameters based on evidence type
     let decayRate;
     switch (item.type) {
@@ -344,21 +389,38 @@ const EvidenceLifecycleTimeline = ({
         initialQuality = 1.0;
     }
     
+    // Calculate decay curve points for finding transitions
+    const curveTop = PADDING + DECAY_CURVE_HEIGHT;
+    const qualityRange = timelineY - curveTop;
+    const futureMonths = 24; // Look further into the future to ensure we catch transitions
+    const curvePoints = [];
+    
+    for (let i = 0; i <= futureMonths; i += 0.1) { // Use smaller steps for more accurate transition detection
+      const futureX = x + (i * effectiveMonthWidth);
+      const quality = initialQuality * Math.exp(-decayRate * i);
+      const futureY = timelineY - (quality * qualityRange);
+      curvePoints.push({ x: futureX, y: futureY, quality, monthsFromNow: i });
+    }
+    
+    // Find transition points
+    const freshToAgingPoint = findTransitionPoint(curvePoints, freshThresholdY);
+    const agingToStalePoint = findTransitionPoint(curvePoints, agingThresholdY);
+    
     // Draw decay curve
     ctx.strokeStyle = COLORS.decayCurve;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     
     // Start at evidence point
-    ctx.moveTo(x, timelineY);
+    ctx.moveTo(x, timelineY - (initialQuality * qualityRange));
     
     // Draw curve for future months
-    const futureMonths = 12;
-    const curveTop = PADDING + DECAY_CURVE_HEIGHT;
-    const qualityRange = timelineY - curveTop;
-    
     for (let i = 0; i <= futureMonths; i++) {
       const futureX = x + (i * effectiveMonthWidth);
+      
+      // Skip if beyond visible area
+      if (futureX > dimensions.width - PADDING) break;
+      
       const quality = initialQuality * Math.exp(-decayRate * i);
       const futureY = timelineY - (quality * qualityRange);
       
@@ -371,31 +433,103 @@ const EvidenceLifecycleTimeline = ({
     
     ctx.stroke();
     
-    // Draw threshold lines
-    ctx.strokeStyle = COLORS.fresh;
-    ctx.setLineDash([2, 2]);
-    const freshThresholdY = timelineY - (0.7 * qualityRange);
+    // Draw transition markers
+    const isSelected = item.id === selectedEvidence;
+    const isHovered = item.id === hoveredEvidence;
+    const shouldHighlight = isSelected || isHovered;
+    
+    // Draw Fresh to Aging transition marker
+    if (freshToAgingPoint && freshToAgingPoint.x <= dimensions.width - PADDING) {
+      drawTransitionMarker(
+        ctx, 
+        freshToAgingPoint.x, 
+        freshToAgingPoint.y, 
+        COLORS.fresh, 
+        COLORS.aging, 
+        shouldHighlight,
+        `Fresh → Aging (${freshToAgingPoint.monthsFromNow.toFixed(1)} months)`
+      );
+    }
+    
+    // Draw Aging to Stale transition marker
+    if (agingToStalePoint && agingToStalePoint.x <= dimensions.width - PADDING) {
+      drawTransitionMarker(
+        ctx, 
+        agingToStalePoint.x, 
+        agingToStalePoint.y, 
+        COLORS.aging, 
+        COLORS.stale, 
+        shouldHighlight,
+        `Aging → Stale (${agingToStalePoint.monthsFromNow.toFixed(1)} months)`
+      );
+    }
+  };
+  
+  // Find the point where a curve crosses a threshold line
+  const findTransitionPoint = (curvePoints, thresholdY) => {
+    for (let i = 1; i < curvePoints.length; i++) {
+      const prevPoint = curvePoints[i - 1];
+      const currPoint = curvePoints[i];
+      
+      // Check if this segment crosses the threshold line
+      if ((prevPoint.y <= thresholdY && currPoint.y >= thresholdY) || 
+          (prevPoint.y >= thresholdY && currPoint.y <= thresholdY)) {
+        
+        // Calculate the exact crossing point using linear interpolation
+        const ratio = (thresholdY - prevPoint.y) / (currPoint.y - prevPoint.y);
+        const x = prevPoint.x + ratio * (currPoint.x - prevPoint.x);
+        const monthsFromNow = prevPoint.monthsFromNow + ratio * (currPoint.monthsFromNow - prevPoint.monthsFromNow);
+        
+        return { x, y: thresholdY, monthsFromNow };
+      }
+    }
+    return null; // No crossing found
+  };
+  
+  // Draw a transition marker
+  const drawTransitionMarker = (ctx, x, y, fromColor, toColor, highlight, label) => {
+    // Draw marker circle
+    ctx.fillStyle = COLORS.transitionMarker;
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 1.5;
+    
     ctx.beginPath();
-    ctx.moveTo(PADDING, freshThresholdY);
-    ctx.lineTo(dimensions.width - PADDING, freshThresholdY);
+    ctx.arc(x, y, TRANSITION_MARKER_SIZE, 0, Math.PI * 2);
+    ctx.fill();
     ctx.stroke();
     
-    ctx.strokeStyle = COLORS.aging;
-    const agingThresholdY = timelineY - (0.4 * qualityRange);
+    // Add arrow indicator
     ctx.beginPath();
-    ctx.moveTo(PADDING, agingThresholdY);
-    ctx.lineTo(dimensions.width - PADDING, agingThresholdY);
-    ctx.stroke();
+    ctx.moveTo(x, y - 10);
+    ctx.lineTo(x - 5, y - 5);
+    ctx.lineTo(x + 5, y - 5);
+    ctx.closePath();
+    ctx.fillStyle = highlight ? COLORS.transitionMarker : 'rgba(99, 102, 241, 0.6)';
+    ctx.fill();
     
-    ctx.setLineDash([]);
+    // Add label if highlighted
+    if (highlight) {
+      // Draw label background
+      ctx.fillStyle = 'rgba(30, 41, 59, 0.9)';
+      const labelWidth = ctx.measureText(label).width + 16;
+      ctx.beginPath();
+      ctx.roundRect(x - labelWidth / 2, y - 40, labelWidth, 24, 4);
+      ctx.fill();
+      
+      // Draw label text
+      ctx.fillStyle = 'white';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, x, y - 25);
+    }
   };
   
   // Draw legend
   const drawLegend = (ctx, width, height) => {
-    const legendX = width - 150;
+    const legendX = width - 180;
     const legendY = PADDING;
-    const legendWidth = 130;
-    const legendHeight = 120;
+    const legendWidth = 160;
+    const legendHeight = 140;
     
     // Draw legend background
     ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
@@ -417,7 +551,8 @@ const EvidenceLifecycleTimeline = ({
       { label: 'Fresh', color: COLORS.fresh },
       { label: 'Aging', color: COLORS.aging },
       { label: 'Stale', color: COLORS.stale },
-      { label: 'Refresh Point', color: COLORS.refreshPoint, shape: 'diamond' }
+      { label: 'Refresh Point', color: COLORS.refreshPoint, shape: 'diamond' },
+      { label: 'Transition Point', color: COLORS.transitionMarker, shape: 'transition' }
     ];
     
     items.forEach((item, index) => {
@@ -433,6 +568,20 @@ const EvidenceLifecycleTimeline = ({
         ctx.lineTo(legendX + 15 + diamondSize, itemY);
         ctx.lineTo(legendX + 15, itemY + diamondSize);
         ctx.lineTo(legendX + 15 - diamondSize, itemY);
+        ctx.closePath();
+        ctx.fill();
+      } else if (item.shape === 'transition') {
+        // Draw transition marker
+        ctx.fillStyle = item.color;
+        ctx.beginPath();
+        ctx.arc(legendX + 15, itemY, 6, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Add small arrow above
+        ctx.beginPath();
+        ctx.moveTo(legendX + 15, itemY - 8);
+        ctx.lineTo(legendX + 12, itemY - 5);
+        ctx.lineTo(legendX + 18, itemY - 5);
         ctx.closePath();
         ctx.fill();
       } else {
