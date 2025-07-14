@@ -105,10 +105,16 @@ const AddEvidenceModal = ({ isOpen, onClose, onSave }) => {
   // Handle form submission
   const handleSubmit = useCallback(() => {
     if (validateForm()) {
-      onSave({
+      const payload = {
         ...formData,
+        tags: formData.tags
+          .split(',')
+          .map(t => t.trim())
+          .filter(Boolean),
         uploadDate: new Date(formData.uploadDate)
-      });
+      };
+
+      onSave(payload);
       onClose();
     }
   }, [formData, onSave, onClose, validateForm]);
@@ -190,6 +196,19 @@ const AddEvidenceModal = ({ isOpen, onClose, onSave }) => {
                     placeholder="Describe the evidence and its purpose"
                     className="w-full mt-1 block rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-secondary-800 dark:text-white sm:text-sm border-secondary-300 dark:border-secondary-600"
                     rows={3}
+                  />
+                </div>
+
+                {/* Tags */}
+                <div>
+                  <label className="block text-sm font-medium text-secondary-700 dark:text-secondary-300 mb-1">
+                    Tags
+                  </label>
+                  <Input
+                    value={formData.tags}
+                    onChange={e => handleChange('tags', e.target.value)}
+                    placeholder="Enter tags separated by commas"
+                    className="w-full"
                   />
                 </div>
               </div>

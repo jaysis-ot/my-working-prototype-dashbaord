@@ -18,9 +18,17 @@ import EvidenceHealthCard from '../../molecules/EvidenceHealthCard';
  * 
  * Displays a single stage in the evidence lifecycle
  */
-const LifecycleStage = ({ letter, title, count, color, isLast }) => (
-  <div className="flex-1 text-center px-4 py-2 relative">
-    <div className={`w-12 h-12 rounded-full bg-${color}-600 flex items-center justify-center text-white font-semibold text-lg mx-auto mb-2`}>
+const LifecycleStage = ({ letter, title, count, color, isLast, active, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="flex-1 text-center px-4 py-2 relative cursor-pointer focus:outline-none"
+  >
+    <div
+      className={`w-12 h-12 rounded-full bg-${color}-600 flex items-center justify-center text-white font-semibold text-lg mx-auto mb-2 ${
+        active ? 'ring-4 ring-primary-500 ring-offset-2' : ''
+      }`}
+    >
       {letter}
     </div>
     <div className="font-medium text-secondary-900 dark:text-white">{title}</div>
@@ -31,7 +39,7 @@ const LifecycleStage = ({ letter, title, count, color, isLast }) => (
         <ArrowRight size={20} />
       </div>
     )}
-  </div>
+  </button>
 );
 
 LifecycleStage.propTypes = {
@@ -40,10 +48,15 @@ LifecycleStage.propTypes = {
   count: PropTypes.number.isRequired,
   color: PropTypes.string.isRequired,
   isLast: PropTypes.bool
+  ,
+  active: PropTypes.bool,
+  onClick: PropTypes.func
 };
 
 LifecycleStage.defaultProps = {
-  isLast: false
+  isLast: false,
+  active: false,
+  onClick: () => {}
 };
 
 /**
@@ -271,6 +284,8 @@ const EvidenceTab = ({
                 count={stage.count}
                 color={stage.color}
                 isLast={index === lifecycleData.length - 1}
+                active={evidenceTypeFilter.toLowerCase() === stage.title.toLowerCase()}
+                onClick={() => setEvidenceTypeFilter(stage.title.toLowerCase())}
               />
             ))}
           </div>
