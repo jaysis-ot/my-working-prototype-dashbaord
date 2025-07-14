@@ -36,6 +36,9 @@ const RiskEditModal = ({ risk, isOpen, onClose, onSave }) => {
         impact: risk.impact || 3,
         probability: risk.probability || 3,
         createdDate: risk.createdDate || new Date().toISOString(),
+        triageCompletedDate: risk.triageCompletedDate || '',
+        finalResolutionDate: risk.finalResolutionDate || '',
+        outcome: risk.outcome || '',
       });
       setErrors({});
       setIsDirty(false);
@@ -82,6 +85,16 @@ const RiskEditModal = ({ risk, isOpen, onClose, onSave }) => {
     if (!formData.owner?.trim()) {
       newErrors.owner = 'Owner is required';
     }
+
+    // If closed/treated, resolution date & outcome required
+    if (['Mitigated', 'Accepted'].includes(formData.status)) {
+      if (!formData.finalResolutionDate) {
+        newErrors.finalResolutionDate = 'Resolution date required';
+      }
+      if (!formData.outcome) {
+        newErrors.outcome = 'Outcome required';
+      }
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -95,6 +108,9 @@ const RiskEditModal = ({ risk, isOpen, onClose, onSave }) => {
         ...formData,
         rating: riskRating,
         lastUpdated: new Date().toISOString(),
+        triageCompletedDate: formData.triageCompletedDate || undefined,
+        finalResolutionDate: formData.finalResolutionDate || undefined,
+        outcome: formData.outcome || undefined,
       });
     }
   }, [formData, riskRating, onSave, validateForm]);
@@ -191,6 +207,94 @@ const RiskEditModal = ({ risk, isOpen, onClose, onSave }) => {
               </div>
             </div>
             
+            {/* Lifecycle & Outcome */}
+            <div>
+              <h3 className="text-md font-semibold text-secondary-900 dark:text-white mb-4 flex items-center">
+                <Calendar className="w-5 h-5 mr-2 text-primary-500" />
+                Lifecycle &amp; Outcome
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Created Date (read-only) */}
+                <div>
+                  <label className="block text-sm font-medium text-secondary-700 dark:text-secondary-300 mb-1">
+                    Created Date
+                  </label>
+                  <Input
+                    type="date"
+                    disabled
+                    value={formData.createdDate?.slice(0, 10)}
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Triage Completed */}
+                <div>
+                  <label className="block text-sm font-medium text-secondary-700 dark:text-secondary-300 mb-1">
+                    Triage Completed Date
+                  </label>
+                  <Input
+                    type="date"
+                    value={formData.triageCompletedDate?.slice(0, 10) || ''}
+                    onChange={(e) =>
+                      handleChange('triageCompletedDate', e.target.value)
+                    }
+                    className="w-full"
+                  />
+                </div>
+
+                {['Mitigated', 'Accepted'].includes(formData.status) && (
+                  <>
+                    {/* Resolution Date */}
+                    <div>
+                      <label className="block text-sm font-medium text-secondary-700 dark:text-secondary-300 mb-1">
+                        Resolution Date <span className="text-status-error">*</span>
+                      </label>
+                      <Input
+                        type="date"
+                        value={formData.finalResolutionDate?.slice(0, 10) || ''}
+                        onChange={(e) =>
+                          handleChange('finalResolutionDate', e.target.value)
+                        }
+                        error={errors.finalResolutionDate}
+                        className="w-full"
+                      />
+                      {errors.finalResolutionDate && (
+                        <p className="mt-1 text-sm text-status-error">
+                          {errors.finalResolutionDate}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Outcome */}
+                    <div>
+                      <label className="block text-sm font-medium text-secondary-700 dark:text-secondary-300 mb-1">
+                        Treatment Outcome <span className="text-status-error">*</span>
+                      </label>
+                      <select
+                        value={formData.outcome}
+                        onChange={(e) => handleChange('outcome', e.target.value)}
+                        className={`w-full mt-1 block rounded-md border-secondary-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-secondary-800 dark:border-secondary-600 dark:text-white sm:text-sm ${
+                          errors.outcome ? 'border-status-error' : ''
+                        }`}
+                      >
+                        <option value="">Select outcome</option>
+                        <option value="Mitigated">Mitigated</option>
+                        <option value="Accepted">Accepted</option>
+                        <option value="Transferred">Transferred</option>
+                        <option value="Avoided">Avoided</option>
+                      </select>
+                      {errors.outcome && (
+                        <p className="mt-1 text-sm text-status-error">
+                          {errors.outcome}
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
             {/* Classification */}
             <div>
               <h3 className="text-md font-semibold text-secondary-900 dark:text-white mb-4 flex items-center">

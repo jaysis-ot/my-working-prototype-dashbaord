@@ -7,8 +7,10 @@ import {
   Map,
   BarChart,
   Zap,
-  Lightbulb
+  Lightbulb,
+  Plus
 } from 'lucide-react';
+import Button from '../atoms/Button';
 import {
   EvidenceTab,
   TimelineTab,
@@ -18,6 +20,7 @@ import {
   AutomationTab,
   SuggestionsTab
 } from './EvidenceViewTabs';
+import AddEvidenceModal from '../molecules/AddEvidenceModal';
 
 /**
  * TabButton Component
@@ -76,6 +79,12 @@ const EvidenceView = ({
   // Filter state for evidence types
   const [evidenceTypeFilter, setEvidenceTypeFilter] = useState('all');
   
+  // Modal state for adding evidence
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  
+  // Handler to open the add evidence modal
+  const openAddEvidence = () => setIsAddModalOpen(true);
+  
   // Render the appropriate tab content
   const renderTabContent = () => {
     switch (activeTab) {
@@ -113,7 +122,7 @@ const EvidenceView = ({
           <SuggestionsTab 
             evidenceItems={evidenceItems}
             insights={insights}
-            onAddEvidence={onAddEvidence}
+            onAddEvidence={openAddEvidence}
             onAcceptSuggestion={(id) => console.log(`Accepted suggestion: ${id}`)}
             onDismissSuggestion={(id) => console.log(`Dismissed suggestion: ${id}`)}
           />
@@ -132,7 +141,7 @@ const EvidenceView = ({
             evidenceTypeFilter={evidenceTypeFilter}
             setEvidenceTypeFilter={setEvidenceTypeFilter}
             onFilterChange={onFilterChange}
-            onAddEvidence={onAddEvidence}
+            onAddEvidence={openAddEvidence}
             onViewJourneyMap={onViewJourneyMap}
             onViewAllActivity={onViewAllActivity}
             onViewEvidenceDetails={onViewEvidenceDetails}
@@ -155,7 +164,8 @@ const EvidenceView = ({
             </span>
           </div>
           
-          <div className="flex items-center gap-2">
+          {/* ---- Tab Navigation ---- */}
+          <div className="flex items-center gap-2 flex-wrap md:flex-1">
             <TabButton
               active={activeTab === 'evidence'}
               icon={LayoutGrid}
@@ -199,11 +209,32 @@ const EvidenceView = ({
               onClick={() => setActiveTab('suggestions')}
             />
           </div>
+
+          {/* ---- Add Evidence Button ---- */}
+          <div className="w-full md:w-auto flex justify-start md:justify-end">
+            <Button
+              variant="primary"
+              leadingIcon={Plus}
+              onClick={openAddEvidence}
+            >
+              Add Evidence
+            </Button>
+          </div>
         </div>
       </div>
       
       {/* Main tab content */}
       {renderTabContent()}
+      
+      {/* Add Evidence Modal */}
+      <AddEvidenceModal 
+        isOpen={isAddModalOpen} 
+        onClose={() => setIsAddModalOpen(false)} 
+        onSave={(data) => { 
+          onAddEvidence(data); 
+          setIsAddModalOpen(false); 
+        }} 
+      />
     </div>
   );
 };
