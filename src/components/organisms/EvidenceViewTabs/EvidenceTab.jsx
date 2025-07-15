@@ -18,29 +18,62 @@ import EvidenceHealthCard from '../../molecules/EvidenceHealthCard';
  * 
  * Displays a single stage in the evidence lifecycle
  */
-const LifecycleStage = ({ letter, title, count, color, isLast, active, onClick }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className="flex-1 text-center px-4 py-2 relative cursor-pointer focus:outline-none"
-  >
-    <div
-      className={`w-12 h-12 rounded-full bg-${color}-600 flex items-center justify-center text-white font-semibold text-lg mx-auto mb-2 ${
-        active ? 'ring-4 ring-primary-500 ring-offset-2' : ''
-      }`}
+const LifecycleStage = ({
+  letter,
+  title,
+  count,
+  color,
+  isLast,
+  active,
+  onClick,
+  needsAction,
+  onRecommend
+}) => {
+  // Improve Intent readability with darker shade
+  const titleLower = title.toLowerCase();
+  const bgClass =
+    titleLower === 'intent' ? 'bg-purple-800' : `bg-${color}-600`;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex-1 text-center px-4 py-2 relative cursor-pointer focus:outline-none"
     >
-      {letter}
-    </div>
-    <div className="font-medium text-secondary-900 dark:text-white">{title}</div>
-    <div className="text-sm text-secondary-500 dark:text-secondary-400">{count} artifacts</div>
-    
-    {!isLast && (
-      <div className="absolute right-0 top-1/2 transform -translate-y-1/2 -translate-x-1/2 text-secondary-400 dark:text-secondary-600">
-        <ArrowRight size={20} />
+      <div
+        className={`w-12 h-12 rounded-full ${bgClass} flex items-center justify-center text-white font-semibold text-lg mx-auto mb-2 ${
+          active ? 'ring-4 ring-primary-500 ring-offset-2' : ''
+        }`}
+      >
+        {letter}
       </div>
-    )}
-  </button>
-);
+      <div className="font-medium text-secondary-900 dark:text-white">
+        {title}
+      </div>
+      <div className="text-sm text-secondary-500 dark:text-secondary-400">
+        {count} artifacts
+      </div>
+
+      {/* Inline recommend action when threshold breached */}
+      {needsAction && (
+        <Button
+          variant="warning"
+          size="sm"
+          className="mt-2"
+          onClick={onRecommend}
+        >
+          Recommend Action
+        </Button>
+      )}
+
+      {!isLast && (
+        <div className="absolute right-0 top-1/2 transform -translate-y-1/2 -translate-x-1/2 text-secondary-400 dark:text-secondary-600">
+          <ArrowRight size={20} />
+        </div>
+      )}
+    </button>
+  );
+};
 
 LifecycleStage.propTypes = {
   letter: PropTypes.string.isRequired,
@@ -50,13 +83,17 @@ LifecycleStage.propTypes = {
   isLast: PropTypes.bool
   ,
   active: PropTypes.bool,
-  onClick: PropTypes.func
+  onClick: PropTypes.func,
+  needsAction: PropTypes.bool,
+  onRecommend: PropTypes.func
 };
 
 LifecycleStage.defaultProps = {
   isLast: false,
   active: false,
-  onClick: () => {}
+  onClick: () => {},
+  needsAction: false,
+  onRecommend: () => {}
 };
 
 /**
@@ -217,8 +254,16 @@ const EvidenceTab = ({
   onViewAllActivity,
   onViewEvidenceDetails,
   onImportEvidence,
-  onExportEvidence
+  onExportEvidence,
+  onRecommendAction
 }) => {
+  // ---- Guided-next-action calculations ----
+  const totalArtifacts = useMemo(
+    () => lifecycleData.reduce((sum, s) => sum + s.count, 0),
+    [lifecycleData]
+  );
+  const threshold = 0.5; // 50 %
+
   // Apply filters to evidence items
   const filteredEvidence = useMemo(() => {
     return evidenceItems.filter(item => {
@@ -276,18 +321,34 @@ const EvidenceTab = ({
           </div>
           
           <div className="flex justify-between">
-            {lifecycleData.map((stage, index) => (
-              <LifecycleStage
-                key={index}
-                letter={stage.letter}
-                title={stage.title}
-                count={stage.count}
-                color={stage.color}
-                isLast={index === lifecycleData.length - 1}
-                active={evidenceTypeFilter.toLowerCase() === stage.title.toLowerCase()}
-                onClick={() => setEvidenceTypeFilter(stage.title.toLowerCase())}
-              />
-            ))}
+            {lifecycleData.map((stage, index) => {
+              const stageRatio =
+                totalArtifacts === 0 ? 1 : stage.count / totalArtifacts;
+              const needsAction =
+                stage.title.toLowerCase() === 'validation' && stageRatio < threshold;
+
+              return (
+                <LifecycleStage
+                  key={index}
+                  letter={stage.letter}
+                  title={stage.title}
+                  count={stage.count}
+                  color={stage.color}
+                  isLast={index === lifecycleData.length - 1}
+                  active={
+                    evidenceTypeFilter.toLowerCase() ===
+                    stage.title.toLowerCase()
+                  }
+                  onClick={() =>
+                    setEvidenceTypeFilter(stage.title.toLowerCase())
+                  }
+                  needsAction={needsAction}
+                  onRecommend={() =>
+                    onRecommendAction(stage.title.toLowerCase())
+                  }
+                />
+              );
+            })}
           </div>
         </div>
         
@@ -481,7 +542,8 @@ EvidenceTab.propTypes = {
   onViewAllActivity: PropTypes.func,
   onViewEvidenceDetails: PropTypes.func,
   onImportEvidence: PropTypes.func,
-  onExportEvidence: PropTypes.func
+  onExportEvidence: PropTypes.func,
+  onRecommendAction: PropTypes.func.isRequired
 };
 
 EvidenceTab.defaultProps = {

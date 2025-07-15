@@ -81,9 +81,18 @@ const EvidenceView = ({
   
   // Modal state for adding evidence
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  // Suggestions filter state (used for Guided Next Actions)
+  const [suggestionFilterStage, setSuggestionFilterStage] = useState(null);
   
   // Handler to open the add evidence modal
   const openAddEvidence = () => setIsAddModalOpen(true);
+
+  // Guided-next-action handler: jump to Suggestions tab pre-filtered
+  const handleRecommendAction = (stageKey) => {
+    setSuggestionFilterStage(stageKey);
+    setActiveTab('suggestions');
+  };
   
   // Render the appropriate tab content
   const renderTabContent = () => {
@@ -125,6 +134,7 @@ const EvidenceView = ({
             onAddEvidence={openAddEvidence}
             onAcceptSuggestion={(id) => console.log(`Accepted suggestion: ${id}`)}
             onDismissSuggestion={(id) => console.log(`Dismissed suggestion: ${id}`)}
+            filterStage={suggestionFilterStage}
           />
         );
         
@@ -147,6 +157,7 @@ const EvidenceView = ({
             onViewEvidenceDetails={onViewEvidenceDetails}
             onImportEvidence={onImportEvidence}
             onExportEvidence={onExportEvidence}
+            onRecommendAction={handleRecommendAction}
           />
         );
     }

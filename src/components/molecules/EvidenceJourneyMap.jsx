@@ -51,11 +51,11 @@ const EvidenceJourneyMap = ({
     { id: 'trustScore', label: 'Trust Score', icon: Heart, color: 'pink' }
   ];
 
-  // Define the parallel journey for compliance
+  // Define the parallel journey for compliance - reordered as requested
   const complianceJourney = [
     { id: 'framework', label: 'Framework', icon: Book, color: 'indigo' },
-    { id: 'requirement', label: 'Requirement', icon: ClipboardCheck, color: 'cyan' },
     { id: 'policy', label: 'Policy', icon: FileCode, color: 'teal' },
+    { id: 'requirement', label: 'Requirement', icon: ClipboardCheck, color: 'cyan' },
     { id: 'implementation', label: 'Implementation', icon: Shield, color: 'blue' },
     { id: 'validation', label: 'Validation', icon: CheckCircle, color: 'green' },
     { id: 'monitoring', label: 'Monitoring', icon: Activity, color: 'violet' }
@@ -299,20 +299,36 @@ const EvidenceJourneyMap = ({
       </div>
       
       <div className="relative">
-        {/* Primary journey (Threat → Risk → Capability → Control → Evidence → Trust Score) */}
+        {/* ---------- Primary journey headers with arrows in boxes ---------- */}
+        <div className="flex items-center justify-between mb-4">
+          {journeyStages.map((stage, idx) => (
+            <React.Fragment key={`header-${stage.id}`}>
+              <div className="flex-1 flex flex-col items-center text-center">
+                <div
+                  className={`w-6 h-6 rounded-full bg-${stage.color}-100 dark:bg-${stage.color}-900/30 flex items-center justify-center mb-1`}
+                >
+                  <stage.icon
+                    className={`w-3.5 h-3.5 text-${stage.color}-600 dark:text-${stage.color}-400`}
+                  />
+                </div>
+                <span className="font-medium text-secondary-900 dark:text-white text-sm">
+                  {stage.label}
+                </span>
+              </div>
+
+              {idx < journeyStages.length - 1 && (
+                <div className="w-8 h-8 bg-secondary-100 dark:bg-secondary-700 rounded flex items-center justify-center mx-2">
+                  <ArrowRight className="w-5 h-5 text-secondary-400 dark:text-secondary-600" />
+                </div>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+
+        {/* ---------- Primary journey grid (nodes only) ---------- */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
           {journeyStages.map((stage, stageIndex) => (
             <div key={stage.id} className="flex flex-col space-y-3">
-              <div className="flex items-center mb-2">
-                <div className={`w-6 h-6 rounded-full bg-${stage.color}-100 dark:bg-${stage.color}-900/30 flex items-center justify-center mr-2`}>
-                  <stage.icon className={`w-3.5 h-3.5 text-${stage.color}-600 dark:text-${stage.color}-400`} />
-                </div>
-                <h4 className="font-medium text-secondary-900 dark:text-white">{stage.label}</h4>
-                {stageIndex < journeyStages.length - 1 && !compact && (
-                  <ArrowRight className="w-4 h-4 text-secondary-400 dark:text-secondary-600 ml-auto" />
-                )}
-              </div>
-              
               {data.primary && data.primary[stage.id] && data.primary[stage.id].map((item, index) => (
                 renderJourneyNode(stage, item, index)
               ))}
@@ -330,20 +346,30 @@ const EvidenceJourneyMap = ({
           <>
             <div className="border-t border-secondary-200 dark:border-secondary-700 my-8"></div>
             
-            {/* Compliance journey (Framework → Requirements → Policies → Implementation → Validation → Monitoring) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+            {/* Compliance journey headers with arrows in boxes */}
+            <div className="flex items-center justify-between mb-4">
               {complianceJourney.map((stage, stageIndex) => (
-                <div key={stage.id} className="flex flex-col space-y-3">
-                  <div className="flex items-center mb-2">
-                    <div className={`w-6 h-6 rounded-full bg-${stage.color}-100 dark:bg-${stage.color}-900/30 flex items-center justify-center mr-2`}>
+                <React.Fragment key={`header-${stage.id}`}>
+                  <div className="flex-1 flex flex-col items-center text-center">
+                    <div className={`w-6 h-6 rounded-full bg-${stage.color}-100 dark:bg-${stage.color}-900/30 flex items-center justify-center mb-1`}>
                       <stage.icon className={`w-3.5 h-3.5 text-${stage.color}-600 dark:text-${stage.color}-400`} />
                     </div>
-                    <h4 className="font-medium text-secondary-900 dark:text-white">{stage.label}</h4>
-                    {stageIndex < complianceJourney.length - 1 && (
-                      <ArrowRight className="w-4 h-4 text-secondary-400 dark:text-secondary-600 ml-auto" />
-                    )}
+                    <span className="font-medium text-secondary-900 dark:text-white text-sm">{stage.label}</span>
                   </div>
                   
+                  {stageIndex < complianceJourney.length - 1 && (
+                    <div className="w-8 h-8 bg-secondary-100 dark:bg-secondary-700 rounded flex items-center justify-center mx-2">
+                      <ArrowRight className="w-5 h-5 text-secondary-400 dark:text-secondary-600" />
+                    </div>
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+            
+            {/* Compliance journey grid (without headers) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+              {complianceJourney.map((stage) => (
+                <div key={stage.id} className="flex flex-col space-y-3">
                   {data.compliance && data.compliance[stage.id] && data.compliance[stage.id].map((item, index) => (
                     renderJourneyNode(stage, item, index)
                   ))}
