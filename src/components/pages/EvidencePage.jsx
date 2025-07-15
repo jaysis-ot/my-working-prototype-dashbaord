@@ -14,8 +14,10 @@ import {
   Lightbulb,
   Settings,
   RefreshCw,
-  Users
+  Users,
+  Eye
 } from 'lucide-react';
+import Button from '../atoms/Button';
 import EvidenceView from '../organisms/EvidenceView';
 import { useToast } from '../../hooks/useToast';
 import useAuth from '../../auth/useAuth';
@@ -593,7 +595,27 @@ const EvidencePage = () => {
   
   return (
     <div className="h-full">
-      {/* User Type Selector */}
+      {/* Page Header */}
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-secondary-900 dark:text-white flex items-center">
+            <FileText className="w-7 h-7 mr-3 text-primary-600" />
+            Evidence Dashboard
+          </h1>
+          <p className="text-secondary-500 dark:text-secondary-400 mt-1">
+            Visualize and manage evidence artifacts across the golden thread.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="primary" leadingIcon={Plus} onClick={handleAddEvidence}>
+            Add Evidence
+          </Button>
+          <Button variant="secondary" leadingIcon={Eye} onClick={() => setActiveTab('evidence')}>
+            View Evidence
+          </Button>
+        </div>
+      </div>
+
       <div className="mb-4 flex justify-end">
         <div className="inline-flex items-center rounded-md border border-secondary-200 dark:border-secondary-700 bg-white dark:bg-secondary-800">
           <button

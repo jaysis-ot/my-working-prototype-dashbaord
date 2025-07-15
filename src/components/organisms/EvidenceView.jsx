@@ -165,18 +165,9 @@ const EvidenceView = ({
 
   return (
     <div className="h-full flex flex-col space-y-6">
-      {/* Header with tab navigation */}
-      <div className="bg-white dark:bg-secondary-800 rounded-lg p-6">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-secondary-900 dark:text-white">Evidence Dashboard</h1>
-            <span className="bg-secondary-100 dark:bg-secondary-700 text-secondary-600 dark:text-secondary-300 px-3 py-1 rounded-full text-sm font-medium">
-              Golden Thread View
-            </span>
-          </div>
-          
-          {/* ---- Tab Navigation ---- */}
-          <div className="flex items-center gap-2 flex-wrap md:flex-1">
+      {/* Sub-tab navigation (standardised header layout handled by page component) */}
+      <div className="bg-white dark:bg-secondary-800 rounded-lg p-4 mb-4">
+        <div className="flex gap-2 flex-wrap">
             <TabButton
               active={activeTab === 'evidence'}
               icon={LayoutGrid}
@@ -219,21 +210,8 @@ const EvidenceView = ({
               label="Suggestions"
               onClick={() => setActiveTab('suggestions')}
             />
-          </div>
-
-          {/* ---- Add Evidence Button ---- */}
-          <div className="w-full md:w-auto flex justify-start md:justify-end">
-            <Button
-              variant="primary"
-              leadingIcon={Plus}
-              onClick={openAddEvidence}
-            >
-              Add Evidence
-            </Button>
-          </div>
         </div>
       </div>
-      
       {/* Main tab content */}
       {renderTabContent()}
       
