@@ -12,6 +12,7 @@ import {
   ClipboardCheck,
   Activity,
   ArrowRight,
+  ChevronRight,
   ChevronDown,
   ChevronUp,
   Info
@@ -318,7 +319,16 @@ const EvidenceJourneyMap = ({
 
               {idx < journeyStages.length - 1 && (
                 <div className="w-8 h-8 bg-secondary-100 dark:bg-secondary-700 rounded flex items-center justify-center mx-2">
-                  <ArrowRight className="w-5 h-5 text-secondary-400 dark:text-secondary-600" />
+                  {(() => {
+                    const nextColor =
+                      journeyStages[idx + 1]?.color || stage.color;
+                    return (
+                      <ChevronRight
+                        strokeWidth={3}
+                        className={`w-5 h-5 text-${stage.color}-500 dark:text-${stage.color}-400`}
+                      />
+                    );
+                  })()}
                 </div>
               )}
             </React.Fragment>
@@ -359,7 +369,17 @@ const EvidenceJourneyMap = ({
                   
                   {stageIndex < complianceJourney.length - 1 && (
                     <div className="w-8 h-8 bg-secondary-100 dark:bg-secondary-700 rounded flex items-center justify-center mx-2">
-                      <ArrowRight className="w-5 h-5 text-secondary-400 dark:text-secondary-600" />
+                      {(() => {
+                        const nextColor =
+                          complianceJourney[stageIndex + 1]?.color ||
+                          stage.color;
+                        return (
+                          <ChevronRight
+                            strokeWidth={3}
+                            className={`w-5 h-5 text-${stage.color}-500 dark:text-${stage.color}-400`}
+                          />
+                        );
+                      })()}
                     </div>
                   )}
                 </React.Fragment>
