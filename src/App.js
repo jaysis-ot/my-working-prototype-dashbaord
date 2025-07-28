@@ -29,6 +29,8 @@ const MaturityAnalysisPage = lazy(() => import('./components/pages/MaturityAnaly
 const TrustPage = lazy(() => import('./components/pages/TrustPage'));
 // ✅ ADD MISSING IMPORT
 const IncidentManagementPage = lazy(() => import('./components/pages/IncidentManagementPage'));
+// Repository Page (evidence administration)
+const RepositoryPage = lazy(() => import('./components/pages/RepositoryPage'));
 // Evidence Page
 const EvidencePage = lazy(() => import('./components/pages/EvidencePage'));
 // Advanced Evidence Demo Page
@@ -116,6 +118,7 @@ function App() {
                       <Route path="standards-frameworks" element={<StandardsFrameworksPage />} />
                       <Route path="analytics" element={<AnalyticsPage />} />
                       <Route path="business-plan" element={<BusinessPlanPage />} />
+                      <Route path="repository" element={<RepositoryPage/>} />
                       
                       {/* ✅ ADD MISSING ROUTES */}
                       <Route path="trust" element={<TrustPage />} />

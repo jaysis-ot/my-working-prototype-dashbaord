@@ -15,6 +15,7 @@ import {
   TrendingUp,
   AlertTriangle,
   AlertCircle,
+  Database,
   Target,
   Layers,
   BookOpen,
@@ -56,6 +57,7 @@ const DashboardLayout = ({ children }) => {
     Target,
     Layers,
     BookOpen,
+    Database,
     Building2,
     ClipboardList,
     Heart,
@@ -69,20 +71,27 @@ const DashboardLayout = ({ children }) => {
 
   const navItems = [
     { id: 'overview', label: 'Overview', icon: 'LayoutDashboard' },
+    { id: 'threat-intelligence', label: 'Threat Intelligence', icon: 'AlertTriangle' },
+    { id: 'standards-frameworks', label: 'Standards & Frameworks', icon: 'BookOpen' },
+    { id: 'business-plan', label: 'Business Plan', icon: 'Building2' },
+    { id: 'risk-management', label: 'Risk Management', icon: 'Target' },
+    { id: 'capabilities', label: 'Capabilities', icon: 'Shield' },
+
+    { id: 'incident-management', label: 'Incident Management', icon: 'AlertCircle' },
+
     { id: 'requirements', label: 'Requirements', icon: 'FileText' },
     { id: 'capabilities', label: 'Capabilities', icon: 'Shield' },
     { id: 'resources', label: 'Resource Planning', icon: 'Users' },
-    { id: 'business-plan', label: 'Business Plan', icon: 'Building2' },
+    
     { id: 'analytics', label: 'Analytics', icon: 'BarChart3' },
     { id: 'maturity-analysis', label: 'Maturity Analysis', icon: 'TrendingUp' },
     { id: 'mitre-attack', label: 'MITRE ATT&CK', icon: 'Layers' },
-    { id: 'standards-frameworks', label: 'Standards & Frameworks', icon: 'BookOpen' },
-    { id: 'threat-intelligence', label: 'Threat Intelligence', icon: 'AlertTriangle' },
-    { id: 'incident-management', label: 'Incident Management', icon: 'AlertCircle' },
+    
+    { id: 'repository', label: 'Repository', icon: 'Database' },
     { id: 'evidence', label: 'Evidence', icon: 'ClipboardList' },
     // Advanced Evidence Demo (cutting-edge visualisations)
     { id: 'evidence-demo', label: 'Evidence Demo', icon: 'Beaker' },
-    { id: 'risk-management', label: 'Risk Management', icon: 'Target' },
+    
     { id: 'trust', label: 'Trust', icon: 'Heart' },
     { id: 'settings', label: 'Settings', icon: 'Settings' },
   ];
