@@ -14,7 +14,7 @@
 # - Cloud provider compatibility
 # - Enhanced logging for internet-exposed services
 #
-# Usage: ./automation-script-vps-fixed.sh [OPTIONS]
+# Usage: ./automation-script-vps.sh [OPTIONS]
 #   Options:
 #     --system        Configure system and security only
 #     --docker        Install Docker only
@@ -25,7 +25,7 @@
 #     --help          Display this help message
 #
 # Version: 1.0.0
-# Date: 2025-07-31
+# Date: 2025-07-28
 # =========================================================================
 
 # Strict error handling
@@ -96,10 +96,6 @@ critical() {
 
 section() {
     echo -e "\n${BOLD}${BLUE}=== $1 ===${NC}" | tee -a "${AUTOMATION_LOG}"
-}
-
-info() {
-    echo -e "${CYAN}[$(date +'%Y-%m-%d %H:%M:%S')] INFO: $1${NC}" | tee -a "${AUTOMATION_LOG}"
 }
 
 # =============================================
@@ -582,7 +578,6 @@ EOF
     
     # VPS-specific: Create a network fallback script
     log "Creating network fallback script..."
-    mkdir -p "${PROJECT_ROOT}/scripts"
     cat > "${PROJECT_ROOT}/scripts/network-fallback.sh" << EOF
 #!/bin/bash
 # Network fallback script for emergency access
@@ -1459,6 +1454,37 @@ const logger = winston.createLogger({
 module.exports = logger;
 EOF
     
+    # Create Prometheus configuration
+    log "Creating Prometheus configuration..."
+    cat > "${PROJECT_ROOT}/monitoring/prometheus/prometheus.yml" << EOF
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+rule_files:
+  - "rules/*.yml"
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'api'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['api:3000']
+
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+EOF
+    
     # Create Grafana datasource
     mkdir -p "${PROJECT_ROOT}/monitoring/grafana/provisioning/datasources"
     cat > "${PROJECT_ROOT}/monitoring/grafana/provisioning/datasources/prometheus.yml" << EOF
@@ -1961,7 +1987,7 @@ VALUES ('Demo Organization', 'Demo organization for testing');
 
 -- Password hash for 'password123'
 INSERT INTO risk_platform.users (organization_id, email, password_hash, first_name, last_name, role)
-VALUES (1, 'admin@example.com', '\$2b\$10\$3euPcmQFCiblsZeEu5s7p.9MUZWg8KqjLYx4vqG9BZ0PRAKmUfUFS', 'Admin', 'User', 'admin');
+VALUES (1, 'admin@example.com', '$2b$10$3euPcmQFCiblsZeEu5s7p.9MUZWg8KqjLYx4vqG9BZ0PRAKmUfUFS', 'Admin', 'User', 'admin');
 EOF
     
     # Apply database initialization
@@ -2081,27 +2107,4 @@ EOF
     log "Creating backup script..."
     cat > "${PROJECT_ROOT}/scripts/backup/backup.sh" << EOF
 #!/bin/bash
-# Daily backup script for Risk Platform VPS
-
-# Configuration
-BACKUP_DIR="${PROJECT_ROOT}/database/backups"
-RETENTION_DAYS=7
-DATE=\$(date +%Y%m%d_%H%M%S)
-
-# Create backup directory
-mkdir -p "\${BACKUP_DIR}"
-
-# Database backup
-echo "Creating database backup..."
-docker compose -f "${PROJECT_ROOT}/docker-compose/db.yml" exec -T postgres pg_dump -U postgres risk_platform > "\${BACKUP_DIR}/risk_platform_\${DATE}.sql"
-
-# Compress backup
-gzip "\${BACKUP_DIR}/risk_platform_\${DATE}.sql"
-
-# Config backup
-echo "Creating configuration backup..."
-tar -czf "\${BACKUP_DIR}/config_\${DATE}.tar.gz" "${PROJECT_ROOT}/config"
-
-# Clean up old backups
-echo "Cleaning up old backups..."
-find "\${BACKUP_DIR}" -name "risk_platform_*.sql.
+# Daily backup script for Risk
