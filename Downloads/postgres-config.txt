@@ -1,0 +1,54 @@
+# Custom PostgreSQL Configuration for Trust Platform
+# Optimized for risk management and audit requirements
+
+# Connection Settings
+listen_addresses = '*'
+max_connections = 200
+superuser_reserved_connections = 3
+
+# Memory Settings (adjust based on your server - these are for 4GB RAM)
+shared_buffers = 1GB
+effective_cache_size = 3GB
+maintenance_work_mem = 256MB
+work_mem = 5MB
+
+# WAL Settings (for reliability and point-in-time recovery)
+wal_level = replica
+max_wal_size = 2GB
+min_wal_size = 1GB
+checkpoint_completion_target = 0.9
+archive_mode = on
+archive_command = 'test ! -f /var/lib/postgresql/archive/%f && cp %p /var/lib/postgresql/archive/%f'
+
+# Query Tuning
+random_page_cost = 1.1  # For SSD storage
+effective_io_concurrency = 200
+default_statistics_target = 100
+
+# Logging (important for audit trails)
+logging_collector = on
+log_directory = 'log'
+log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+log_rotation_age = 1d
+log_rotation_size = 100MB
+log_line_prefix = '%t [%p]: user=%u,db=%d,app=%a,client=%h '
+log_statement = 'mod'  # Log all DDL/DML statements
+log_duration = off
+log_min_duration_statement = 100  # Log slow queries (>100ms)
+log_checkpoints = on
+log_connections = on
+log_disconnections = on
+log_lock_waits = on
+log_temp_files = 0
+
+# Autovacuum (important for performance)
+autovacuum = on
+autovacuum_max_workers = 4
+autovacuum_naptime = 30s
+
+# Security
+ssl = off  # Enable in production with proper certificates
+password_encryption = scram-sha-256
+
+# Extensions
+shared_preload_libraries = 'pg_stat_statements'

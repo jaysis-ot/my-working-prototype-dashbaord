@@ -1,0 +1,723 @@
+#!/bin/bash
+# Complete VPS Setup & Deployment Management Script
+# For: Cyber Trust Sensor Dashboard
+# Location: /root/my-working-prototype-dashbaord/
+# Version: 2.0
+
+# ============================================
+# CONFIGURATION - Customize these for your setup
+# ============================================
+DASHBOARD_DIR="/root/my-working-prototype-dashbaord"
+VPS_IP="31.97.114.80"
+VPS_USER="root"
+LOCAL_BUILD_DIR="./build"
+BACKUP_DIR="/root/backups"
+LOG_FILE="/var/log/dashboard-deployment.log"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+# ============================================
+# UTILITY FUNCTIONS
+# ============================================
+
+log_message() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE"
+}
+
+print_header() {
+    echo -e "\n${BOLD}${BLUE}========================================${NC}"
+    echo -e "${BOLD}${BLUE}  $1${NC}"
+    echo -e "${BOLD}${BLUE}========================================${NC}\n"
+    log_message "=== $1 ==="
+}
+
+print_success() {
+    echo -e "${GREEN}✓${NC} $1"
+    log_message "SUCCESS: $1"
+}
+
+print_error() {
+    echo -e "${RED}✗${NC} $1"
+    log_message "ERROR: $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠${NC} $1"
+    log_message "WARNING: $1"
+}
+
+print_info() {
+    echo -e "${CYAN}ℹ${NC} $1"
+    log_message "INFO: $1"
+}
+
+confirm_action() {
+    echo -e "${YELLOW}$1${NC}"
+    read -p "Continue? (y/n): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_warning "Action cancelled by user"
+        return 1
+    fi
+    return 0
+}
+
+# ============================================
+# MAIN MENU
+# ============================================
+
+show_menu() {
+    clear
+    echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${CYAN}║     Cyber Trust Sensor Dashboard - VPS Manager      ║${NC}"
+    echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════════╝${NC}"
+    echo
+    echo -e "${BOLD}Current Setup:${NC}"
+    echo -e "  Dashboard: $DASHBOARD_DIR"
+    echo -e "  VPS IP: $VPS_IP"
+    echo
+    echo -e "${BOLD}Quick Status:${NC}"
+    
+    # Quick status check
+    if docker ps | grep -q "nginx\|api"; then
+        echo -e "  Containers: ${GREEN}Running${NC}"
+    else
+        echo -e "  Containers: ${RED}Stopped${NC}"
+    fi
+    
+    if [ -d "$DASHBOARD_DIR/build" ]; then
+        echo -e "  Build Dir: ${GREEN}Exists${NC}"
+    else
+        echo -e "  Build Dir: ${YELLOW}Missing${NC}"
+    fi
+    
+    echo
+    echo -e "${BOLD}Options:${NC}"
+    echo "  1) 🔍 Full System Status Check"
+    echo "  2) 🚀 Start All Services"
+    echo "  3) 🛑 Stop All Services"
+    echo "  4) 🔄 Restart All Services"
+    echo "  5) 📦 Deploy New Build (from local)"
+    echo "  6) 🏗️  Build & Deploy (full process)"
+    echo "  7) 📊 Show Container Logs"
+    echo "  8) 🔧 Fix Common Issues"
+    echo "  9) 💾 Backup Current Setup"
+    echo "  10) 📋 Generate Deployment Report"
+    echo "  11) 🎯 Quick Deploy (Frontend Only)"
+    echo "  12) 🐳 Docker Cleanup"
+    echo "  0) Exit"
+    echo
+    read -p "Select option: " choice
+}
+
+# ============================================
+# OPTION 1: FULL SYSTEM STATUS
+# ============================================
+
+full_status_check() {
+    print_header "Full System Status Check"
+    
+    # Check Docker
+    print_info "Docker Status:"
+    if systemctl is-active --quiet docker; then
+        print_success "Docker daemon is running"
+        docker version --format "  Version: {{.Server.Version}}"
+    else
+        print_error "Docker daemon is not running"
+    fi
+    
+    # Check containers
+    print_info "Container Status:"
+    docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+    
+    # Check directories
+    print_info "Directory Structure:"
+    cd "$DASHBOARD_DIR" 2>/dev/null || {
+        print_error "Dashboard directory not found!"
+        return 1
+    }
+    
+    echo "  Main files:"
+    ls -la | grep -E "docker-compose|package.json|build|src|nginx" | head -10
+    
+    # Check disk space
+    print_info "Disk Space:"
+    df -h / | tail -1 | awk '{print "  Used: "$3" / "$2" ("$5")"}'
+    
+    # Check ports
+    print_info "Port Status:"
+    for port in 80 443 3000 3001; do
+        if netstat -tuln 2>/dev/null | grep -q ":$port "; then
+            echo "  Port $port: ${GREEN}In use${NC}"
+        else
+            echo "  Port $port: ${YELLOW}Available${NC}"
+        fi
+    done
+    
+    # Check build directory
+    print_info "Build Status:"
+    if [ -d "$DASHBOARD_DIR/build" ]; then
+        BUILD_SIZE=$(du -sh "$DASHBOARD_DIR/build" 2>/dev/null | cut -f1)
+        BUILD_DATE=$(stat -c %y "$DASHBOARD_DIR/build" 2>/dev/null | cut -d' ' -f1)
+        print_success "Build exists (Size: $BUILD_SIZE, Date: $BUILD_DATE)"
+    else
+        print_warning "No build directory found"
+    fi
+    
+    read -p "Press Enter to continue..."
+}
+
+# ============================================
+# OPTION 2: START SERVICES
+# ============================================
+
+start_services() {
+    print_header "Starting All Services"
+    
+    cd "$DASHBOARD_DIR" || {
+        print_error "Cannot access dashboard directory"
+        return 1
+    }
+    
+    print_info "Starting Docker containers..."
+    
+    if [ -f "docker-compose.yml" ]; then
+        docker compose up -d
+        sleep 5
+        
+        # Check if containers started
+        if docker ps | grep -q "nginx\|api"; then
+            print_success "Services started successfully!"
+            docker ps --format "table {{.Names}}\t{{.Status}}"
+            
+            print_info "Access your dashboard at:"
+            echo -e "  ${GREEN}http://$VPS_IP${NC}"
+        else
+            print_error "Services failed to start"
+            print_info "Checking logs..."
+            docker compose logs --tail=20
+        fi
+    else
+        print_error "docker-compose.yml not found!"
+        print_info "Try running option 8 (Fix Common Issues)"
+    fi
+    
+    read -p "Press Enter to continue..."
+}
+
+# ============================================
+# OPTION 3: STOP SERVICES
+# ============================================
+
+stop_services() {
+    print_header "Stopping All Services"
+    
+    cd "$DASHBOARD_DIR" || {
+        print_error "Cannot access dashboard directory"
+        return 1
+    }
+    
+    confirm_action "This will stop all running containers. Are you sure?" || return
+    
+    print_info "Stopping Docker containers..."
+    docker compose down
+    
+    print_success "All services stopped"
+    docker ps -a --format "table {{.Names}}\t{{.Status}}"
+    
+    read -p "Press Enter to continue..."
+}
+
+# ============================================
+# OPTION 4: RESTART SERVICES
+# ============================================
+
+restart_services() {
+    print_header "Restarting All Services"
+    
+    cd "$DASHBOARD_DIR" || {
+        print_error "Cannot access dashboard directory"
+        return 1
+    }
+    
+    print_info "Restarting Docker containers..."
+    docker compose restart
+    
+    sleep 5
+    print_success "Services restarted"
+    docker ps --format "table {{.Names}}\t{{.Status}}"
+    
+    read -p "Press Enter to continue..."
+}
+
+# ============================================
+# OPTION 5: DEPLOY NEW BUILD
+# ============================================
+
+deploy_new_build() {
+    print_header "Deploy New Build"
+    
+    echo "This will deploy a new build from your local machine."
+    echo "Make sure you've run 'npm run build' locally first!"
+    echo
+    echo "On your local machine, run:"
+    echo -e "${CYAN}scp -r ./build/* $VPS_USER@$VPS_IP:$DASHBOARD_DIR/build/${NC}"
+    echo
+    confirm_action "Have you copied the build files?" || return
+    
+    cd "$DASHBOARD_DIR" || {
+        print_error "Cannot access dashboard directory"
+        return 1
+    }
+    
+    # Check if build exists
+    if [ -d "build" ]; then
+        print_success "Build directory found"
+        BUILD_SIZE=$(du -sh build | cut -f1)
+        print_info "Build size: $BUILD_SIZE"
+        
+        # Restart nginx to ensure fresh content
+        print_info "Restarting nginx..."
+        docker compose restart nginx 2>/dev/null || docker restart nginx 2>/dev/null
+        
+        print_success "Deployment complete!"
+        print_info "Your app should be live at: http://$VPS_IP"
+    else
+        print_error "Build directory not found!"
+        print_info "Please copy your build files first"
+    fi
+    
+    read -p "Press Enter to continue..."
+}
+
+# ============================================
+# OPTION 6: BUILD & DEPLOY
+# ============================================
+
+build_and_deploy() {
+    print_header "Build & Deploy (Full Process)"
+    
+    cd "$DASHBOARD_DIR" || {
+        print_error "Cannot access dashboard directory"
+        return 1
+    }
+    
+    # Check if package.json exists
+    if [ ! -f "package.json" ]; then
+        print_error "package.json not found!"
+        print_info "This doesn't appear to be a Node.js project"
+        read -p "Press Enter to continue..."
+        return 1
+    fi
+    
+    print_info "Installing dependencies..."
+    npm install --legacy-peer-deps
+    
+    print_info "Building project..."
+    export CI=false  # Ignore warnings during build
+    npm run build
+    
+    if [ -d "build" ]; then
+        print_success "Build successful!"
+        BUILD_SIZE=$(du -sh build | cut -f1)
+        print_info "Build size: $BUILD_SIZE"
+        
+        # Restart services
+        print_info "Restarting services..."
+        docker compose restart nginx 2>/dev/null || print_warning "Nginx restart failed"
+        
+        print_success "Build & deployment complete!"
+    else
+        print_error "Build failed!"
+    fi
+    
+    read -p "Press Enter to continue..."
+}
+
+# ============================================
+# OPTION 7: SHOW LOGS
+# ============================================
+
+show_logs() {
+    print_header "Container Logs"
+    
+    echo "Select container:"
+    echo "  1) All containers"
+    echo "  2) Nginx"
+    echo "  3) API"
+    echo "  4) Database"
+    echo "  5) Return to menu"
+    
+    read -p "Choice: " log_choice
+    
+    case $log_choice in
+        1)
+            docker compose logs --tail=50
+            ;;
+        2)
+            docker logs nginx --tail=50 2>/dev/null || docker compose logs nginx --tail=50
+            ;;
+        3)
+            docker logs api --tail=50 2>/dev/null || docker compose logs api --tail=50
+            ;;
+        4)
+            docker logs postgres --tail=50 2>/dev/null || docker compose logs db --tail=50
+            ;;
+        5)
+            return
+            ;;
+        *)
+            print_error "Invalid choice"
+            ;;
+    esac
+    
+    read -p "Press Enter to continue..."
+}
+
+# ============================================
+# OPTION 8: FIX COMMON ISSUES
+# ============================================
+
+fix_common_issues() {
+    print_header "Fix Common Issues"
+    
+    cd "$DASHBOARD_DIR" || {
+        print_error "Cannot access dashboard directory"
+        return 1
+    }
+    
+    # Fix 1: Create missing directories
+    print_info "Creating missing directories..."
+    mkdir -p build nginx/conf.d logs data
+    print_success "Directories created"
+    
+    # Fix 2: Fix permissions
+    print_info "Fixing permissions..."
+    chmod -R 755 .
+    print_success "Permissions fixed"
+    
+    # Fix 3: Check docker-compose.yml
+    if [ ! -f "docker-compose.yml" ]; then
+        print_warning "docker-compose.yml missing!"
+        print_info "Creating basic docker-compose.yml..."
+        create_basic_docker_compose
+    else
+        print_success "docker-compose.yml exists"
+    fi
+    
+    # Fix 4: Check nginx config
+    if [ ! -f "nginx/conf.d/default.conf" ]; then
+        print_warning "Nginx config missing!"
+        print_info "Creating basic nginx config..."
+        create_basic_nginx_config
+    else
+        print_success "Nginx config exists"
+    fi
+    
+    # Fix 5: Docker cleanup
+    print_info "Cleaning up Docker resources..."
+    docker system prune -f
+    print_success "Docker cleanup complete"
+    
+    # Fix 6: Reset containers
+    confirm_action "Reset all containers?" && {
+        docker compose down
+        docker compose up -d
+        print_success "Containers reset"
+    }
+    
+    read -p "Press Enter to continue..."
+}
+
+# Helper function to create basic docker-compose.yml
+create_basic_docker_compose() {
+    cat > docker-compose.yml <<'EOF'
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./build:/usr/share/nginx/html:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    restart: unless-stopped
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+EOF
+    print_success "Created basic docker-compose.yml"
+}
+
+# Helper function to create basic nginx config
+create_basic_nginx_config() {
+    mkdir -p nginx/conf.d
+    cat > nginx/conf.d/default.conf <<'EOF'
+server {
+    listen 80;
+    server_name _;
+    
+    root /usr/share/nginx/html;
+    index index.html index.htm;
+    
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+    
+    location /api/ {
+        return 503;
+    }
+    
+    location /health {
+        access_log off;
+        return 200 "OK";
+        add_header Content-Type text/plain;
+    }
+}
+EOF
+    print_success "Created basic nginx config"
+}
+
+# ============================================
+# OPTION 9: BACKUP
+# ============================================
+
+backup_setup() {
+    print_header "Backup Current Setup"
+    
+    TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+    BACKUP_FILE="$BACKUP_DIR/dashboard-backup-$TIMESTAMP.tar.gz"
+    
+    mkdir -p "$BACKUP_DIR"
+    
+    print_info "Creating backup..."
+    cd "$DASHBOARD_DIR" || {
+        print_error "Cannot access dashboard directory"
+        return 1
+    }
+    
+    tar -czf "$BACKUP_FILE" \
+        --exclude=node_modules \
+        --exclude=.git \
+        .
+    
+    if [ -f "$BACKUP_FILE" ]; then
+        BACKUP_SIZE=$(ls -lh "$BACKUP_FILE" | awk '{print $5}')
+        print_success "Backup created: $BACKUP_FILE ($BACKUP_SIZE)"
+        
+        # Keep only last 5 backups
+        ls -t "$BACKUP_DIR"/dashboard-backup-*.tar.gz 2>/dev/null | tail -n +6 | xargs rm -f 2>/dev/null
+        print_info "Keeping only last 5 backups"
+    else
+        print_error "Backup failed!"
+    fi
+    
+    read -p "Press Enter to continue..."
+}
+
+# ============================================
+# OPTION 10: GENERATE REPORT
+# ============================================
+
+generate_report() {
+    print_header "Generating Deployment Report"
+    
+    REPORT_FILE="/tmp/deployment-report-$(date +%Y%m%d-%H%M%S).txt"
+    
+    {
+        echo "======================================"
+        echo "Cyber Trust Sensor Dashboard"
+        echo "Deployment Report"
+        echo "Generated: $(date)"
+        echo "======================================"
+        echo
+        echo "SYSTEM INFORMATION"
+        echo "------------------"
+        echo "Hostname: $(hostname)"
+        echo "IP Address: $VPS_IP"
+        echo "OS: $(lsb_release -d | cut -f2)"
+        echo "Dashboard Location: $DASHBOARD_DIR"
+        echo
+        echo "DOCKER STATUS"
+        echo "-------------"
+        docker version --format "Version: {{.Server.Version}}"
+        echo "Containers:"
+        docker ps -a --format "  {{.Names}}: {{.Status}}"
+        echo
+        echo "DISK USAGE"
+        echo "----------"
+        df -h / | tail -1
+        echo
+        echo "PROJECT STRUCTURE"
+        echo "-----------------"
+        cd "$DASHBOARD_DIR" 2>/dev/null && ls -la | head -20
+        echo
+        echo "PORT STATUS"
+        echo "-----------"
+        netstat -tuln | grep -E ":(80|443|3000|3001) "
+        echo
+        echo "RECENT LOGS"
+        echo "-----------"
+        tail -20 "$LOG_FILE" 2>/dev/null || echo "No recent logs"
+    } > "$REPORT_FILE"
+    
+    print_success "Report generated: $REPORT_FILE"
+    
+    echo
+    echo "View report with: cat $REPORT_FILE"
+    echo "Download with: scp root@$VPS_IP:$REPORT_FILE ."
+    
+    read -p "Press Enter to continue..."
+}
+
+# ============================================
+# OPTION 11: QUICK DEPLOY
+# ============================================
+
+quick_deploy() {
+    print_header "Quick Deploy (Frontend Only)"
+    
+    echo "This is for quick frontend updates only."
+    echo
+    echo -e "${BOLD}Step 1:${NC} On your local machine, run:"
+    echo -e "${CYAN}npm run build${NC}"
+    echo
+    echo -e "${BOLD}Step 2:${NC} Transfer files:"
+    echo -e "${CYAN}scp -r ./build/* root@$VPS_IP:$DASHBOARD_DIR/build/${NC}"
+    echo
+    echo -e "${BOLD}Step 3:${NC} Files will be served immediately (no restart needed)"
+    echo
+    echo -e "Your changes will be live at: ${GREEN}http://$VPS_IP${NC}"
+    echo
+    echo -e "${YELLOW}Note:${NC} For API or config changes, use option 4 (Restart Services)"
+    
+    read -p "Press Enter to continue..."
+}
+
+# ============================================
+# OPTION 12: DOCKER CLEANUP
+# ============================================
+
+docker_cleanup() {
+    print_header "Docker Cleanup"
+    
+    echo "This will clean up Docker resources to free space."
+    echo
+    echo "Options:"
+    echo "  1) Safe cleanup (unused images/containers)"
+    echo "  2) Aggressive cleanup (all stopped containers, unused images)"
+    echo "  3) Full reset (WARNING: removes everything!)"
+    echo "  4) Cancel"
+    
+    read -p "Choice: " cleanup_choice
+    
+    case $cleanup_choice in
+        1)
+            print_info "Performing safe cleanup..."
+            docker system prune -f
+            print_success "Safe cleanup complete"
+            ;;
+        2)
+            print_info "Performing aggressive cleanup..."
+            docker system prune -a -f
+            docker volume prune -f
+            print_success "Aggressive cleanup complete"
+            ;;
+        3)
+            confirm_action "This will REMOVE ALL containers, images, and volumes! Are you sure?" && {
+                docker compose down 2>/dev/null
+                docker stop $(docker ps -aq) 2>/dev/null
+                docker rm $(docker ps -aq) 2>/dev/null
+                docker rmi $(docker images -q) 2>/dev/null
+                docker volume rm $(docker volume ls -q) 2>/dev/null
+                docker network prune -f
+                print_success "Full reset complete"
+            }
+            ;;
+        4)
+            return
+            ;;
+        *)
+            print_error "Invalid choice"
+            ;;
+    esac
+    
+    # Show disk space after cleanup
+    print_info "Disk space after cleanup:"
+    df -h / | tail -1
+    
+    read -p "Press Enter to continue..."
+}
+
+# ============================================
+# MAIN EXECUTION
+# ============================================
+
+# Create log file if it doesn't exist
+touch "$LOG_FILE"
+
+# Main loop
+while true; do
+    show_menu
+    
+    case $choice in
+        1)
+            full_status_check
+            ;;
+        2)
+            start_services
+            ;;
+        3)
+            stop_services
+            ;;
+        4)
+            restart_services
+            ;;
+        5)
+            deploy_new_build
+            ;;
+        6)
+            build_and_deploy
+            ;;
+        7)
+            show_logs
+            ;;
+        8)
+            fix_common_issues
+            ;;
+        9)
+            backup_setup
+            ;;
+        10)
+            generate_report
+            ;;
+        11)
+            quick_deploy
+            ;;
+        12)
+            docker_cleanup
+            ;;
+        0)
+            print_info "Exiting..."
+            log_message "Script exited normally"
+            exit 0
+            ;;
+        *)
+            print_error "Invalid option"
+            sleep 2
+            ;;
+    esac
+done

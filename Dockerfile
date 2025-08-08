@@ -8,8 +8,17 @@ WORKDIR /app
 # Add package files first for better caching
 COPY package.json package-lock.json ./
 
-# Install dependencies with exact versions and clean cache
-RUN npm ci --production=false && \
+# ------------------------------------------------------------------
+# Install dependencies (tolerant mode)
+# ------------------------------------------------------------------
+#   • Write a local .npmrc that forces legacy-peer-deps so npm ignores
+#     the TypeScript peer-dependency conflict between react-scripts
+#     5.x and TypeScript ≥5.                                                   
+#   • Use `npm install` instead of `npm ci` so the flag is honoured.           
+#   • Disable audit & progress for faster, quieter CI logs.                    
+# ------------------------------------------------------------------
+RUN echo 'legacy-peer-deps=true' > .npmrc && \
+    npm install --legacy-peer-deps --no-audit --progress=false && \
     npm cache clean --force
 
 # Copy source code
@@ -51,20 +60,23 @@ RUN echo 'server_tokens off;' > /etc/nginx/conf.d/security.conf && \
     echo 'add_header Content-Security-Policy "default-src '\''self'\''; script-src '\''self'\''; img-src '\''self'\'' data:; style-src '\''self'\'' '\''unsafe-inline'\''; font-src '\''self'\'' data:; connect-src '\''self'\''";' >> /etc/nginx/conf.d/security.conf && \
     echo 'add_header Referrer-Policy "strict-origin-when-cross-origin";' >> /etc/nginx/conf.d/security.conf
 
-# Add cache control for static assets
-RUN echo 'location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {' > /etc/nginx/conf.d/cache.conf && \
-    echo '    expires 30d;' >> /etc/nginx/conf.d/cache.conf && \
-    echo '    add_header Cache-Control "public, no-transform";' >> /etc/nginx/conf.d/cache.conf && \
-    echo '}' >> /etc/nginx/conf.d/cache.conf
+# ------------------------------------------------------------------------------
+# Fix permissions & prepare cache/temp directories for non-root execution
+# ------------------------------------------------------------------------------
+#   1. Remove potential root-owned cache/temp directories that nginx tries to
+#      create on start-up (`/var/cache/nginx/*_temp`).
+#   2. Ensure they exist and are owned by the `nginx` user so that nginx can
+#      write to them without needing root privileges.
+#   3. Keep nginx listening on port 80 (default) to align with the docker-compose
+#      port mapping.
+# ------------------------------------------------------------------------------
+RUN mkdir -p /var/cache/nginx /var/run/nginx /var/tmp/nginx && \
+    chown -R nginx:nginx /var/cache/nginx /var/run/nginx /var/tmp/nginx /usr/share/nginx/html
 
-# Run nginx as non-root user
-RUN sed -i 's/user  nginx;/user  nginx;/' /etc/nginx/nginx.conf && \
-    sed -i 's/listen       80;/listen       8080;/' /etc/nginx/conf.d/nginx.conf
-
-# Expose port 8080 instead of 80 for non-root usage
-EXPOSE 8080
-
-# Use non-root user
+# Switch to non-root user
 USER nginx
+
+# Expose default HTTP port
+EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]

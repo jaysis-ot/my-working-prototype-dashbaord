@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  frontend:
+    image: cyber-trust-dashboard:latest
+    container_name: cyber-trust-frontend
+    restart: unless-stopped
+    networks:
+      - frontend-network
+    volumes:
+      - frontend-build:/app/build
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    environment:
+      - NODE_ENV=production
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: cyber-trust-nginx
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    ports:
+      - "80:8080"
+    networks:
+      - frontend-network
+    volumes:
+      - ./nginx-frontend-only.conf:/etc/nginx/conf.d/default.conf
+      - frontend-build:/usr/share/nginx/html
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  frontend-network:
+    driver: bridge
+
+volumes:
+  frontend-build:
+    driver: local

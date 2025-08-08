@@ -1,0 +1,30 @@
+# Add PostgreSQL to your existing setup
+# Run with: docker-compose -f docker-compose.yml -f docker-compose.postgres.yml up -d
+
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: cyber-trust-postgres  # Matches your naming convention
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}  # Set in .env file
+      POSTGRES_DB: cyber_trust_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - frontend-network  # Use your existing network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cyber_trust_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    driver: local

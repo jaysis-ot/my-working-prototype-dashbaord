@@ -1,0 +1,58 @@
+version: '3.8'
+
+# This file EXTENDS your existing docker-compose.yml
+# Use with: docker-compose -f docker-compose.yml -f docker-compose.postgres.yml up -d
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: trustplatform_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: trustplatform
+      POSTGRES_USER: trustadmin
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme_in_production}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=en_US.utf8 --lc-ctype=en_US.utf8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - default  # Use the default network from your main compose file
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trustadmin -d trustplatform"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional: pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: trustplatform_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@trustplatform.local
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-changeme}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    ports:
+      - "5050:80"  # Note: Port 80 is already used by nginx, so using 5050
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - default
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local

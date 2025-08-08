@@ -44,11 +44,27 @@ ssh ubuntu@31.97.114.80
 git clone https://github.com/jaysis-ot/my-working-prototype-dashbaord.git
 cd my-working-prototype-dashbaord
 
+# Ensure you are on the latest commit (helps if the file was added recently)
+git pull
+
 # Copy environment template
 cp .env.example .env
 
 # Open for editing
 nano .env      # or use vim / code
+
+# --- 𝙄𝙁 .env.example IS MISSING ---
+# Occasionally the template file may not be present if the repository was
+# cloned at an earlier commit or the pull failed.  Run:
+#
+#   ls -1 .env.example
+#   # ⇢ if you see “ls: cannot access '.env.example': No such file or directory”
+#   #   create the file manually:
+#   cat > .env <<'EOF'
+#   # (Paste the template from Section 4 below, then Ctrl-D)
+#   EOF
+#
+# You can now edit `.env` as usual.
 ```
 
 ---

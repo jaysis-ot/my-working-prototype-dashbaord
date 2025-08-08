@@ -1,0 +1,126 @@
+version: '3.8'
+
+services:
+  # Nginx Web Server - Your existing frontend
+  nginx:
+    image: nginx:alpine
+    container_name: cyber-trust-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/logs:/var/log/nginx
+      - ./build:/usr/share/nginx/html:ro
+    networks:
+      - frontend-network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # PostgreSQL Database - New addition for your platform
+  postgres:
+    image: postgres:15-alpine
+    container_name: cyber-trust-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme_in_production}
+      POSTGRES_DB: ${DB_NAME:-cyber_trust_db}
+      # Additional PostgreSQL configurations for better performance
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=en_US.utf8 --lc-ctype=en_US.utf8"
+      # Shared memory settings for better performance
+      POSTGRES_HOST_AUTH_METHOD: "scram-sha-256"
+    ports:
+      - "5432:5432"
+    volumes:
+      # Data persistence
+      - postgres_data:/var/lib/postgresql/data
+      # Initialization scripts (if you have any)
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+      # Custom PostgreSQL configuration (optional)
+      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      # Backup directory
+      - ./backups/postgres:/backups
+    networks:
+      - frontend-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-cyber_trust_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # pgAdmin - Database Management UI (optional but helpful)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: cyber-trust-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@trustplatform.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-changeme}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    ports:
+      - "5050:80"  # Access pgAdmin at http://31.97.114.80:5050
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - frontend-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - tools  # Only starts if you run: docker-compose --profile tools up
+
+  # API Service (placeholder for when you're ready)
+  api:
+    image: node:18-alpine
+    container_name: cyber-trust-api
+    restart: unless-stopped
+    working_dir: /app
+    command: ["echo", "API service placeholder - not yet configured"]
+    networks:
+      - frontend-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - backend  # Only starts if you run: docker-compose --profile backend up
+    # Uncomment when ready to add your API:
+    # ports:
+    #   - "3001:3001"
+    # volumes:
+    #   - ./api:/app
+    #   - ./api/logs:/app/logs
+    # command: ["npm", "start"]
+    # environment:
+    #   DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-cyber_trust_db}
+    #   NODE_ENV: production
+
+networks:
+  frontend-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+  nginx-cache:
+    driver: local

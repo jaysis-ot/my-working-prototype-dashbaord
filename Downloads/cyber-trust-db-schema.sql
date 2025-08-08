@@ -1,0 +1,944 @@
+-- =====================================================
+-- Cyber Trust Sensor Dashboard - Complete Database Schema
+-- Version: 1.0.0
+-- Date: 2025-01-09
+-- Description: Production-ready database schema for the Cyber Trust Platform
+-- =====================================================
+
+-- Drop existing schema if needed (BE CAREFUL IN PRODUCTION!)
+-- DROP SCHEMA IF EXISTS cyber_trust CASCADE;
+
+-- Create schema
+CREATE SCHEMA IF NOT EXISTS cyber_trust;
+SET search_path TO cyber_trust, public;
+
+-- Enable required extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "pg_trgm"; -- For text search
+CREATE EXTENSION IF NOT EXISTS "btree_gin"; -- For composite indexes
+
+-- =====================================================
+-- CORE SYSTEM TABLES
+-- =====================================================
+
+-- Organizations (Multi-tenant support)
+CREATE TABLE organizations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    domain VARCHAR(255) UNIQUE,
+    industry VARCHAR(100),
+    size VARCHAR(50), -- small, medium, large, enterprise
+    subscription_tier VARCHAR(50) DEFAULT 'trial',
+    trust_score DECIMAL(5,2) DEFAULT 50.00,
+    settings JSONB DEFAULT '{}',
+    metadata JSONB DEFAULT '{}',
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Users (with RBAC support)
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255),
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    role VARCHAR(50) NOT NULL DEFAULT 'viewer', -- admin, analyst, viewer
+    department VARCHAR(100),
+    title VARCHAR(100),
+    phone VARCHAR(50),
+    avatar_url TEXT,
+    preferences JSONB DEFAULT '{}',
+    last_login TIMESTAMP WITH TIME ZONE,
+    mfa_enabled BOOLEAN DEFAULT false,
+    mfa_secret VARCHAR(255),
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT valid_role CHECK (role IN ('admin', 'analyst', 'viewer', 'super_admin'))
+);
+
+-- Audit Logs (for compliance and tracking)
+CREATE TABLE audit_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    action VARCHAR(100) NOT NULL,
+    entity_type VARCHAR(100),
+    entity_id UUID,
+    old_values JSONB,
+    new_values JSONB,
+    ip_address INET,
+    user_agent TEXT,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================================
+-- REQUIREMENTS MANAGEMENT
+-- =====================================================
+
+-- Requirements (Core requirements tracking)
+CREATE TABLE requirements (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    code VARCHAR(50) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    category VARCHAR(100),
+    type VARCHAR(50), -- security, compliance, operational, business
+    source VARCHAR(255), -- ISO27001, NIST, SOC2, custom, etc.
+    priority VARCHAR(20) DEFAULT 'medium', -- critical, high, medium, low
+    maturity_current INTEGER DEFAULT 1 CHECK (maturity_current BETWEEN 1 AND 5),
+    maturity_target INTEGER DEFAULT 3 CHECK (maturity_target BETWEEN 1 AND 5),
+    business_value INTEGER DEFAULT 3 CHECK (business_value BETWEEN 1 AND 5),
+    implementation_cost DECIMAL(12,2),
+    implementation_effort INTEGER, -- person-days
+    owner_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    status VARCHAR(50) DEFAULT 'identified', -- identified, assessed, implemented, validated
+    due_date DATE,
+    metadata JSONB DEFAULT '{}',
+    tags TEXT[],
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(organization_id, code)
+);
+
+-- =====================================================
+-- CAPABILITIES & CONTROLS
+-- =====================================================
+
+-- Capabilities (Security controls and organizational capabilities)
+CREATE TABLE capabilities (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    code VARCHAR(50) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    category VARCHAR(100),
+    type VARCHAR(50), -- preventive, detective, corrective, compensating
+    maturity_level INTEGER DEFAULT 1 CHECK (maturity_level BETWEEN 1 AND 5),
+    effectiveness DECIMAL(5,2) DEFAULT 50.00, -- percentage
+    status VARCHAR(50) DEFAULT 'planned', -- planned, implementing, operational, optimizing
+    owner_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    implementation_date DATE,
+    last_tested DATE,
+    test_frequency_days INTEGER DEFAULT 90,
+    cost_annual DECIMAL(12,2),
+    metadata JSONB DEFAULT '{}',
+    tags TEXT[],
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(organization_id, code)
+);
+
+-- Requirements to Capabilities mapping (many-to-many)
+CREATE TABLE requirement_capabilities (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    requirement_id UUID REFERENCES requirements(id) ON DELETE CASCADE,
+    capability_id UUID REFERENCES capabilities(id) ON DELETE CASCADE,
+    coverage_level DECIMAL(5,2) DEFAULT 100.00, -- percentage of requirement covered
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(requirement_id, capability_id)
+);
+
+-- =====================================================
+-- RISK MANAGEMENT
+-- =====================================================
+
+-- Risks (Risk register)
+CREATE TABLE risks (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    code VARCHAR(50) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    category VARCHAR(100),
+    type VARCHAR(50), -- strategic, operational, financial, compliance, reputational
+    source VARCHAR(100), -- internal, external, both
+    probability INTEGER CHECK (probability BETWEEN 1 AND 5),
+    impact INTEGER CHECK (impact BETWEEN 1 AND 5),
+    inherent_risk_score INTEGER GENERATED ALWAYS AS (probability * impact) STORED,
+    current_probability INTEGER CHECK (current_probability BETWEEN 1 AND 5),
+    current_impact INTEGER CHECK (current_impact BETWEEN 1 AND 5),
+    residual_risk_score INTEGER GENERATED ALWAYS AS (current_probability * current_impact) STORED,
+    risk_appetite VARCHAR(20), -- avoid, mitigate, transfer, accept
+    treatment_strategy VARCHAR(20), -- avoid, reduce, share, retain
+    treatment_plan TEXT,
+    owner_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    status VARCHAR(50) DEFAULT 'identified', -- identified, assessed, treating, monitoring, closed
+    review_date DATE,
+    target_resolution_date DATE,
+    cost_impact DECIMAL(12,2),
+    metadata JSONB DEFAULT '{}',
+    tags TEXT[],
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(organization_id, code)
+);
+
+-- Risk to Requirements mapping
+CREATE TABLE risk_requirements (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    risk_id UUID REFERENCES risks(id) ON DELETE CASCADE,
+    requirement_id UUID REFERENCES requirements(id) ON DELETE CASCADE,
+    relationship_type VARCHAR(50), -- causes, mitigates, monitors
+    effectiveness DECIMAL(5,2) DEFAULT 50.00,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(risk_id, requirement_id)
+);
+
+-- Risk to Capabilities mapping
+CREATE TABLE risk_capabilities (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    risk_id UUID REFERENCES risks(id) ON DELETE CASCADE,
+    capability_id UUID REFERENCES capabilities(id) ON DELETE CASCADE,
+    mitigation_level DECIMAL(5,2) DEFAULT 50.00, -- percentage of risk mitigated
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(risk_id, capability_id)
+);
+
+-- =====================================================
+-- THREAT INTELLIGENCE
+-- =====================================================
+
+-- Threat Intelligence Feeds
+CREATE TABLE threat_feeds (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    source VARCHAR(255) NOT NULL,
+    type VARCHAR(50), -- STIX, TAXII, RSS, API
+    url TEXT,
+    api_key_encrypted TEXT,
+    update_frequency_minutes INTEGER DEFAULT 60,
+    last_fetched TIMESTAMP WITH TIME ZONE,
+    is_active BOOLEAN DEFAULT true,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Threats
+CREATE TABLE threats (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    feed_id UUID REFERENCES threat_feeds(id) ON DELETE SET NULL,
+    external_id VARCHAR(255),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    category VARCHAR(100),
+    threat_actor VARCHAR(255),
+    severity VARCHAR(20), -- critical, high, medium, low, info
+    confidence INTEGER CHECK (confidence BETWEEN 0 AND 100),
+    tactics TEXT[], -- MITRE ATT&CK tactics
+    techniques TEXT[], -- MITRE ATT&CK techniques
+    indicators JSONB DEFAULT '[]', -- IOCs
+    cve_ids TEXT[],
+    first_seen TIMESTAMP WITH TIME ZONE,
+    last_seen TIMESTAMP WITH TIME ZONE,
+    is_active BOOLEAN DEFAULT true,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indicators of Compromise (IOCs)
+CREATE TABLE indicators (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    threat_id UUID REFERENCES threats(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL, -- ip, domain, url, hash, email, file
+    value TEXT NOT NULL,
+    confidence INTEGER CHECK (confidence BETWEEN 0 AND 100),
+    severity VARCHAR(20),
+    first_seen TIMESTAMP WITH TIME ZONE,
+    last_seen TIMESTAMP WITH TIME ZONE,
+    times_seen INTEGER DEFAULT 1,
+    is_active BOOLEAN DEFAULT true,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================================
+-- MITRE ATT&CK FRAMEWORK
+-- =====================================================
+
+-- MITRE Tactics
+CREATE TABLE mitre_tactics (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tactic_id VARCHAR(50) UNIQUE NOT NULL, -- TA0001, etc.
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    url TEXT,
+    sort_order INTEGER,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- MITRE Techniques
+CREATE TABLE mitre_techniques (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    technique_id VARCHAR(50) UNIQUE NOT NULL, -- T1001, etc.
+    tactic_id VARCHAR(50) REFERENCES mitre_tactics(tactic_id),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    url TEXT,
+    platforms TEXT[],
+    data_sources TEXT[],
+    is_subtechnique BOOLEAN DEFAULT false,
+    parent_technique_id VARCHAR(50),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Organization's MITRE Coverage
+CREATE TABLE mitre_coverage (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    technique_id VARCHAR(50) REFERENCES mitre_techniques(technique_id),
+    coverage_level VARCHAR(20), -- none, partial, substantial, complete
+    detection_score INTEGER CHECK (detection_score BETWEEN 0 AND 100),
+    prevention_score INTEGER CHECK (prevention_score BETWEEN 0 AND 100),
+    capabilities UUID[], -- Array of capability IDs providing coverage
+    notes TEXT,
+    last_tested DATE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(organization_id, technique_id)
+);
+
+-- =====================================================
+-- STANDARDS & FRAMEWORKS
+-- =====================================================
+
+-- Compliance Frameworks
+CREATE TABLE frameworks (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    code VARCHAR(50) UNIQUE NOT NULL, -- ISO27001, NIST-CSF, SOC2, etc.
+    name VARCHAR(255) NOT NULL,
+    version VARCHAR(50),
+    description TEXT,
+    url TEXT,
+    categories JSONB DEFAULT '[]',
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Framework Controls
+CREATE TABLE framework_controls (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    framework_id UUID REFERENCES frameworks(id) ON DELETE CASCADE,
+    control_id VARCHAR(100) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    category VARCHAR(100),
+    priority VARCHAR(20),
+    implementation_guidance TEXT,
+    testing_procedures TEXT,
+    parent_control_id VARCHAR(100),
+    sort_order INTEGER,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(framework_id, control_id)
+);
+
+-- Organization's Framework Assessments
+CREATE TABLE framework_assessments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    framework_id UUID REFERENCES frameworks(id) ON DELETE CASCADE,
+    assessment_date DATE NOT NULL,
+    assessor_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    overall_score DECIMAL(5,2),
+    maturity_level INTEGER CHECK (maturity_level BETWEEN 1 AND 5),
+    status VARCHAR(50) DEFAULT 'in_progress', -- in_progress, completed, certified
+    certification_date DATE,
+    certification_expiry DATE,
+    notes TEXT,
+    report_url TEXT,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Assessment Control Results
+CREATE TABLE assessment_results (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    assessment_id UUID REFERENCES framework_assessments(id) ON DELETE CASCADE,
+    control_id VARCHAR(100) NOT NULL,
+    status VARCHAR(50), -- compliant, partial, non_compliant, not_applicable
+    score INTEGER CHECK (score BETWEEN 0 AND 100),
+    evidence TEXT,
+    findings TEXT,
+    recommendations TEXT,
+    capability_ids UUID[], -- Capabilities that satisfy this control
+    requirement_ids UUID[], -- Requirements that map to this control
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(assessment_id, control_id)
+);
+
+-- =====================================================
+-- RESOURCE PLANNING
+-- =====================================================
+
+-- Resources (People, Teams, Systems)
+CREATE TABLE resources (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    type VARCHAR(50), -- person, team, system, tool
+    category VARCHAR(100),
+    capacity_hours_weekly DECIMAL(5,2),
+    cost_hourly DECIMAL(10,2),
+    skills TEXT[],
+    certifications TEXT[],
+    availability_start DATE,
+    availability_end DATE,
+    owner_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    metadata JSONB DEFAULT '{}',
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Resource Allocations
+CREATE TABLE resource_allocations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    resource_id UUID REFERENCES resources(id) ON DELETE CASCADE,
+    entity_type VARCHAR(50), -- requirement, capability, risk, project
+    entity_id UUID NOT NULL,
+    allocation_hours DECIMAL(10,2),
+    allocation_percentage DECIMAL(5,2),
+    start_date DATE,
+    end_date DATE,
+    status VARCHAR(50) DEFAULT 'planned', -- planned, active, completed
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================================
+-- EVIDENCE & ARTIFACTS
+-- =====================================================
+
+-- Evidence (Living proof system)
+CREATE TABLE evidence (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    type VARCHAR(50), -- policy, procedure, log, test_result, audit_report, screenshot
+    category VARCHAR(100), -- intent, implementation, behavioral, validation
+    description TEXT,
+    file_path TEXT,
+    file_hash VARCHAR(64), -- SHA-256
+    file_size_bytes BIGINT,
+    mime_type VARCHAR(100),
+    collected_date TIMESTAMP WITH TIME ZONE,
+    expiry_date DATE,
+    confidence_score DECIMAL(5,2) DEFAULT 50.00,
+    decay_rate DECIMAL(5,4) DEFAULT 0.0027, -- Daily decay rate
+    source VARCHAR(255),
+    collector_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    metadata JSONB DEFAULT '{}',
+    tags TEXT[],
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Evidence Relationships (what does this evidence support?)
+CREATE TABLE evidence_relationships (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    evidence_id UUID REFERENCES evidence(id) ON DELETE CASCADE,
+    entity_type VARCHAR(50), -- requirement, capability, risk, control
+    entity_id UUID NOT NULL,
+    relationship_type VARCHAR(50), -- supports, validates, contradicts
+    strength DECIMAL(5,2) DEFAULT 50.00, -- Relationship strength percentage
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(evidence_id, entity_type, entity_id)
+);
+
+-- =====================================================
+-- BUSINESS PLANNING
+-- =====================================================
+
+-- Business Plans
+CREATE TABLE business_plans (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    type VARCHAR(50), -- strategic, operational, project, remediation
+    description TEXT,
+    executive_summary TEXT,
+    objectives TEXT[],
+    start_date DATE,
+    end_date DATE,
+    budget DECIMAL(12,2),
+    roi_expected DECIMAL(12,2),
+    status VARCHAR(50) DEFAULT 'draft', -- draft, approved, in_progress, completed
+    owner_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    approver_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    approval_date DATE,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Plan Initiatives
+CREATE TABLE plan_initiatives (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    plan_id UUID REFERENCES business_plans(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    priority INTEGER CHECK (priority BETWEEN 1 AND 5),
+    estimated_effort_days DECIMAL(10,2),
+    estimated_cost DECIMAL(12,2),
+    actual_effort_days DECIMAL(10,2),
+    actual_cost DECIMAL(12,2),
+    start_date DATE,
+    end_date DATE,
+    status VARCHAR(50) DEFAULT 'planned',
+    owner_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    requirement_ids UUID[],
+    capability_ids UUID[],
+    risk_ids UUID[],
+    success_metrics JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================================
+-- ANALYTICS & METRICS
+-- =====================================================
+
+-- Metrics Definitions
+CREATE TABLE metrics (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    category VARCHAR(100),
+    formula TEXT,
+    unit VARCHAR(50),
+    target_value DECIMAL(12,4),
+    threshold_critical DECIMAL(12,4),
+    threshold_warning DECIMAL(12,4),
+    collection_frequency VARCHAR(50), -- real_time, hourly, daily, weekly, monthly
+    data_source VARCHAR(255),
+    is_kpi BOOLEAN DEFAULT false,
+    metadata JSONB DEFAULT '{}',
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Metrics Data Points
+CREATE TABLE metrics_data (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    metric_id UUID REFERENCES metrics(id) ON DELETE CASCADE,
+    value DECIMAL(12,4) NOT NULL,
+    timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(metric_id, timestamp)
+);
+
+-- =====================================================
+-- TRUST SCORING ENGINE
+-- =====================================================
+
+-- Trust Score Components
+CREATE TABLE trust_components (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    component_name VARCHAR(100) NOT NULL, -- requirements, capabilities, risks, compliance, evidence
+    weight DECIMAL(5,4) DEFAULT 0.2000, -- Component weight in overall score
+    current_score DECIMAL(5,2),
+    trend VARCHAR(20), -- improving, stable, declining
+    last_calculated TIMESTAMP WITH TIME ZONE,
+    factors JSONB DEFAULT '{}', -- Detailed breakdown
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(organization_id, component_name)
+);
+
+-- Trust Score History
+CREATE TABLE trust_scores (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    score DECIMAL(5,2) NOT NULL,
+    components JSONB NOT NULL, -- Snapshot of all component scores
+    factors JSONB DEFAULT '{}', -- Contributing factors
+    calculated_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================================
+-- NOTIFICATIONS & ALERTS
+-- =====================================================
+
+-- Notifications
+CREATE TABLE notifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(50), -- alert, warning, info, task
+    category VARCHAR(100),
+    title VARCHAR(255) NOT NULL,
+    message TEXT,
+    entity_type VARCHAR(50),
+    entity_id UUID,
+    priority VARCHAR(20) DEFAULT 'medium',
+    is_read BOOLEAN DEFAULT false,
+    read_at TIMESTAMP WITH TIME ZONE,
+    action_url TEXT,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================================
+-- INTEGRATIONS
+-- =====================================================
+
+-- Integration Configurations
+CREATE TABLE integrations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    type VARCHAR(50), -- servicenow, opencti, slack, teams, email, webhook
+    endpoint_url TEXT,
+    auth_type VARCHAR(50), -- api_key, oauth2, basic, none
+    credentials_encrypted TEXT,
+    settings JSONB DEFAULT '{}',
+    sync_frequency_minutes INTEGER,
+    last_sync TIMESTAMP WITH TIME ZONE,
+    sync_status VARCHAR(50),
+    error_message TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Integration Sync Logs
+CREATE TABLE integration_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    integration_id UUID REFERENCES integrations(id) ON DELETE CASCADE,
+    action VARCHAR(100),
+    status VARCHAR(50), -- success, failure, partial
+    records_processed INTEGER DEFAULT 0,
+    records_failed INTEGER DEFAULT 0,
+    error_details TEXT,
+    duration_ms INTEGER,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================================
+-- INDEXES FOR PERFORMANCE
+-- =====================================================
+
+-- Organization indexes
+CREATE INDEX idx_organizations_active ON organizations(is_active) WHERE is_active = true;
+CREATE INDEX idx_organizations_domain ON organizations(domain);
+
+-- User indexes
+CREATE INDEX idx_users_organization ON users(organization_id);
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_role ON users(role);
+
+-- Requirements indexes
+CREATE INDEX idx_requirements_org ON requirements(organization_id);
+CREATE INDEX idx_requirements_status ON requirements(status);
+CREATE INDEX idx_requirements_owner ON requirements(owner_id);
+CREATE INDEX idx_requirements_tags ON requirements USING gin(tags);
+
+-- Capabilities indexes
+CREATE INDEX idx_capabilities_org ON capabilities(organization_id);
+CREATE INDEX idx_capabilities_status ON capabilities(status);
+CREATE INDEX idx_capabilities_owner ON capabilities(owner_id);
+
+-- Risks indexes
+CREATE INDEX idx_risks_org ON risks(organization_id);
+CREATE INDEX idx_risks_status ON risks(status);
+CREATE INDEX idx_risks_scores ON risks(inherent_risk_score, residual_risk_score);
+
+-- Threats indexes
+CREATE INDEX idx_threats_org ON threats(organization_id);
+CREATE INDEX idx_threats_severity ON threats(severity);
+CREATE INDEX idx_threats_active ON threats(is_active) WHERE is_active = true;
+
+-- Evidence indexes
+CREATE INDEX idx_evidence_org ON evidence(organization_id);
+CREATE INDEX idx_evidence_type ON evidence(type);
+CREATE INDEX idx_evidence_expiry ON evidence(expiry_date);
+CREATE INDEX idx_evidence_tags ON evidence USING gin(tags);
+
+-- Audit log indexes
+CREATE INDEX idx_audit_logs_org ON audit_logs(organization_id);
+CREATE INDEX idx_audit_logs_user ON audit_logs(user_id);
+CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
+CREATE INDEX idx_audit_logs_created ON audit_logs(created_at DESC);
+
+-- Full text search indexes
+CREATE INDEX idx_requirements_search ON requirements USING gin(to_tsvector('english', title || ' ' || COALESCE(description, '')));
+CREATE INDEX idx_risks_search ON risks USING gin(to_tsvector('english', title || ' ' || COALESCE(description, '')));
+CREATE INDEX idx_capabilities_search ON capabilities USING gin(to_tsvector('english', name || ' ' || COALESCE(description, '')));
+
+-- =====================================================
+-- TRIGGERS FOR UPDATED_AT
+-- =====================================================
+
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Apply trigger to all tables with updated_at
+CREATE TRIGGER update_organizations_updated_at BEFORE UPDATE ON organizations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_requirements_updated_at BEFORE UPDATE ON requirements FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_capabilities_updated_at BEFORE UPDATE ON capabilities FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_risks_updated_at BEFORE UPDATE ON risks FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_threats_updated_at BEFORE UPDATE ON threats FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_evidence_updated_at BEFORE UPDATE ON evidence FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- =====================================================
+-- ROW LEVEL SECURITY (RLS) POLICIES
+-- =====================================================
+
+-- Enable RLS on sensitive tables
+ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE requirements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE capabilities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE risks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE evidence ENABLE ROW LEVEL SECURITY;
+
+-- Create policies (example for requirements - replicate for other tables)
+CREATE POLICY "Users can view their organization's requirements" ON requirements
+    FOR SELECT
+    USING (organization_id IN (
+        SELECT organization_id FROM users WHERE id = current_setting('app.current_user_id')::UUID
+    ));
+
+CREATE POLICY "Admins and analysts can modify requirements" ON requirements
+    FOR ALL
+    USING (organization_id IN (
+        SELECT organization_id FROM users 
+        WHERE id = current_setting('app.current_user_id')::UUID 
+        AND role IN ('admin', 'analyst')
+    ));
+
+-- =====================================================
+-- INITIAL SEED DATA
+-- =====================================================
+
+-- Insert default frameworks
+INSERT INTO frameworks (code, name, version, description) VALUES
+('ISO27001', 'ISO/IEC 27001', '2022', 'Information security management systems'),
+('NIST-CSF', 'NIST Cybersecurity Framework', '2.0', 'Framework for improving critical infrastructure cybersecurity'),
+('SOC2', 'SOC 2', 'Type II', 'Service Organization Control 2'),
+('GDPR', 'General Data Protection Regulation', '2016/679', 'EU data protection and privacy regulation'),
+('PCI-DSS', 'Payment Card Industry Data Security Standard', '4.0', 'Security standard for payment card data')
+ON CONFLICT (code) DO NOTHING;
+
+-- Insert MITRE ATT&CK tactics (sample)
+INSERT INTO mitre_tactics (tactic_id, name, description, sort_order) VALUES
+('TA0001', 'Initial Access', 'The adversary is trying to get into your network', 1),
+('TA0002', 'Execution', 'The adversary is trying to run malicious code', 2),
+('TA0003', 'Persistence', 'The adversary is trying to maintain their foothold', 3),
+('TA0004', 'Privilege Escalation', 'The adversary is trying to gain higher-level permissions', 4),
+('TA0005', 'Defense Evasion', 'The adversary is trying to avoid being detected', 5),
+('TA0006', 'Credential Access', 'The adversary is trying to steal account names and passwords', 6),
+('TA0007', 'Discovery', 'The adversary is trying to figure out your environment', 7),
+('TA0008', 'Lateral Movement', 'The adversary is trying to move through your environment', 8),
+('TA0009', 'Collection', 'The adversary is trying to gather data of interest', 9),
+('TA0010', 'Exfiltration', 'The adversary is trying to steal data', 10),
+('TA0011', 'Impact', 'The adversary is trying to manipulate, interrupt, or destroy', 11)
+ON CONFLICT (tactic_id) DO NOTHING;
+
+-- =====================================================
+-- HELPER FUNCTIONS
+-- =====================================================
+
+-- Function to calculate trust score
+CREATE OR REPLACE FUNCTION calculate_trust_score(org_id UUID)
+RETURNS DECIMAL AS $$
+DECLARE
+    req_score DECIMAL;
+    cap_score DECIMAL;
+    risk_score DECIMAL;
+    comp_score DECIMAL;
+    evid_score DECIMAL;
+    total_score DECIMAL;
+BEGIN
+    -- Calculate requirements score (maturity vs target)
+    SELECT AVG(LEAST(maturity_current::DECIMAL / NULLIF(maturity_target, 0), 1.0) * 100)
+    INTO req_score
+    FROM requirements
+    WHERE organization_id = org_id AND is_active = true;
+    
+    -- Calculate capabilities score (effectiveness)
+    SELECT AVG(effectiveness)
+    INTO cap_score
+    FROM capabilities
+    WHERE organization_id = org_id AND is_active = true;
+    
+    -- Calculate risk score (inverse of residual risk)
+    SELECT 100 - AVG(residual_risk_score * 4) -- Scale 25-point risk to 100
+    INTO risk_score
+    FROM risks
+    WHERE organization_id = org_id AND is_active = true;
+    
+    -- Calculate compliance score (from latest assessments)
+    SELECT AVG(overall_score)
+    INTO comp_score
+    FROM framework_assessments
+    WHERE organization_id = org_id
+    AND assessment_date >= CURRENT_DATE - INTERVAL '1 year';
+    
+    -- Calculate evidence score (confidence with decay)
+    SELECT AVG(confidence_score * 
+        CASE 
+            WHEN expiry_date < CURRENT_DATE THEN 0.5
+            ELSE GREATEST(0.3, EXP(-decay_rate * EXTRACT(DAY FROM CURRENT_DATE - collected_date)))
+        END)
+    INTO evid_score
+    FROM evidence
+    WHERE organization_id = org_id AND is_active = true;
+    
+    -- Calculate weighted total (adjust weights as needed)
+    total_score := (
+        COALESCE(req_score, 50) * 0.20 +
+        COALESCE(cap_score, 50) * 0.20 +
+        COALESCE(risk_score, 50) * 0.25 +
+        COALESCE(comp_score, 50) * 0.20 +
+        COALESCE(evid_score, 50) * 0.15
+    );
+    
+    RETURN ROUND(total_score, 2);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to get evidence decay factor
+CREATE OR REPLACE FUNCTION get_evidence_decay_factor(
+    collected_date TIMESTAMP WITH TIME ZONE,
+    decay_rate DECIMAL,
+    evidence_category VARCHAR
+) RETURNS DECIMAL AS $$
+DECLARE
+    days_old INTEGER;
+    base_decay DECIMAL;
+BEGIN
+    days_old := EXTRACT(DAY FROM CURRENT_TIMESTAMP - collected_date);
+    
+    -- Different decay rates by category
+    CASE evidence_category
+        WHEN 'intent' THEN -- Policies decay faster
+            base_decay := EXP(-decay_rate * 2 * days_old);
+        WHEN 'behavioral' THEN -- Logs decay slower
+            base_decay := EXP(-decay_rate * 0.5 * days_old);
+        WHEN 'validation' THEN -- Audits have step decay
+            IF days_old > 365 THEN
+                base_decay := 0.3;
+            ELSIF days_old > 180 THEN
+                base_decay := 0.6;
+            ELSE
+                base_decay := 0.9;
+            END IF;
+        ELSE -- Default implementation category
+            base_decay := EXP(-decay_rate * days_old);
+    END CASE;
+    
+    -- Never go below 0.1 (10% confidence floor)
+    RETURN GREATEST(0.1, base_decay);
+END;
+$$ LANGUAGE plpgsql;
+
+-- =====================================================
+-- MATERIALIZED VIEWS FOR PERFORMANCE
+-- =====================================================
+
+-- Requirement coverage view
+CREATE MATERIALIZED VIEW requirement_coverage_summary AS
+SELECT 
+    r.organization_id,
+    r.id as requirement_id,
+    r.code,
+    r.title,
+    COUNT(DISTINCT rc.capability_id) as capability_count,
+    AVG(rc.coverage_level) as avg_coverage,
+    ARRAY_AGG(DISTINCT c.name) as capability_names
+FROM requirements r
+LEFT JOIN requirement_capabilities rc ON r.id = rc.requirement_id
+LEFT JOIN capabilities c ON rc.capability_id = c.id
+WHERE r.is_active = true
+GROUP BY r.organization_id, r.id, r.code, r.title;
+
+CREATE INDEX idx_req_coverage_org ON requirement_coverage_summary(organization_id);
+
+-- Risk mitigation view
+CREATE MATERIALIZED VIEW risk_mitigation_summary AS
+SELECT 
+    r.organization_id,
+    r.id as risk_id,
+    r.code,
+    r.title,
+    r.inherent_risk_score,
+    r.residual_risk_score,
+    COUNT(DISTINCT rc.capability_id) as mitigation_count,
+    AVG(rc.mitigation_level) as avg_mitigation
+FROM risks r
+LEFT JOIN risk_capabilities rc ON r.id = rc.risk_id
+WHERE r.is_active = true
+GROUP BY r.organization_id, r.id, r.code, r.title, r.inherent_risk_score, r.residual_risk_score;
+
+CREATE INDEX idx_risk_mitigation_org ON risk_mitigation_summary(organization_id);
+
+-- =====================================================
+-- PERMISSIONS AND ROLES
+-- =====================================================
+
+-- Create application role
+CREATE ROLE cyber_trust_app WITH LOGIN PASSWORD 'change_me_in_production';
+GRANT USAGE ON SCHEMA cyber_trust TO cyber_trust_app;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA cyber_trust TO cyber_trust_app;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA cyber_trust TO cyber_trust_app;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA cyber_trust TO cyber_trust_app;
+
+-- Create read-only role for reporting
+CREATE ROLE cyber_trust_reader WITH LOGIN PASSWORD 'change_me_in_production';
+GRANT USAGE ON SCHEMA cyber_trust TO cyber_trust_reader;
+GRANT SELECT ON ALL TABLES IN SCHEMA cyber_trust TO cyber_trust_reader;
+
+-- =====================================================
+-- MAINTENANCE COMMANDS
+-- =====================================================
+
+-- Refresh materialized views (schedule this regularly)
+-- REFRESH MATERIALIZED VIEW CONCURRENTLY requirement_coverage_summary;
+-- REFRESH MATERIALIZED VIEW CONCURRENTLY risk_mitigation_summary;
+
+-- Analyze tables for query optimization (schedule weekly)
+-- ANALYZE cyber_trust.requirements;
+-- ANALYZE cyber_trust.capabilities;
+-- ANALYZE cyber_trust.risks;
+-- ANALYZE cyber_trust.evidence;
+
+COMMENT ON SCHEMA cyber_trust IS 'Cyber Trust Sensor Dashboard - Production Database Schema v1.0';
