@@ -55,7 +55,9 @@ const ReportingDashboard = () => {
     { date: '2024-07-22', score: 85 },
     { date: '2024-07-29', score: 83 },
     { date: '2024-08-05', score: 87 },
-    { date: '2024-08-11', score: 89 }
+    { date: '2024-08-11', score: 89 },
+    { date: '2024-08-18', predicted: 91 },
+    { date: '2024-08-25', predicted: 93 },
   ], []);
 
   const riskPostureData = useMemo(() => [
@@ -222,6 +224,7 @@ const ReportingDashboard = () => {
   ], []);
 
   // Data source connections - this shows how sections link to your existing components
+  // Data source connections - this shows how sections link to your existing components
   const dataSourceMappings = useMemo(() => ({
     trust: { 
       component: 'TrustDashboard.jsx', 
@@ -270,16 +273,137 @@ const ReportingDashboard = () => {
       hooks: ['useAnalytics', 'useRecommendations'],
       domains: ['analytics'],
       api: '/api/analytics'
-    }
+    },
   }), []);
 
+  // Trust Score SVG Chart (responsive, inline SVG)
+  const TrustScoreChartSVG = ({ data }) => {
+    const containerRef = React.useRef(null);
+    const [width, setWidth] = useState(600);
+    const height = 260;
+    const margin = { top: 10, right: 16, bottom: 36, left: 40 };
+
+    useEffect(() => {
+      const measure = () => {
+        if (containerRef.current) setWidth(containerRef.current.clientWidth);
+      };
+      measure();
+      window.addEventListener('resize', measure);
+      return () => window.removeEventListener('resize', measure);
+    }, []);
+
+    const yMin = 70;
+    const yMax = 100;
+    const yTicks = [70, 78, 86, 100];
+
+    const n = data?.length || 0;
+    const chartW = Math.max(0, width - margin.left - margin.right);
+    const chartH = Math.max(0, height - margin.top - margin.bottom);
+
+    const xFor = (i) => margin.left + (n > 1 ? (i / (n - 1)) * chartW : chartW / 2);
+    const yFor = (v) => margin.top + ((yMax - v) / (yMax - yMin)) * chartH;
+
+    // Build historical and predicted point arrays
+    const histPoints = [];
+    let lastHistIndex = -1;
+    for (let i = 0; i < n; i++) {
+      if (typeof data[i].score === 'number') {
+        histPoints.push({ x: xFor(i), y: yFor(data[i].score) });
+        lastHistIndex = i;
+      }
+    }
+
+    const predPoints = [];
+    if (lastHistIndex !== -1) {
+      predPoints.push({ x: xFor(lastHistIndex), y: yFor(data[lastHistIndex].score) });
+      for (let i = lastHistIndex + 1; i < n; i++) {
+        if (typeof data[i].predicted === 'number') {
+          predPoints.push({ x: xFor(i), y: yFor(data[i].predicted) });
+        }
+      }
+    }
+
+    const pathFrom = (pts) => (pts.length ? 'M ' + pts.map((p) => `${p.x},${p.y}`).join(' L ') : '');
+
+    return (
+      <div ref={containerRef} className="relative w-full h-[300px]">
+        <svg width={width} height={height}>
+          {/* Vertical gridlines */}
+          {Array.from({ length: n }).map((_, i) => (
+            <line
+              key={`vg-${i}`}
+              x1={xFor(i)}
+              x2={xFor(i)}
+              y1={margin.top}
+              y2={margin.top + chartH}
+              stroke="#e5e7eb"
+              strokeWidth="1"
+            />
+          ))}
+
+          {/* Horizontal dashed gridlines */}
+          {yTicks.map((t, idx) => (
+            <line
+              key={`hg-${idx}`}
+              x1={margin.left}
+              x2={margin.left + chartW}
+              y1={yFor(t)}
+              y2={yFor(t)}
+              stroke="#e5e7eb"
+              strokeWidth="1"
+              strokeDasharray="4 4"
+            />
+          ))}
+
+          {/* Axes */}
+          <line x1={margin.left} y1={margin.top} x2={margin.left} y2={margin.top + chartH} stroke="#9ca3af" strokeWidth="1" />
+          <line x1={margin.left} y1={margin.top + chartH} x2={margin.left + chartW} y2={margin.top + chartH} stroke="#9ca3af" strokeWidth="1" />
+
+          {/* Y-axis labels */}
+          {yTicks.map((t, idx) => (
+            <text key={`yl-${idx}`} x={margin.left - 8} y={yFor(t) + 4} textAnchor="end" fontSize="10" fill="#6b7280">
+              {t}
+            </text>
+          ))}
+
+          {/* X-axis labels */}
+          {data.map((d, i) => (
+            <text key={`xl-${i}`} x={xFor(i)} y={margin.top + chartH + 16} textAnchor="middle" fontSize="10" fill="#6b7280">
+              {d.date?.split('-').slice(1).join('/')}
+            </text>
+          ))}
+
+          {/* Historical line */}
+          <path d={pathFrom(histPoints)} fill="none" stroke="#3B82F6" strokeWidth="2" />
+          {/* Predicted line */}
+          <path d={pathFrom(predPoints)} fill="none" stroke="#93C5FD" strokeWidth="2" strokeDasharray="6 4" />
+
+          {/* Historical markers */}
+          {histPoints.map((p, idx) => (
+            <circle key={`hm-${idx}`} cx={p.x} cy={p.y} r="3.5" fill="#3B82F6" />
+          ))}
+          {/* Predicted markers (skip first shared point) */}
+          {predPoints.slice(1).map((p, idx) => (
+            <circle key={`pm-${idx}`} cx={p.x} cy={p.y} r="3" fill="#93C5FD" />
+          ))}
+        </svg>
+
+        {/* Legend */}
+        <div className="absolute right-2 top-2 flex items-center gap-4 text-xs text-gray-600 bg-white/70 px-2 py-1 rounded">
+          <div className="flex items-center"><span className="w-3 h-3 bg-blue-500 rounded-full mr-2"></span>Historical</div>
+          <div className="flex items-center"><span className="w-3 h-3 bg-blue-300 rounded-full mr-2"></span>Predicted</div>
+        </div>
+      </div>
+    );
+  };
+  
   // Context-aware navigation handler
   const handleDrillDown = (type, payload) => {
     let path = '/dashboard/';
     let state = { context: payload, source: 'reporting' };
     let searchParams = '';
 
-    switch(type) {
+    switch (type) {
       case 'risk':
         path += 'risk-management';
         state.riskId = payload.id;
@@ -803,7 +927,7 @@ const ReportingDashboard = () => {
               </div>
             </div>
           </div>
-          <SimpleTrustScoreChart data={trustScoreData} />
+          <TrustScoreChartSVG data={trustScoreData} />
         </div>
 
         {/* Top 5 Risks */}
