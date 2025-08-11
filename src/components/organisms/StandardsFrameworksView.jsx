@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { ShieldCheck, BarChart3, RotateCcw, ChevronDown, Check, X, Minus, Info, Download, Eye } from 'lucide-react';
 import Button from '../atoms/Button';
@@ -125,6 +125,20 @@ SubcategoryItem.propTypes = {
 const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateResponse, onReset }) => {
   const [activeFunctionId, setActiveFunctionId] = useState('GV');
   const [expandedCategories, setExpandedCategories] = useState({});
+  // Track whether local assessments exist to switch button copy
+  const [hasIsoAssessment, setHasIsoAssessment] = useState(false);
+  const [hasCafAssessment, setHasCafAssessment] = useState(false);
+
+  // On mount, inspect localStorage for saved progress
+  useEffect(() => {
+    try {
+      setHasIsoAssessment(!!localStorage.getItem('cyberTrustDashboard.iso27001Assessment'));
+      setHasCafAssessment(!!localStorage.getItem('cyberTrustDashboard.ncscCafAssessment'));
+    } catch (e) {
+      // In environments where localStorage is unavailable (SSR), ignore
+      console.warn('StandardsFrameworksView: localStorage check failed', e);
+    }
+  }, []);
 
   const PageHeader = () => (
     <div className="mb-6">
@@ -158,7 +172,7 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
           <span className="text-primary-600 dark:text-primary-400 text-xl font-bold">3</span> Frameworks Available
         </p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="dashboard-card p-4 border-primary-300 ring-1 ring-primary-300">
           <p className="text-sm font-semibold">NIST CSF 2.0</p>
           <Badge size="xs" variant="success" className="mt-1">Available</Badge>
@@ -179,7 +193,19 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
           <div className="mt-3">
             <Link to="/dashboard/standards-frameworks/iso27001">
               <Button size="sm" className="w-full">
-                Open Assessment
+                {hasIsoAssessment ? 'Resume Assessment' : 'Open Assessment'}
+              </Button>
+            </Link>
+          </div>
+        </div>
+        <div className="dashboard-card p-4">
+          <p className="text-sm font-semibold">NCSC CAF&nbsp;v4.0</p>
+          <Badge size="xs" variant="success" className="mt-1">Available</Badge>
+          <p className="text-xs mt-1">Cyber Assessment Framework for Essential Services</p>
+          <div className="mt-3">
+            <Link to="/dashboard/standards-frameworks/ncsc-caf">
+              <Button size="sm" className="w-full">
+                {hasCafAssessment ? 'Resume Assessment' : 'Open Assessment'}
               </Button>
             </Link>
           </div>
