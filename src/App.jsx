@@ -39,6 +39,7 @@ const NCSCCAFAssessment = lazy(() => import('./components/standards/NCSCCAFAsses
 const SOC2Assessment = lazy(() => import('./components/standards/SOC2Assessment'));
 const NISTCSFAssessment = lazy(() => import('./components/standards/NISTCSFAssessment'));
 // const UserManagement = lazy(() => import('.components/admin/UserManagement'));
+const ReportingDashboard = lazy(() => import('./components/pages/ReportingDashboard'));
 
 // AppProviders wrapper
 const AppProviders = ({ children }) => {
@@ -111,6 +112,7 @@ function App() {
               <Route path="standards-frameworks/soc2" element={<SOC2Assessment />} />
               <Route path="standards-frameworks/nist-csf" element={<NISTCSFAssessment />} />
               <Route path="analytics" element={<AnalyticsPage />} />
+              <Route path="reporting" element={<ReportingDashboard />} />
               <Route path="business-plan" element={<BusinessPlanPage />} />
               <Route path="repository" element={<RepositoryPage />} />
               <Route path="evidence" element={<EvidencePage />} />

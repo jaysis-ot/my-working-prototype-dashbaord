@@ -72,6 +72,7 @@ const DashboardLayout = () => {
     { id: 'requirements', label: 'Requirements', icon: 'FileText' },
     { id: 'resources', label: 'Resource Planning', icon: 'Users' },
     { id: 'analytics', label: 'Analytics', icon: 'BarChart3' },
+    { id: 'reporting', label: 'Reporting', icon: 'BarChart3' },
     { id: 'maturity-analysis', label: 'Maturity Analysis', icon: 'TrendingUp' },
     { id: 'mitre-attack', label: 'MITRE ATT&CK', icon: 'Layers' },
     { id: 'repository', label: 'Repository Management', icon: 'Database' },
