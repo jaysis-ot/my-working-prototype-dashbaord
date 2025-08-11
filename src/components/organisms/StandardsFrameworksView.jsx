@@ -128,12 +128,14 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
   // Track whether local assessments exist to switch button copy
   const [hasIsoAssessment, setHasIsoAssessment] = useState(false);
   const [hasCafAssessment, setHasCafAssessment] = useState(false);
+  const [hasSoc2Assessment, setHasSoc2Assessment] = useState(false);
 
   // On mount, inspect localStorage for saved progress
   useEffect(() => {
     try {
       setHasIsoAssessment(!!localStorage.getItem('cyberTrustDashboard.iso27001Assessment'));
       setHasCafAssessment(!!localStorage.getItem('cyberTrustDashboard.ncscCafAssessment'));
+      setHasSoc2Assessment(!!localStorage.getItem('cyberTrustDashboard.soc2Assessment'));
     } catch (e) {
       // In environments where localStorage is unavailable (SSR), ignore
       console.warn('StandardsFrameworksView: localStorage check failed', e);
@@ -169,7 +171,7 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
           </p>
         </div>
         <p className="text-sm font-medium text-secondary-600 dark:text-secondary-300">
-          <span className="text-primary-600 dark:text-primary-400 text-xl font-bold">3</span> Frameworks Available
+          <span className="text-primary-600 dark:text-primary-400 text-xl font-bold">4</span> Frameworks Available
         </p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -212,8 +214,15 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
         </div>
         <div className="dashboard-card p-4">
           <p className="text-sm font-semibold">SOC 2</p>
-          <Badge size="xs" variant="secondary" className="mt-1">Coming Soon</Badge>
-          <p className="text-xs mt-1">Service Organization Control 2 Type II</p>
+          <Badge size="xs" variant="success" className="mt-1">Available</Badge>
+          <p className="text-xs mt-1">Service Organization Control 2 Trust Services Criteria</p>
+          <div className="mt-3">
+            <Link to="/dashboard/standards-frameworks/soc2">
+              <Button size="sm" className="w-full">
+                {hasSoc2Assessment ? 'Resume Assessment' : 'Open Assessment'}
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     </div>
