@@ -129,13 +129,106 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
   const [hasIsoAssessment, setHasIsoAssessment] = useState(false);
   const [hasCafAssessment, setHasCafAssessment] = useState(false);
   const [hasSoc2Assessment, setHasSoc2Assessment] = useState(false);
+  // Track progress for each framework
+  const [isoProgress, setIsoProgress] = useState(0);
+  const [cafProgress, setCafProgress] = useState(0);
+  const [soc2Progress, setSoc2Progress] = useState(0);
 
   // On mount, inspect localStorage for saved progress
   useEffect(() => {
     try {
-      setHasIsoAssessment(!!localStorage.getItem('cyberTrustDashboard.iso27001Assessment'));
-      setHasCafAssessment(!!localStorage.getItem('cyberTrustDashboard.ncscCafAssessment'));
-      setHasSoc2Assessment(!!localStorage.getItem('cyberTrustDashboard.soc2Assessment'));
+      // Check if assessments exist
+      const hasIso = !!localStorage.getItem('cyberTrustDashboard.iso27001Assessment');
+      const hasCaf = !!localStorage.getItem('cyberTrustDashboard.ncscCafAssessment');
+      const hasSoc2 = !!localStorage.getItem('cyberTrustDashboard.soc2Assessment');
+      
+      setHasIsoAssessment(hasIso);
+      setHasCafAssessment(hasCaf);
+      setHasSoc2Assessment(hasSoc2);
+      
+      // Calculate ISO 27001 progress
+      if (hasIso) {
+        try {
+          const isoData = JSON.parse(localStorage.getItem('cyberTrustDashboard.iso27001Assessment'));
+          let totalScore = 0;
+          let totalControls = 0;
+          
+          Object.values(isoData).forEach(control => {
+            if (control.maturity !== undefined) {
+              const avgScore = (control.maturity + control.implementation + control.evidence + control.testing) / 4;
+              totalScore += avgScore;
+              totalControls++;
+            }
+          });
+          
+          const progress = totalControls > 0 ? (totalScore / totalControls) * (100 / 5) : 0; // Convert 0-5 scale to percentage
+          setIsoProgress(Math.min(100, progress));
+        } catch (e) {
+          console.warn('Error calculating ISO 27001 progress:', e);
+          setIsoProgress(0);
+        }
+      }
+      
+      // Calculate NCSC CAF progress
+      if (hasCaf) {
+        try {
+          const cafData = JSON.parse(localStorage.getItem('cyberTrustDashboard.ncscCafAssessment'));
+          let achieved = 0;
+          let partial = 0;
+          let total = 0;
+          
+          Object.entries(cafData).forEach(([_, status]) => {
+            total++;
+            if (status === 'achieved') achieved++;
+            else if (status === 'partially') partial += 0.5;
+          });
+          
+          const progress = total > 0 ? ((achieved + partial) / total) * 100 : 0;
+          setCafProgress(Math.min(100, progress));
+        } catch (e) {
+          console.warn('Error calculating NCSC CAF progress:', e);
+          setCafProgress(0);
+        }
+      }
+      
+      // Calculate SOC 2 progress
+      if (hasSoc2) {
+        try {
+          const soc2Data = JSON.parse(localStorage.getItem('cyberTrustDashboard.soc2Assessment'));
+          const selectedCategories = soc2Data.selectedCategories || ['security'];
+          const assessment = soc2Data.assessment || {};
+          
+          // Category totals
+          const categoryTotals = {
+            security: 33,
+            availability: 3,
+            processing: 5,
+            confidentiality: 2,
+            privacy: 18
+          };
+          
+          // Calculate total criteria based on selected categories
+          let totalCriteria = 0;
+          selectedCategories.forEach(cat => {
+            totalCriteria += categoryTotals[cat] || 0;
+          });
+          
+          // Count implemented and partial
+          let implemented = 0;
+          let partial = 0;
+          
+          Object.entries(assessment).forEach(([_, status]) => {
+            if (status === 'implemented') implemented++;
+            else if (status === 'partial') partial += 0.5;
+          });
+          
+          const progress = totalCriteria > 0 ? ((implemented + partial) / totalCriteria) * 100 : 0;
+          setSoc2Progress(Math.min(100, progress));
+        } catch (e) {
+          console.warn('Error calculating SOC 2 progress:', e);
+          setSoc2Progress(0);
+        }
+      }
     } catch (e) {
       // In environments where localStorage is unavailable (SSR), ignore
       console.warn('StandardsFrameworksView: localStorage check failed', e);
@@ -176,11 +269,15 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="dashboard-card p-4 border-primary-300 ring-1 ring-primary-300">
-          <p className="text-sm font-semibold">NIST CSF 2.0</p>
-          <Badge size="xs" variant="success" className="mt-1">Available</Badge>
-          <p className="text-xs mt-1">
-            National Institute of Standards and Technology Cybersecurity Framework&nbsp;2.0
-          </p>
+          <div className="flex justify-between items-start mb-2">
+            <div>
+              <p className="text-sm font-semibold">NIST CSF 2.0</p>
+              <Badge size="xs" variant="success" className="mt-1">Available</Badge>
+              <p className="text-xs mt-1">
+                National Institute of Standards and Technology Cybersecurity Framework&nbsp;2.0
+              </p>
+            </div>
+          </div>
           <div className="mt-3 w-full bg-secondary-200 dark:bg-secondary-700 rounded-full h-1.5">
             <div
               className="bg-primary-500 h-1.5 rounded-full"
@@ -189,39 +286,63 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
           </div>
         </div>
         <div className="dashboard-card p-4">
-          <p className="text-sm font-semibold">ISO&nbsp;27001</p>
-          <Badge size="xs" variant="success" className="mt-1">Available</Badge>
-          <p className="text-xs mt-1">Information Security Management System Standard</p>
-          <div className="mt-3">
+          <div className="flex justify-between items-start mb-2">
+            <div>
+              <p className="text-sm font-semibold">ISO&nbsp;27001</p>
+              <Badge size="xs" variant="success" className="mt-1">Available</Badge>
+              <p className="text-xs mt-1">Information Security Management System Standard</p>
+            </div>
             <Link to="/dashboard/standards-frameworks/iso27001">
-              <Button size="sm" className="w-full">
+              <Button size="xs">
                 {hasIsoAssessment ? 'Resume Assessment' : 'Open Assessment'}
               </Button>
             </Link>
           </div>
+          <div className="mt-3 w-full bg-secondary-200 dark:bg-secondary-700 rounded-full h-1.5">
+            <div
+              className="bg-primary-500 h-1.5 rounded-full"
+              style={{ width: `${isoProgress}%` }}
+            />
+          </div>
         </div>
         <div className="dashboard-card p-4">
-          <p className="text-sm font-semibold">NCSC CAF&nbsp;v4.0</p>
-          <Badge size="xs" variant="success" className="mt-1">Available</Badge>
-          <p className="text-xs mt-1">Cyber Assessment Framework for Essential Services</p>
-          <div className="mt-3">
+          <div className="flex justify-between items-start mb-2">
+            <div>
+              <p className="text-sm font-semibold">NCSC CAF&nbsp;v4.0</p>
+              <Badge size="xs" variant="success" className="mt-1">Available</Badge>
+              <p className="text-xs mt-1">Cyber Assessment Framework for Essential Services</p>
+            </div>
             <Link to="/dashboard/standards-frameworks/ncsc-caf">
-              <Button size="sm" className="w-full">
+              <Button size="xs">
                 {hasCafAssessment ? 'Resume Assessment' : 'Open Assessment'}
               </Button>
             </Link>
           </div>
+          <div className="mt-3 w-full bg-secondary-200 dark:bg-secondary-700 rounded-full h-1.5">
+            <div
+              className="bg-primary-500 h-1.5 rounded-full"
+              style={{ width: `${cafProgress}%` }}
+            />
+          </div>
         </div>
         <div className="dashboard-card p-4">
-          <p className="text-sm font-semibold">SOC 2</p>
-          <Badge size="xs" variant="success" className="mt-1">Available</Badge>
-          <p className="text-xs mt-1">Service Organization Control 2 Trust Services Criteria</p>
-          <div className="mt-3">
+          <div className="flex justify-between items-start mb-2">
+            <div>
+              <p className="text-sm font-semibold">SOC 2</p>
+              <Badge size="xs" variant="success" className="mt-1">Available</Badge>
+              <p className="text-xs mt-1">Service Organization Control 2 Trust Services Criteria</p>
+            </div>
             <Link to="/dashboard/standards-frameworks/soc2">
-              <Button size="sm" className="w-full">
+              <Button size="xs">
                 {hasSoc2Assessment ? 'Resume Assessment' : 'Open Assessment'}
               </Button>
             </Link>
+          </div>
+          <div className="mt-3 w-full bg-secondary-200 dark:bg-secondary-700 rounded-full h-1.5">
+            <div
+              className="bg-primary-500 h-1.5 rounded-full"
+              style={{ width: `${soc2Progress}%` }}
+            />
           </div>
         </div>
       </div>
