@@ -1,9 +1,10 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { ShieldCheck, BarChart3, RotateCcw, ChevronDown, Check, X, Minus, Info, Download, Eye } from 'lucide-react';
+import { ShieldCheck, RotateCcw, Check, X, Minus, Info } from 'lucide-react';
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
 import { Link } from 'react-router-dom';
+import CircularProgress from '../atoms/CircularProgress';
 
 // --- Internal Molecules (Components specific to this Organism) ---
 
@@ -123,8 +124,6 @@ SubcategoryItem.propTypes = {
 // --- Main Organism Component ---
 
 const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateResponse, onReset }) => {
-  const [activeFunctionId, setActiveFunctionId] = useState('GV');
-  const [expandedCategories, setExpandedCategories] = useState({});
   // Track whether local assessments exist to switch button copy
   const [hasIsoAssessment, setHasIsoAssessment] = useState(false);
   const [hasCafAssessment, setHasCafAssessment] = useState(false);
@@ -134,6 +133,10 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
   const [isoProgress, setIsoProgress] = useState(0);
   const [cafProgress, setCafProgress] = useState(0);
   const [soc2Progress, setSoc2Progress] = useState(0);
+  // Track last updated date
+  const [lastUpdated, setLastUpdated] = useState(null);
+  // Track average completion
+  const [avgCompletion, setAvgCompletion] = useState(0);
 
   // On mount, inspect localStorage for saved progress
   useEffect(() => {
@@ -150,6 +153,7 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
       setHasNistAssessment(hasNist);
       
       // Calculate ISO 27001 progress
+      let isoProgressValue = 0;
       if (hasIso) {
         try {
           const isoData = JSON.parse(localStorage.getItem('cyberTrustDashboard.iso27001Assessment'));
@@ -165,7 +169,8 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
           });
           
           const progress = totalControls > 0 ? (totalScore / totalControls) * (100 / 5) : 0; // Convert 0-5 scale to percentage
-          setIsoProgress(Math.min(100, progress));
+          isoProgressValue = Math.min(100, progress);
+          setIsoProgress(isoProgressValue);
         } catch (e) {
           console.warn('Error calculating ISO 27001 progress:', e);
           setIsoProgress(0);
@@ -173,6 +178,7 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
       }
       
       // Calculate NCSC CAF progress
+      let cafProgressValue = 0;
       if (hasCaf) {
         try {
           const cafData = JSON.parse(localStorage.getItem('cyberTrustDashboard.ncscCafAssessment'));
@@ -187,7 +193,8 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
           });
           
           const progress = total > 0 ? ((achieved + partial) / total) * 100 : 0;
-          setCafProgress(Math.min(100, progress));
+          cafProgressValue = Math.min(100, progress);
+          setCafProgress(cafProgressValue);
         } catch (e) {
           console.warn('Error calculating NCSC CAF progress:', e);
           setCafProgress(0);
@@ -195,6 +202,7 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
       }
       
       // Calculate SOC 2 progress
+      let soc2ProgressValue = 0;
       if (hasSoc2) {
         try {
           const soc2Data = JSON.parse(localStorage.getItem('cyberTrustDashboard.soc2Assessment'));
@@ -226,10 +234,35 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
           });
           
           const progress = totalCriteria > 0 ? ((implemented + partial) / totalCriteria) * 100 : 0;
-          setSoc2Progress(Math.min(100, progress));
+          soc2ProgressValue = Math.min(100, progress);
+          setSoc2Progress(soc2ProgressValue);
         } catch (e) {
           console.warn('Error calculating SOC 2 progress:', e);
           setSoc2Progress(0);
+        }
+      }
+
+      // Calculate average completion
+      const nistProgress = scores.overall.percentage || 0;
+      const totalProgress = nistProgress + isoProgressValue + cafProgressValue + soc2ProgressValue;
+      const avgProgress = totalProgress / 4;
+      setAvgCompletion(avgProgress);
+
+      // Get last updated date
+      const lastUpdatedKey = localStorage.getItem('cyberTrustDashboard.lastUpdated') || 
+                            localStorage.getItem('cyberTrustDashboard.iso27001AssessmentMeta') ||
+                            localStorage.getItem('cyberTrustDashboard.ncscCafAssessmentMeta') ||
+                            localStorage.getItem('cyberTrustDashboard.soc2AssessmentMeta') ||
+                            localStorage.getItem('cyberTrustDashboard.nistCsfAssessmentMeta');
+      
+      if (lastUpdatedKey) {
+        try {
+          const metaData = JSON.parse(lastUpdatedKey);
+          if (metaData.lastUpdated) {
+            setLastUpdated(new Date(metaData.lastUpdated));
+          }
+        } catch (e) {
+          console.warn('Error parsing last updated date:', e);
         }
       }
     } catch (e) {
@@ -240,19 +273,52 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
 
   const PageHeader = () => (
     <div className="mb-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-2">
-        <h1 className="text-2xl font-bold text-secondary-900 dark:text-white">
-          Standards &amp; Compliance Framework Assessment
-        </h1>
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="secondary">Test</Button>
-          <Button size="sm">Export CSV</Button>
+      <h1 className="text-2xl font-bold text-secondary-900 dark:text-white">
+        Standards &amp; Compliance Framework Assessment
+      </h1>
+      <p className="text-secondary-500 dark:text-secondary-400">
+        Track and manage your organization's compliance journey across multiple cybersecurity frameworks
+      </p>
+    </div>
+  );
+
+  const ComplianceSnapshot = () => (
+    <div className="dashboard-card p-6 mb-6">
+      <h2 className="text-lg font-bold text-secondary-900 dark:text-white mb-4">Compliance Snapshot</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="flex flex-col items-center justify-center">
+          <p className="text-sm font-medium text-secondary-600 dark:text-secondary-300 mb-2">Average Completion</p>
+          <CircularProgress 
+            value={avgCompletion} 
+            size={80} 
+            strokeWidth={8}
+            progressClassName="text-primary-600 stroke-current"
+            labelClassName="text-xl font-bold text-secondary-900 dark:text-white"
+          />
         </div>
-      </div>
-      <div className="flex flex-wrap gap-2 text-xs">
-        <Badge variant="primary">NIST CSF {scores.overall.percentage.toFixed(0)}% complete</Badge>
-        <Badge variant="secondary">{Object.keys(framework.functions).length} frameworks available</Badge>
-        <Badge variant="success">Compliance tracking active</Badge>
+        <div className="flex flex-col items-center justify-center">
+          <p className="text-sm font-medium text-secondary-600 dark:text-secondary-300 mb-2">Frameworks Available</p>
+          <div className="flex items-center justify-center h-20">
+            <span className="text-4xl font-bold text-primary-600">4</span>
+          </div>
+          <p className="text-xs text-secondary-500 dark:text-secondary-400 mt-2">
+            NIST CSF, ISO 27001, NCSC CAF, SOC 2
+          </p>
+        </div>
+        <div className="flex flex-col items-center justify-center">
+          <p className="text-sm font-medium text-secondary-600 dark:text-secondary-300 mb-2">Last Updated</p>
+          <div className="flex items-center justify-center h-20">
+            {lastUpdated ? (
+              <span className="text-xl font-semibold text-secondary-900 dark:text-white">
+                {lastUpdated.toLocaleString()}
+              </span>
+            ) : (
+              <span className="text-xl font-semibold text-secondary-500">
+                No updates yet
+              </span>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -266,13 +332,10 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
             Assess and manage compliance across multiple cybersecurity and governance frameworks
           </p>
         </div>
-        <p className="text-sm font-medium text-secondary-600 dark:text-secondary-300">
-          <span className="text-primary-600 dark:text-primary-400 text-xl font-bold">4</span> Frameworks Available
-        </p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="dashboard-card p-4 border-primary-300 ring-1 ring-primary-300">
-          <div className="flex justify-between items-start mb-2">
+          <div className="flex justify-between items-start">
             <div>
               <p className="text-sm font-semibold">NIST CSF 2.0</p>
               <Badge size="xs" variant="success" className="mt-1">Available</Badge>
@@ -286,15 +349,17 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
               </Button>
             </Link>
           </div>
-          <div className="mt-3 w-full bg-secondary-200 dark:bg-secondary-700 rounded-full h-1.5">
-            <div
-              className="bg-primary-500 h-1.5 rounded-full"
-              style={{ width: `${scores.overall.percentage}%` }}
+          <div className="flex justify-center mt-4">
+            <CircularProgress 
+              value={scores.overall.percentage} 
+              size={64} 
+              strokeWidth={6}
+              progressClassName="text-primary-600 stroke-current"
             />
           </div>
         </div>
         <div className="dashboard-card p-4">
-          <div className="flex justify-between items-start mb-2">
+          <div className="flex justify-between items-start">
             <div>
               <p className="text-sm font-semibold">ISO&nbsp;27001</p>
               <Badge size="xs" variant="success" className="mt-1">Available</Badge>
@@ -306,15 +371,17 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
               </Button>
             </Link>
           </div>
-          <div className="mt-3 w-full bg-secondary-200 dark:bg-secondary-700 rounded-full h-1.5">
-            <div
-              className="bg-primary-500 h-1.5 rounded-full"
-              style={{ width: `${isoProgress}%` }}
+          <div className="flex justify-center mt-4">
+            <CircularProgress 
+              value={isoProgress} 
+              size={64} 
+              strokeWidth={6}
+              progressClassName="text-primary-600 stroke-current"
             />
           </div>
         </div>
         <div className="dashboard-card p-4">
-          <div className="flex justify-between items-start mb-2">
+          <div className="flex justify-between items-start">
             <div>
               <p className="text-sm font-semibold">NCSC CAF&nbsp;v4.0</p>
               <Badge size="xs" variant="success" className="mt-1">Available</Badge>
@@ -326,15 +393,17 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
               </Button>
             </Link>
           </div>
-          <div className="mt-3 w-full bg-secondary-200 dark:bg-secondary-700 rounded-full h-1.5">
-            <div
-              className="bg-primary-500 h-1.5 rounded-full"
-              style={{ width: `${cafProgress}%` }}
+          <div className="flex justify-center mt-4">
+            <CircularProgress 
+              value={cafProgress} 
+              size={64} 
+              strokeWidth={6}
+              progressClassName="text-primary-600 stroke-current"
             />
           </div>
         </div>
         <div className="dashboard-card p-4">
-          <div className="flex justify-between items-start mb-2">
+          <div className="flex justify-between items-start">
             <div>
               <p className="text-sm font-semibold">SOC 2</p>
               <Badge size="xs" variant="success" className="mt-1">Available</Badge>
@@ -346,10 +415,12 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
               </Button>
             </Link>
           </div>
-          <div className="mt-3 w-full bg-secondary-200 dark:bg-secondary-700 rounded-full h-1.5">
-            <div
-              className="bg-primary-500 h-1.5 rounded-full"
-              style={{ width: `${soc2Progress}%` }}
+          <div className="flex justify-center mt-4">
+            <CircularProgress 
+              value={soc2Progress} 
+              size={64} 
+              strokeWidth={6}
+              progressClassName="text-primary-600 stroke-current"
             />
           </div>
         </div>
@@ -357,24 +428,10 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
     </div>
   );
 
-  const toggleCategory = useCallback((categoryId) => {
-    setExpandedCategories(prev => ({ ...prev, [categoryId]: !prev[categoryId] }));
-  }, []);
-
-  const handleFunctionFilter = useCallback((functionId) => {
-    setActiveFunctionId(prev => (prev === functionId ? null : functionId));
-  }, []);
-
-  const functionsToDisplay = useMemo(() => {
-    if (activeFunctionId) {
-      return framework.functions.filter(f => f.id === activeFunctionId);
-    }
-    return framework.functions;
-  }, [framework.functions, activeFunctionId]);
-
   return (
     <div className="space-y-6">
       <PageHeader />
+      <ComplianceSnapshot />
       <FrameworkCards />
     </div>
   );
