@@ -97,6 +97,34 @@ const ReportingDashboard = () => {
     { category: 'Validation Evidence', covered: 194, total: 245, percentage: 79 },
   ], []);
 
+  /* =========================
+   * Stakeholder-aware view config
+   * ========================= */
+  const viewConfig = useMemo(() => ({
+    executive: {
+      title: 'Executive Reporting Centre',
+      metrics: { trustScore: '89', readiness: '87%', criticalRisks: '2', evidence: '91%' },
+    },
+    board: {
+      title: 'Board Governance Centre',
+      metrics: { trustScore: '86', readiness: '84%', criticalRisks: '3', evidence: '88%' },
+    },
+    regulator: {
+      title: 'Regulatory Compliance Centre',
+      metrics: { trustScore: '85', readiness: '82%', criticalRisks: '2', evidence: '93%' },
+    },
+    customer: {
+      title: 'Customer Trust Centre',
+      metrics: { trustScore: '90', readiness: '80%', criticalRisks: '1', evidence: '94%' },
+    },
+    auditor: {
+      title: 'Auditor Evidence Centre',
+      metrics: { trustScore: '88', readiness: '86%', criticalRisks: '4', evidence: '95%' },
+    },
+  }), []);
+
+  const activeView = viewConfig[selectedStakeholder] || viewConfig.executive;
+
   // Predefined report templates
   const reportTemplates = useMemo(() => [
     {
@@ -276,6 +304,61 @@ const ReportingDashboard = () => {
     },
   }), []);
 
+  /* -------------------------------------------------
+   * Helpers for client-side sample report generation
+   * ------------------------------------------------- */
+  const buildSampleHTML = (template, sections) => {
+    const prettyDate = new Date().toLocaleDateString();
+    const sec = (id, title, body) =>
+      `\n<section style="margin:16px 0;">\n  <h3 style="margin:0 0 8px 0; font-size:16px;">${title}</h3>\n  <div style="font-size:13px; line-height:1.5; color:#374151;">${body}</div>\n</section>`;
+
+    const sectionNames = (sections || template.sections || []).map((s) => {
+      const meta = availableSections.find((x) => x.id === s);
+      return meta ? meta.name : s;
+    });
+
+    let html = `<!doctype html><html><head><meta charset="utf-8"/><title>${template.name} — Sample Report</title>\n<style>body{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;max-width:960px;margin:24px auto;padding:0 16px;color:#111827;} h1{font-size:24px;margin:0 0 4px 0;} h2{font-size:18px;color:#374151;margin:0;} header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e5e7eb;padding-bottom:12px;margin-bottom:16px;} .meta{font-size:12px;color:#6b7280;} ul{margin:8px 0 0 18px;} li{margin:4px 0;}</style></head><body>`;
+
+    html += `<header><div><h1>${template.name}</h1><h2>${activeView.title}</h2></div><div class="meta">Generated: ${prettyDate}</div></header>`;
+
+    html += sec(
+      'overview',
+      'Overview',
+      `This sample demonstrates the structure and content that would be included in the "${template.name}" report for the ${activeView.title.toLowerCase()}.`
+    );
+
+    html += sec(
+      'included',
+      'Included Sections',
+      `<ul>${sectionNames.map((n) => `<li>${n}</li>`).join('')}</ul>`
+    );
+
+    html += sec(
+      'highlights',
+      'Key Highlights',
+      `<ul>\n      <li>Trust Score: ${activeView.metrics.trustScore}</li>\n      <li>Readiness Index: ${activeView.metrics.readiness}</li>\n      <li>Critical Risks: ${activeView.metrics.criticalRisks}</li>\n      <li>Evidence Coverage: ${activeView.metrics.evidence}</li>\n    </ul>`
+    );
+
+    html += sec(
+      'details',
+      'Details & Commentary',
+      'Each section will include narrative commentary, visuals and tables appropriate for the selected stakeholder.'
+    );
+
+    html += `</body></html>`;
+    return html;
+  };
+
+  const downloadFile = (filename, mime, content) => {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // Trust Score SVG Chart (responsive, inline SVG)
   const TrustScoreChartSVG = ({ data }) => {
     const containerRef = React.useRef(null);
@@ -449,8 +532,22 @@ const ReportingDashboard = () => {
 
   // Handle export button click
   const handleExport = (format, type) => {
-    console.log(`Exporting ${type} as ${format}`);
-    // Implementation would integrate with your existing export functionality
+    // Build and download a realistic HTML sample report
+    if (type === 'custom') {
+      const template = {
+        id: 'custom',
+        name: 'Custom Report',
+        sections: selectedSections.map((s) => s.id),
+      };
+      const html = buildSampleHTML(template, template.sections);
+      downloadFile('custom-report-sample.html', 'text/html', html);
+      return;
+    }
+
+    const template =
+      reportTemplates.find((t) => t.id === type) || reportTemplates[0];
+    const html = buildSampleHTML(template, template.sections);
+    downloadFile(`${template.id}-sample.html`, 'text/html', html);
   };
 
   // Handle adding a section to the custom report
@@ -622,7 +719,7 @@ const ReportingDashboard = () => {
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 h-[calc(90vh-180px)]">
           {/* Template Selection */}
-          <div className={`col-span-${customReportBuilder ? '2' : '3'} p-6 overflow-y-auto`}>
+          <div className={`col-span-1 ${customReportBuilder ? 'lg:col-span-2' : 'lg:col-span-3'} p-6 overflow-y-auto`}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {reportTemplates.map((template) => (
                 <TemplateCard key={template.id} template={template} />
@@ -750,70 +847,6 @@ const ReportingDashboard = () => {
     </div>
   );
 
-  // Simple Trust Score Chart (without external libraries)
-  const SimpleTrustScoreChart = ({ data }) => {
-    const maxScore = 100;
-    const chartHeight = 200;
-    
-    return (
-      <div className="relative h-[300px] w-full mt-6">
-        {/* Y-axis labels */}
-        <div className="absolute left-0 top-0 bottom-0 w-10 flex flex-col justify-between text-xs text-gray-500">
-          <span>100</span>
-          <span>90</span>
-          <span>80</span>
-          <span>70</span>
-        </div>
-        
-        {/* Chart area */}
-        <div className="absolute left-12 right-0 top-0 bottom-20 border-l border-b border-gray-300">
-          {/* Horizontal grid lines */}
-          <div className="absolute left-0 right-0 top-0 h-1/4 border-b border-gray-100"></div>
-          <div className="absolute left-0 right-0 top-1/4 h-1/4 border-b border-gray-100"></div>
-          <div className="absolute left-0 right-0 top-2/4 h-1/4 border-b border-gray-100"></div>
-          <div className="absolute left-0 right-0 top-3/4 h-1/4 border-b border-gray-100"></div>
-          
-          {/* Data points and line */}
-          <div className="absolute inset-0 flex items-end">
-            {data.map((point, index) => {
-              const barHeight = (point.score / maxScore) * chartHeight;
-              const barWidth = `calc(100% / ${data.length})`;
-              const left = `calc(${index} * ${barWidth})`;
-              
-              return (
-                <div 
-                  key={index} 
-                  className="relative h-full"
-                  style={{ width: barWidth }}
-                >
-                  {/* Bar */}
-                  <div 
-                    className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1 bg-blue-500"
-                    style={{ height: `${barHeight}px` }}
-                  ></div>
-                  
-                  {/* Data point */}
-                  <div 
-                    className="absolute w-3 h-3 bg-blue-600 rounded-full transform -translate-x-1/2"
-                    style={{ 
-                      bottom: `${barHeight}px`,
-                      left: '50%'
-                    }}
-                  ></div>
-                  
-                  {/* X-axis label */}
-                  <div className="absolute bottom-[-20px] left-1/2 transform -translate-x-1/2 text-xs text-gray-500">
-                    {point.date.split('-').slice(1).join('/')}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       {/* Header */}
@@ -822,7 +855,7 @@ const ReportingDashboard = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center">
               <BarChart3 className="h-8 w-8 mr-3 text-blue-600" />
-              Executive Reporting Centre
+              {activeView.title}
             </h1>
             <p className="text-gray-600 mt-1">Comprehensive security posture and compliance insights</p>
           </div>
@@ -878,7 +911,7 @@ const ReportingDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <MetricCard 
           title="Trust Score" 
-          value="89" 
+        value={activeView.metrics.trustScore} 
           subtitle="Model Confidence: 94%"
           trend={{ direction: 'up', value: '+4 pts' }}
           icon={Shield} 
@@ -886,7 +919,7 @@ const ReportingDashboard = () => {
         />
         <MetricCard 
           title="Readiness Index" 
-          value={`${readinessIndex}%`}
+        value={activeView.metrics.readiness}
           subtitle="Threat Response Capability"
           trend={{ direction: 'up', value: '+2.3%' }}
           icon={Zap} 
@@ -894,7 +927,7 @@ const ReportingDashboard = () => {
         />
         <MetricCard 
           title="Critical Risks" 
-          value="2" 
+        value={activeView.metrics.criticalRisks} 
           subtitle="Requiring immediate attention"
           trend={{ direction: 'down', value: '-1' }}
           icon={AlertTriangle} 
@@ -902,7 +935,7 @@ const ReportingDashboard = () => {
         />
         <MetricCard 
           title="Evidence Coverage" 
-          value="91%" 
+        value={activeView.metrics.evidence} 
           subtitle="Across all frameworks"
           trend={{ direction: 'up', value: '+3.2%' }}
           icon={FileText} 
