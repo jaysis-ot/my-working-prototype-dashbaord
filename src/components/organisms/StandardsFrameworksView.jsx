@@ -129,6 +129,7 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
   const [hasIsoAssessment, setHasIsoAssessment] = useState(false);
   const [hasCafAssessment, setHasCafAssessment] = useState(false);
   const [hasSoc2Assessment, setHasSoc2Assessment] = useState(false);
+  const [hasNistAssessment, setHasNistAssessment] = useState(false);
   // Track progress for each framework
   const [isoProgress, setIsoProgress] = useState(0);
   const [cafProgress, setCafProgress] = useState(0);
@@ -141,10 +142,12 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
       const hasIso = !!localStorage.getItem('cyberTrustDashboard.iso27001Assessment');
       const hasCaf = !!localStorage.getItem('cyberTrustDashboard.ncscCafAssessment');
       const hasSoc2 = !!localStorage.getItem('cyberTrustDashboard.soc2Assessment');
+      const hasNist = scores.overall.percentage > 0 || !!localStorage.getItem('cyberTrustDashboard.nistCsfAssessment');
       
       setHasIsoAssessment(hasIso);
       setHasCafAssessment(hasCaf);
       setHasSoc2Assessment(hasSoc2);
+      setHasNistAssessment(hasNist);
       
       // Calculate ISO 27001 progress
       if (hasIso) {
@@ -233,7 +236,7 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
       // In environments where localStorage is unavailable (SSR), ignore
       console.warn('StandardsFrameworksView: localStorage check failed', e);
     }
-  }, []);
+  }, [scores.overall.percentage]);
 
   const PageHeader = () => (
     <div className="mb-6">
@@ -277,6 +280,11 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
                 National Institute of Standards and Technology Cybersecurity Framework&nbsp;2.0
               </p>
             </div>
+            <Link to="/dashboard/standards-frameworks/nist-csf">
+              <Button size="xs">
+                {hasNistAssessment ? 'Resume Assessment' : 'Open Assessment'}
+              </Button>
+            </Link>
           </div>
           <div className="mt-3 w-full bg-secondary-200 dark:bg-secondary-700 rounded-full h-1.5">
             <div
@@ -368,80 +376,6 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
     <div className="space-y-6">
       <PageHeader />
       <FrameworkCards />
-      <FrameworkHeader
-        title="NIST Cybersecurity Framework 2.0 Assessment"
-        description="Assess your organization's capabilities against the NIST Cybersecurity Framework 2.0."
-        progress={scores.overall.percentage}
-        onReset={onReset}
-      />
-
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {framework.functions.map(func => (
-          <AssessmentProgressCard
-            key={func.id}
-            func={func}
-            score={scores.byFunction[func.id] || { percentage: 0 }}
-            isActive={activeFunctionId === func.id}
-            onClick={() => handleFunctionFilter(func.id)}
-          />
-        ))}
-      </div>
-
-      <div className="space-y-4">
-        {functionsToDisplay.map(func => (
-          <div key={func.id} className="dashboard-card overflow-hidden">
-            <div className="flex items-center justify-between p-4 bg-secondary-50 dark:bg-secondary-900/50 border-b border-secondary-200 dark:border-secondary-700">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <span className="text-primary-600">{func.id}</span>
-                <span>–</span>
-                <span>{func.name}</span>
-              </h2>
-              <div className="flex items-center gap-2">
-                <Button variant="secondary" size="sm" leadingIcon={Eye}>View Progress</Button>
-                <Button variant="primary" size="sm" leadingIcon={Download}>Export Assessment</Button>
-              </div>
-            </div>
-
-            <div className="px-4 py-2 text-sm text-secondary-600 dark:text-secondary-400">
-              Current Function Score:&nbsp;
-              <span className="font-semibold text-secondary-900 dark:text-white">
-                {scores.byFunction[func.id]?.percentage.toFixed(1) ?? 0}%
-              </span>
-            </div>
-
-            <div className="divide-y divide-secondary-200 dark:divide-secondary-700">
-              {(framework.categories[func.id] || []).map(cat => (
-                <div key={cat.id}>
-                  <button
-                    className="w-full p-4 text-left flex justify-between items-center hover:bg-secondary-50 dark:hover:bg-secondary-700/50"
-                    onClick={() => toggleCategory(cat.id)}
-                  >
-                    <div className="flex items-center">
-                      <h3 className="font-semibold text-primary-700 dark:text-primary-300">{cat.name} ({cat.id})</h3>
-                      <Badge variant="default" size="sm" className="ml-2">
-                        {scores.byCategory[cat.id]?.percentage.toFixed(0) ?? 0}%
-                      </Badge>
-                    </div>
-                    <ChevronDown className={`w-5 h-5 transition-transform ${expandedCategories[cat.id] ? 'rotate-180' : ''}`} />
-                  </button>
-                  {expandedCategories[cat.id] && (
-                    <div className="bg-white dark:bg-secondary-800">
-                      {(framework.subcategories[cat.id] || []).map(subcategory => (
-                        <SubcategoryItem
-                          key={subcategory.id}
-                          subcategory={subcategory}
-                          response={assessment[subcategory.id]}
-                          onUpdate={onUpdateResponse}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 };
