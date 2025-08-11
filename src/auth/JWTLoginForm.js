@@ -5,6 +5,52 @@ import useAuth from './useAuth';
 import { LoginAttemptManager } from './JWTManager';
 import { JWT_CONFIG } from './auth-config';
 
+// Helper functions for telemetry
+const updateLoginMetrics = (type) => {
+  try {
+    // Get current date in YYYY-MM-DD format
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Initialize or get existing metrics
+    const metricsString = localStorage.getItem('cyberTrustDashboard.metrics') || '{}';
+    const metrics = JSON.parse(metricsString);
+    
+    // Ensure login metrics structure exists
+    if (!metrics.login) {
+      metrics.login = { total: 0, success: 0, failure: 0, perDay: {} };
+    }
+    
+    // Ensure per-day structure exists
+    if (!metrics.login.perDay) {
+      metrics.login.perDay = {};
+    }
+    
+    // Ensure today's entry exists
+    if (!metrics.login.perDay[today]) {
+      metrics.login.perDay[today] = { total: 0, success: 0, failure: 0 };
+    }
+    
+    // Increment total counter
+    metrics.login.total = (metrics.login.total || 0) + 1;
+    metrics.login.perDay[today].total = (metrics.login.perDay[today].total || 0) + 1;
+    
+    // Set timestamp
+    metrics.login.lastAttemptAt = Date.now();
+    
+    // Increment specific counter based on type
+    if (type === 'success' || type === 'failure') {
+      metrics.login[type] = (metrics.login[type] || 0) + 1;
+      metrics.login.perDay[today][type] = (metrics.login.perDay[today][type] || 0) + 1;
+    }
+    
+    // Save updated metrics
+    localStorage.setItem('cyberTrustDashboard.metrics', JSON.stringify(metrics));
+  } catch (error) {
+    // Silently fail to avoid disrupting the login flow
+    console.error('Error updating login metrics:', error);
+  }
+};
+
 export const JWTLoginForm = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
@@ -36,11 +82,18 @@ export const JWTLoginForm = () => {
   const handleSubmit = async () => {
     setLoading(true);
     setError('');
+    
+    // Record login attempt
+    updateLoginMetrics('total');
 
     try {
       await login(formData);
+      // Record successful login
+      updateLoginMetrics('success');
     } catch (err) {
       setError(err.message);
+      // Record failed login
+      updateLoginMetrics('failure');
     } finally {
       setLoading(false);
     }
@@ -63,12 +116,8 @@ export const JWTLoginForm = () => {
               <Shield className="h-8 w-8 text-white" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">OT Dashboard</h1>
-          <p className="text-gray-600">JWT-secured access to your requirements system</p>
-          <div className="flex items-center justify-center mt-2 text-sm text-blue-600">
-            <Key className="h-4 w-4 mr-1" />
-            <span>Powered by JSON Web Tokens</span>
-          </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">TrustGuard</h1>
+          <p className="text-gray-600">Secure access to your TrustGuard workspace</p>
         </div>
 
         {/* Login Card */}
@@ -160,14 +209,6 @@ export const JWTLoginForm = () => {
                 </>
               )}
             </button>
-          </div>
-
-          {/* Demo Credentials */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Demo Credentials:</h3>
-            <p className="text-xs text-gray-600">
-              Password: <code className="bg-gray-200 px-1 rounded">{JWT_CONFIG.demoPassword}</code>
-            </p>
           </div>
         </div>
       </div>
