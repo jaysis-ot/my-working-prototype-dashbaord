@@ -1,5 +1,5 @@
 // src/auth/JWTManager.js
-import { JWT_CONFIG } from './auth-config';
+import { JWT_CONFIG, STORAGE_KEYS } from './auth-config';
 
 export const JWTManager = {
   // Create JWT token
@@ -76,9 +76,9 @@ export const JWTManager = {
 // Token storage management
 export const TokenStorage = {
   setTokens: (accessToken, refreshToken = null) => {
-    localStorage.setItem('ot_access_token', accessToken);
+    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
     if (refreshToken) {
-      localStorage.setItem('ot_refresh_token', refreshToken);
+      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
     }
     
     // Also store in memory for quick access
@@ -86,17 +86,17 @@ export const TokenStorage = {
   },
   
   getAccessToken: () => {
-    return TokenStorage._memoryTokens?.accessToken || localStorage.getItem('ot_access_token');
+    return TokenStorage._memoryTokens?.accessToken || localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
   },
   
   getRefreshToken: () => {
-    return TokenStorage._memoryTokens?.refreshToken || localStorage.getItem('ot_refresh_token');
+    return TokenStorage._memoryTokens?.refreshToken || localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
   },
   
   clearTokens: () => {
-    localStorage.removeItem('ot_access_token');
-    localStorage.removeItem('ot_refresh_token');
-    localStorage.removeItem('loginAttempts');
+    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.LOGIN_ATTEMPTS);
     TokenStorage._memoryTokens = null;
   },
   
@@ -106,7 +106,7 @@ export const TokenStorage = {
 // Login attempt tracking
 export const LoginAttemptManager = {
   getAttempts: () => {
-    const attempts = localStorage.getItem('loginAttempts');
+    const attempts = localStorage.getItem(STORAGE_KEYS.LOGIN_ATTEMPTS);
     return attempts ? JSON.parse(attempts) : { count: 0, lastAttempt: 0 };
   },
   
@@ -114,7 +114,7 @@ export const LoginAttemptManager = {
     const attempts = LoginAttemptManager.getAttempts();
     attempts.count += 1;
     attempts.lastAttempt = Date.now();
-    localStorage.setItem('loginAttempts', JSON.stringify(attempts));
+    localStorage.setItem(STORAGE_KEYS.LOGIN_ATTEMPTS, JSON.stringify(attempts));
     return attempts;
   },
   
@@ -128,6 +128,16 @@ export const LoginAttemptManager = {
   },
   
   reset: () => {
-    localStorage.removeItem('loginAttempts');
+    localStorage.removeItem(STORAGE_KEYS.LOGIN_ATTEMPTS);
+  },
+  
+  getRemainingLockTime: () => {
+    const attempts = LoginAttemptManager.getAttempts();
+    if (attempts.count >= JWT_CONFIG.maxLoginAttempts) {
+      const timeSinceLastAttempt = Date.now() - attempts.lastAttempt;
+      const remainingTime = JWT_CONFIG.lockoutDuration - timeSinceLastAttempt;
+      return Math.max(0, Math.ceil(remainingTime / 1000)); // Return in seconds
+    }
+    return 0;
   }
 };

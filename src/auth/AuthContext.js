@@ -1,5 +1,6 @@
 // src/auth/AuthContext.js
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { userDB } from './userDatabase';
 
 // Create the auth context
 export const AuthContext = createContext();
@@ -13,15 +14,24 @@ export const AuthProvider = ({ children }) => {
   // Check for existing session on mount
   useEffect(() => {
     const checkAuth = () => {
-      const storedUser = localStorage.getItem('dashboard_user');
+      const storedUser = localStorage.getItem('dashboard_current_user');
       if (storedUser) {
         try {
           const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
-          setIsAuthenticated(true);
+          // Verify the session is still valid (you could add expiry checks here)
+          const sessionExpiry = localStorage.getItem('dashboard_session_expiry');
+          if (sessionExpiry && new Date(sessionExpiry) > new Date()) {
+            setUser(parsedUser);
+            setIsAuthenticated(true);
+          } else {
+            // Session expired
+            localStorage.removeItem('dashboard_current_user');
+            localStorage.removeItem('dashboard_session_expiry');
+          }
         } catch (error) {
           console.error('Error parsing stored user:', error);
-          localStorage.removeItem('dashboard_user');
+          localStorage.removeItem('dashboard_current_user');
+          localStorage.removeItem('dashboard_session_expiry');
         }
       }
       setLoading(false);
@@ -30,132 +40,123 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
-  // Login function - simplified for demo
+  // Login function using the user database
   const login = async (credentials) => {
-    // Demo credentials check
-    if (credentials.email === 'admin@dashboard.com' && credentials.password === 'demo123') {
-      const user = {
-        id: '12345',
-        email: credentials.email,
-        name: 'Admin User',
-        role: 'admin',
-        // Additional demo profile data for testing Account Settings modal
-        jobTitle: 'Security Administrator',
-        department: 'IT Security',
-        phone: '+1 (555) 123-4567',
-        location: 'New York, USA',
-        profileImage: null,
-        language: 'en',
-        preferences: {
-          emailNotifications: true,
-          pushNotifications: true,
-          weeklyDigest: true
-        },
-        twoFactorEnabled: false,
-        // Store the plaintext password ONLY for demo purposes.
-        // NEVER do this in production code.
-        password: credentials.password,
-        lastLogin: new Date().toISOString()
-      };
+    try {
+      // Authenticate against the user database
+      const authenticatedUser = userDB.authenticate(credentials.email, credentials.password);
       
-      // Store in localStorage for persistence
-      localStorage.setItem('dashboard_user', JSON.stringify(user));
+      // Set session expiry (e.g., 8 hours from now)
+      const sessionExpiry = new Date();
+      sessionExpiry.setHours(sessionExpiry.getHours() + 8);
       
-      setUser(user);
+      // Store user and session info
+      localStorage.setItem('dashboard_current_user', JSON.stringify(authenticatedUser));
+      localStorage.setItem('dashboard_session_expiry', sessionExpiry.toISOString());
+      
+      setUser(authenticatedUser);
       setIsAuthenticated(true);
+      
       return true;
-    } else {
-      throw new Error('Invalid credentials');
+    } catch (error) {
+      throw error;
     }
   };
 
   // Logout function
   const logout = () => {
-    localStorage.removeItem('dashboard_user');
+    localStorage.removeItem('dashboard_current_user');
+    localStorage.removeItem('dashboard_session_expiry');
     setUser(null);
     setIsAuthenticated(false);
   };
 
-  /**
-   * Update the authenticated user's profile.
-   * Deep-merges preferences, overwrites other scalar fields.
-   * @param {Object} updates - partial user object with fields to update
-   * @returns {Promise<Object>} resolves with the updated user
-   */
-  const updateUserProfile = async (updates = {}) => {
-    return new Promise((resolve, reject) => {
-      if (!user) {
-        return reject(new Error('No authenticated user'));
-      }
-
-      // Merge preferences separately to avoid overwriting the whole object
-      const mergedPreferences = {
-        ...(user.preferences || {}),
-        ...(updates.preferences || {})
-      };
-
-      const updatedUser = {
-        ...user,
-        ...updates,
-        preferences: mergedPreferences
-      };
-
-      try {
-        localStorage.setItem('dashboard_user', JSON.stringify(updatedUser));
-        setUser(updatedUser);
-        resolve(updatedUser);
-      } catch (error) {
-        console.error('Error updating user profile:', error);
-        reject(new Error('Failed to update user profile'));
-      }
-    });
+  // Update user profile
+  const updateProfile = (updates) => {
+    if (!user) return;
+    
+    try {
+      // Update in database
+      userDB.updateUser(user.id, { profile: updates });
+      
+      // Update local state
+      const updatedUser = { ...user, ...updates };
+      setUser(updatedUser);
+      localStorage.setItem('dashboard_current_user', JSON.stringify(updatedUser));
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      return false;
+    }
   };
 
-  /**
-   * Change the authenticated user's password.
-   * Validates that the provided current password matches the stored one.
-   * @param {string} currentPassword
-   * @param {string} newPassword
-   * @returns {Promise<void>}
-   */
+  // Change password
   const changePassword = async (currentPassword, newPassword) => {
-    return new Promise((resolve, reject) => {
-      if (!user) {
-        return reject(new Error('No authenticated user'));
-      }
-
-      if (currentPassword !== user.password) {
-        return reject(new Error('Current password is incorrect'));
-      }
-
-      const updatedUser = { ...user, password: newPassword };
-
-      try {
-        localStorage.setItem('dashboard_user', JSON.stringify(updatedUser));
-        setUser(updatedUser);
-        resolve();
-      } catch (error) {
-        console.error('Error changing password:', error);
-        reject(new Error('Failed to change password'));
-      }
-    });
+    if (!user) throw new Error('No user logged in');
+    
+    try {
+      // Verify current password first
+      userDB.authenticate(user.email, currentPassword);
+      
+      // Update password
+      userDB.updateUser(user.id, { password: newPassword });
+      
+      return true;
+    } catch (error) {
+      throw new Error('Current password is incorrect');
+    }
   };
 
-  // Auth context value
+  // Get all users (admin only)
+  const getAllUsers = () => {
+    if (!user || !user.permissions?.includes('manage_users')) {
+      throw new Error('Unauthorized');
+    }
+    return userDB.getAllUsers();
+  };
+
+  // Add new user (admin only)
+  const addUser = (email, password, profile) => {
+    if (!user || !user.permissions?.includes('manage_users')) {
+      throw new Error('Unauthorized');
+    }
+    return userDB.addUser(email, password, profile);
+  };
+
+  // Delete user (admin only)
+  const deleteUser = (userId) => {
+    if (!user || !user.permissions?.includes('manage_users')) {
+      throw new Error('Unauthorized');
+    }
+    if (userId === user.id) {
+      throw new Error('Cannot delete your own account');
+    }
+    return userDB.deleteUser(userId);
+  };
+
+  // Context value
   const value = {
     isAuthenticated,
     user,
     loading,
     login,
     logout,
-    updateUserProfile,
-    changePassword
+    updateProfile,
+    changePassword,
+    getAllUsers,
+    addUser,
+    deleteUser
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
-// Custom hook for using auth context
+// Custom hook to use auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -163,3 +164,6 @@ export const useAuth = () => {
   }
   return context;
 };
+
+// Export both as default and named export
+export default useAuth;
