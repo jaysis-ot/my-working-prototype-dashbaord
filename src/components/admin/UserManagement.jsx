@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { getUserCredentials } from '../../auth/userDatabase';
+import LoginTelemetryPanel from './LoginTelemetryPanel';
 
 const UserManagement = () => {
   const { user: currentUser, getAllUsers, addUser, deleteUser } = useAuth();
@@ -206,6 +207,14 @@ const UserManagement = () => {
           </table>
         </div>
       )}
+
+      {/* Security & Telemetry */}
+      <div className="space-y-4">
+        <h3 className="text-xl font-bold text-gray-900">Security &amp; Telemetry</h3>
+        <div className="dashboard-card p-6">
+          <LoginTelemetryPanel />
+        </div>
+      </div>
 
       {/* Add User Modal */}
       {showAddModal && (
