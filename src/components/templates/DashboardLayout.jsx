@@ -1,238 +1,189 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import {
-  Menu,
-  X,
+// src/components/templates/DashboardLayout.jsx
+import React, { useState, useEffect } from 'react';
+import { Link, Outlet, useLocation } from 'react-router-dom';
+import { 
+  LayoutDashboard, 
+  FileText, 
+  Shield, 
+  Users,
+  UserCog,
+  BarChart3,
+  TrendingUp,
+  Layers,
+  Database,
+  ClipboardList,
+  Beaker,
+  Heart,
+  Settings,
   ChevronLeft,
   ChevronRight,
-  LayoutDashboard,
-  FileText,
-  Shield,
-  Users,
-  BarChart3,
-  Beaker,
-  PieChart,
-  TrendingUp,
-  AlertTriangle,
-  AlertCircle,
-  Database,
-  Target,
-  Layers,
-  BookOpen,
-  Building2,
-  ClipboardList,
-  Heart,
-  Settings as SettingsIcon,
+  Menu,
+  X
 } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
-import { useDashboardUI } from '../../contexts/DashboardUIContext';
-import { useTheme } from '../../contexts/ThemeContext';
-import ModalManager from '../organisms/ModalManager';
-import ProductLogo from '../atoms/ProductLogo';
+
+// Import useAuth from AuthContext
+import { useAuth } from '../../auth/AuthContext';
+// User profile dropdown
 import UserSettingsDropdown from '../organisms/UserSettingsDropdown';
 
-const DashboardLayout = ({ children }) => {
-  const {
-    sidebarExpanded,
-    toggleSidebar,
-    setViewMode,
-  } = useDashboardUI();
-
+const DashboardLayout = () => {
   const location = useLocation();
-  const { themeClasses } = useTheme();
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const currentPath = location.pathname.split('/').pop() || 'overview';
+  
+  // Try to use auth, but with error handling
+  let user = null;
+  let isAdmin = false;
+  
+  try {
+    const auth = useAuth();
+    user = auth?.user;
+    isAdmin = user?.permissions?.includes('manage_users') || false;
+  } catch (error) {
+    console.error('Auth context not available:', error);
+  }
 
-  // Use pathname to determine the active view
-  const currentPath = location.pathname.split('/').pop();
-
+  // Icon mapping
   const iconMap = {
-    LayoutDashboard,
-    FileText,
-    Shield,
-    Users,
-    BarChart3,
-    PieChart,
-    TrendingUp,
-    AlertTriangle,
-    AlertCircle,
-    Target,
-    Layers,
-    BookOpen,
-    Database,
-    Building2,
-    ClipboardList,
-    Heart,
-    Settings: SettingsIcon,
-    Beaker,
+    'LayoutDashboard': LayoutDashboard,
+    'FileText': FileText,
+    'Shield': Shield,
+    'Users': Users,
+    'UserCog': UserCog,
+    'BarChart3': BarChart3,
+    'TrendingUp': TrendingUp,
+    'Layers': Layers,
+    'Database': Database,
+    'ClipboardList': ClipboardList,
+    'Beaker': Beaker,
+    'Heart': Heart,
+    'Settings': Settings
   };
 
-  const handleSidebarToggle = () => {
-    toggleSidebar();
-  };
-
+  // Navigation items
   const navItems = [
     { id: 'overview', label: 'Overview', icon: 'LayoutDashboard' },
-    { id: 'threat-intelligence', label: 'Threat Intelligence', icon: 'AlertTriangle' },
-    { id: 'standards-frameworks', label: 'Standards & Frameworks', icon: 'BookOpen' },
-    { id: 'business-plan', label: 'Business Plan', icon: 'Building2' },
-    { id: 'risk-management', label: 'Risk Management', icon: 'Target' },
+    { id: 'threat-intelligence', label: 'Threat Intelligence', icon: 'Layers' },
+    { id: 'standards-frameworks', label: 'Standards & Frameworks', icon: 'FileText' },
+    { id: 'business-plan', label: 'Business Plan', icon: 'FileText' },
+    { id: 'risk-management', label: 'Risk Management', icon: 'TrendingUp' },
     { id: 'capabilities', label: 'Capabilities', icon: 'Shield' },
-
-    { id: 'incident-management', label: 'Incident Management', icon: 'AlertCircle' },
-
+    { id: 'incident-management', label: 'Incident Management', icon: 'ClipboardList' },
     { id: 'requirements', label: 'Requirements', icon: 'FileText' },
-    { id: 'capabilities', label: 'Capabilities', icon: 'Shield' },
     { id: 'resources', label: 'Resource Planning', icon: 'Users' },
-    
     { id: 'analytics', label: 'Analytics', icon: 'BarChart3' },
     { id: 'maturity-analysis', label: 'Maturity Analysis', icon: 'TrendingUp' },
     { id: 'mitre-attack', label: 'MITRE ATT&CK', icon: 'Layers' },
-    
-    { id: 'repository', label: 'Repository', icon: 'Database' },
+    { id: 'repository', label: 'Repository Management', icon: 'Database' },
     { id: 'evidence', label: 'Evidence', icon: 'ClipboardList' },
-    // Advanced Evidence Demo (cutting-edge visualisations)
-    { id: 'evidence-demo', label: 'Evidence Demo', icon: 'Beaker' },
-    
     { id: 'trust', label: 'Trust', icon: 'Heart' },
     { id: 'settings', label: 'Settings', icon: 'Settings' },
   ];
 
+  // Add users link only for admins
+  if (isAdmin) {
+    // Insert after resources
+    const resourceIndex = navItems.findIndex(item => item.id === 'resources');
+    navItems.splice(resourceIndex + 1, 0, 
+      { id: 'users', label: 'User Management', icon: 'UserCog' }
+    );
+  }
+
+  const handleSidebarToggle = () => {
+    setSidebarExpanded(!sidebarExpanded);
+  };
+
   return (
-    <div className="h-screen flex bg-background-light dark:bg-background-dark">
+    <div className="h-screen flex bg-gray-50">
       {/* Sidebar */}
       <aside
         className={`
-          ${themeClasses.sidebar} 
+          bg-secondary-900 text-white
           ${sidebarExpanded ? 'w-64' : 'w-16'} 
           transition-all duration-300 ease-in-out 
-          fixed md:relative 
-          h-screen 
-          z-40 md:z-auto 
-          ${sidebarExpanded ? 'left-0' : '-left-64 md:left-0'}
-          shadow-lg md:shadow-none
+          flex flex-col
         `}
-        aria-label="Dashboard navigation"
       >
         {/* Logo */}
-        <div className="flex items-center justify-center py-6 px-4 border-b border-secondary-700/30">
-          <ProductLogo expanded={sidebarExpanded} />
+        <div className="flex items-center justify-center h-16 border-b border-secondary-800">
+          {sidebarExpanded ? (
+            <div className="flex items-center">
+              <Shield className="w-6 h-6 text-primary-400" />
+              <h1 className="text-xl font-bold ml-2 text-secondary-100">TrustGuard</h1>
+            </div>
+          ) : (
+            <Shield className="w-6 h-6 text-primary-400" />
+          )}
         </div>
 
         {/* Navigation */}
-        <div className="flex-1 flex flex-col py-4 overflow-y-auto">
-          <nav className="flex-1 px-2 space-y-1 overflow-y-auto">
+        <nav className="flex-1 overflow-y-auto py-4">
+          <ul className="space-y-1 px-2">
             {navItems.map((item) => {
-              const Icon = iconMap[item.icon];
+              const Icon = iconMap[item.icon] || LayoutDashboard;
               const isActive = currentPath === item.id;
-              const commonClasses = `
-                w-full text-left
-                sidebar-item
-                ${isActive ? 'sidebar-item-active' : 'sidebar-item-inactive'}
-                ${!sidebarExpanded ? 'justify-center' : ''}
-              `;
-
+              
               return (
-                <Link
-                  className={commonClasses}
-                  key={item.id}
-                  to={`/dashboard/${item.id}`}
-                  onClick={() => setViewMode(item.id)}
-                  aria-current={isActive ? 'page' : undefined}
-                >
-                  <Icon
-                    className={`w-6 h-6 flex-shrink-0 ${!sidebarExpanded ? '' : 'mr-3'}`}
-                    aria-hidden="true"
-                  />
-                  {sidebarExpanded && <span className="truncate text-base">{item.label}</span>}
-                </Link>
+                <li key={item.id}>
+                  <Link
+                    to={`/dashboard/${item.id}`}
+                    className={`
+                      flex items-center px-3 py-2 rounded-lg transition-colors
+                      ${isActive 
+                        ? 'bg-primary-600 text-white' 
+                        : 'text-secondary-300 hover:bg-secondary-800 hover:text-white'
+                      }
+                      ${!sidebarExpanded ? 'justify-center' : ''}
+                    `}
+                    title={!sidebarExpanded ? item.label : ''}
+                  >
+                    <Icon className="w-5 h-5 flex-shrink-0" />
+                    {sidebarExpanded && (
+                      <span className="ml-3">{item.label}</span>
+                    )}
+                  </Link>
+                </li>
               );
             })}
-          </nav>
+          </ul>
+        </nav>
 
-          {/* Collapse Button */}
-          <div className="mt-2 border-t border-secondary-700/20 dark:border-secondary-700 pt-2">
-            <button
-              onClick={handleSidebarToggle}
-              aria-label={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
-              className={`
-                w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors
-                text-secondary-600 dark:text-secondary-300
-                hover:bg-secondary-100 dark:hover:bg-secondary-700
-                ${sidebarExpanded ? '' : 'justify-center'}
-              `}
-            >
-              {sidebarExpanded ? (
-                <>
-                  <ChevronLeft className="w-6 h-6 flex-shrink-0" />
-                  <span className="truncate text-base">Collapse</span>
-                </>
-              ) : (
-                <ChevronRight className="w-6 h-6 flex-shrink-0" />
-              )}
-            </button>
-          </div>
-
-          {/* Trust Score Footer */}
-          {sidebarExpanded && (
-            <div className="px-4 py-3 mt-auto">
-              <div className="bg-secondary-800 bg-opacity-50 rounded-lg p-3">
-                <div className="text-xs text-secondary-400 mb-1">Trust Score</div>
-                <div className="flex items-center">
-                  <div className="text-lg font-semibold text-white">78</div>
-                  <div className="ml-auto px-1.5 py-0.5 rounded-full bg-yellow-500 bg-opacity-20 text-yellow-400 text-xs">
-                    -3 Δ
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+        {/* Sidebar Toggle */}
+        <div className="border-t border-secondary-800 p-2">
+          <button
+            onClick={handleSidebarToggle}
+            className="w-full flex items-center justify-center px-3 py-2 rounded-lg text-secondary-300 hover:bg-secondary-800 hover:text-white transition-colors"
+          >
+            {sidebarExpanded ? (
+              <ChevronLeft className="w-5 h-5" />
+            ) : (
+              <ChevronRight className="w-5 h-5" />
+            )}
+          </button>
         </div>
       </aside>
 
-      {/* Main content layout */}
+      {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header
-          className={`${themeClasses.header} h-16 flex items-center justify-between px-4 shadow-sm z-20`}
-          aria-label="Dashboard header"
-        >
-          <div className="flex items-center">
-            <button
-              className="p-2 rounded-md text-secondary-500 hover:bg-secondary-100 dark:hover:bg-secondary-700 md:hidden"
-              onClick={handleSidebarToggle}
-              aria-label={sidebarExpanded ? 'Close sidebar' : 'Open sidebar'}
-            >
-              {sidebarExpanded ? <X size={20} /> : <Menu size={20} />}
-            </button>
-            <div className={`flex items-center ${sidebarExpanded ? 'hidden md:flex' : 'flex'}`}>
-              <ProductLogo expanded={false} size="small" />
-              <span className="ml-2 text-xl font-semibold text-primary-600 dark:text-primary-400">
-                Cyber Trust Sensor
-              </span>
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-gray-200">
+          <div className="flex items-center justify-between px-6 py-4">
+            <h2 className="text-xl font-semibold text-gray-800 capitalize">
+              {currentPath.replace('-', ' ')}
+            </h2>
+            <div className="flex items-center space-x-4">
+              {user && <UserSettingsDropdown />}
             </div>
           </div>
-          <UserSettingsDropdown />
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto transition-all duration-300 ease-in-out">
-          {sidebarExpanded && (
-            <div
-              className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
-              onClick={handleSidebarToggle}
-              aria-hidden="true"
-            />
-          )}
-          <div className="p-4 md:p-6 h-full">{children}</div>
+        {/* Page Content */}
+        <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
+          <Outlet />
         </main>
       </div>
-
-      {/* Global Modal Manager */}
-      <ModalManager />
     </div>
   );
-};
-
-DashboardLayout.propTypes = {
-  children: PropTypes.node.isRequired,
 };
 
 export default DashboardLayout;
