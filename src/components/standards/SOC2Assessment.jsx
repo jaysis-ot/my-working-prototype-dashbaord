@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useDebounce } from 'react-use';
 import { 
   SOC2_CATEGORIES, 
   SOC2_STRUCTURE, 
@@ -14,7 +13,6 @@ import {
 
 import Button from '../atoms/Button';
 import Input from '../atoms/Input';
-import Select from '../atoms/Select';
 import Badge from '../atoms/Badge';
 
 const SOC2Assessment = () => {
@@ -57,7 +55,16 @@ const SOC2Assessment = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
   }, [assessment, selectedCategories, auditType, serviceType]);
 
-  useDebounce(saveToLocalStorage, 1000, [assessment, selectedCategories, auditType, serviceType]);
+  /* ------------------------------------------------------------------
+   * Persist to localStorage with a manual debounce (800 ms)
+   * ------------------------------------------------------------------ */
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      saveToLocalStorage();
+    }, 800);
+
+    return () => clearTimeout(timeoutId);
+  }, [assessment, selectedCategories, auditType, serviceType, saveToLocalStorage]);
 
   const getDynamicTotals = useCallback((categories) => {
     let total = 0;
@@ -207,10 +214,10 @@ const SOC2Assessment = () => {
 
           <div className="flex flex-col gap-2">
             <label className="font-semibold text-gray-700 text-sm">Service Type:</label>
-            <Select
+            <select
               value={serviceType}
               onChange={(e) => applyServiceRecommendations(e.target.value)}
-              className="w-48"
+              className="w-48 border border-gray-300 rounded px-2 py-1"
             >
               <option value="">Select service type...</option>
               <option value="saas">SaaS Provider</option>
@@ -219,7 +226,7 @@ const SOC2Assessment = () => {
               <option value="healthcare">Healthcare Technology</option>
               <option value="financial">Financial Services</option>
               <option value="msp">Managed Service Provider</option>
-            </Select>
+            </select>
           </div>
         </div>
 
@@ -286,10 +293,10 @@ const SOC2Assessment = () => {
 
           <div className="flex flex-col gap-1">
             <label className="font-semibold text-gray-700 text-sm">Category:</label>
-            <Select
+            <select
               value={activeCategory}
               onChange={(e) => setActiveCategory(e.target.value)}
-              className="w-48"
+              className="w-48 border border-gray-300 rounded px-2 py-1"
             >
               {selectedCategories.map(categoryId => {
                 const category = SOC2_CATEGORIES.find(c => c.id === categoryId);
@@ -299,22 +306,22 @@ const SOC2Assessment = () => {
                   </option>
                 );
               })}
-            </Select>
+            </select>
           </div>
 
           <div className="flex flex-col gap-1">
             <label className="font-semibold text-gray-700 text-sm">Status:</label>
-            <Select
+            <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-48"
+              className="w-48 border border-gray-300 rounded px-2 py-1"
             >
               <option value="all">All Statuses</option>
               <option value="implemented">Implemented</option>
               <option value="partial">Partially Implemented</option>
               <option value="not-implemented">Not Implemented</option>
               <option value="not-assessed">Not Assessed</option>
-            </Select>
+            </select>
           </div>
         </div>
       </div>
@@ -359,7 +366,7 @@ const SOC2Assessment = () => {
                     onClick={() => toggleSection(sectionId)}
                   >
                     <div className="flex items-center gap-3">
-                      <Badge color="primary" className="font-bold">
+                      <Badge variant="primary" size="sm" className="font-bold">
                         {section.id}
                       </Badge>
                       <span className="font-semibold text-gray-800">{section.name}</span>
