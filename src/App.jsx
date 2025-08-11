@@ -34,6 +34,7 @@ const TrustPage = lazy(() => import('./components/pages/TrustPage'));
 const IncidentManagementPage = lazy(() => import('./components/pages/IncidentManagementPage'));
 const EvidencePage = lazy(() => import('./components/pages/EvidencePage'));
 const RepositoryPage = lazy(() => import('./components/pages/RepositoryPage'));
+const ISO27001Assessment = lazy(() => import('./components/standards/ISO27001Assessment'));
 // const UserManagement = lazy(() => import('.components/admin/UserManagement'));
 
 // AppProviders wrapper
@@ -102,6 +103,7 @@ function App() {
               <Route path="threat-intelligence" element={<ThreatIntelligencePage />} />
               <Route path="risk-management" element={<RiskManagementPage />} />
               <Route path="standards-frameworks" element={<StandardsFrameworksPage />} />
+              <Route path="standards-frameworks/iso27001" element={<ISO27001Assessment />} />
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="business-plan" element={<BusinessPlanPage />} />
               <Route path="repository" element={<RepositoryPage />} />

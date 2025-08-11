@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { ShieldCheck, BarChart3, RotateCcw, ChevronDown, Check, X, Minus, Info, Download, Eye } from 'lucide-react';
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
+import { Link } from 'react-router-dom';
 
 // --- Internal Molecules (Components specific to this Organism) ---
 
@@ -173,8 +174,15 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
         </div>
         <div className="dashboard-card p-4">
           <p className="text-sm font-semibold">ISO&nbsp;27001</p>
-          <Badge size="xs" variant="secondary" className="mt-1">Coming Soon</Badge>
+          <Badge size="xs" variant="success" className="mt-1">Available</Badge>
           <p className="text-xs mt-1">Information Security Management System Standard</p>
+          <div className="mt-3">
+            <Link to="/dashboard/standards-frameworks/iso27001">
+              <Button size="sm" className="w-full">
+                Open Assessment
+              </Button>
+            </Link>
+          </div>
         </div>
         <div className="dashboard-card p-4">
           <p className="text-sm font-semibold">SOC 2</p>
