@@ -160,6 +160,22 @@ const SOC2Assessment = () => {
     [assessment, selectedCategories]
   );
 
+  /* -------------------------------
+   * Derived overall completion %
+   * ------------------------------- */
+  const overallPct = useMemo(() => {
+    const total = (stats.implemented || 0) +
+                  (stats.partial || 0) +
+                  (stats.notImplemented || 0) +
+                  (stats.notAssessed || 0);
+    if (!total) return 0;
+    return (
+      ((stats.implemented || 0) + 0.5 * (stats.partial || 0)) /
+      total *
+      100
+    );
+  }, [stats]);
+
   const filteredPoints = useCallback((categoryId, sectionId) => {
     if (!SOC2_STRUCTURE[categoryId] || !SOC2_STRUCTURE[categoryId].sections[sectionId]) {
       return [];
@@ -188,18 +204,44 @@ const SOC2Assessment = () => {
         Back
       </button>
 
-      <div className="bg-gradient-to-r from-blue-800 to-blue-600 text-white p-6 rounded-t-lg">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">
-            SOC 2 Assessment 
-            <span className="ml-2 text-sm bg-white bg-opacity-20 px-3 py-1 rounded-full">
-              2017 TSC + 2022 PoF
-            </span>
-          </h1>
+      {/* Header – matches NIST card style */}
+      <div className="dashboard-card p-6 mb-6">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
+          <div className="mb-4 md:mb-0">
+            <h1 className="text-2xl font-bold text-secondary-900 dark:text-white flex items-center">
+              <span className="inline-flex items-center justify-center w-7 h-7 mr-3 rounded-full bg-primary-100 text-primary-700">
+                S2
+              </span>
+              SOC 2 Assessment
+              <span className="ml-3 text-xs bg-secondary-200 dark:bg-secondary-700 text-secondary-800 dark:text-secondary-200 px-3 py-1 rounded-full">
+                2017 TSC + 2022 PoF
+              </span>
+            </h1>
+            <p className="text-secondary-500 dark:text-secondary-400 mt-1">
+              Trust Services Criteria assessment for service organizations – demonstrating control effectiveness through AICPA framework
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <p className="text-sm font-medium text-secondary-600 dark:text-secondary-300">
+                Overall Completion
+              </p>
+              <p className="text-2xl font-bold">{overallPct.toFixed(1)}%</p>
+            </div>
+            <Button variant="secondary" onClick={resetAssessment}>
+              Reset Assessment
+            </Button>
+            <Button variant="primary" onClick={exportAssessment}>
+              Export Assessment
+            </Button>
+          </div>
         </div>
-        <p className="mt-2 text-white text-opacity-90">
-          Trust Services Criteria assessment for service organizations - demonstrating control effectiveness through AICPA framework
-        </p>
+        <div className="w-full bg-secondary-200 dark:bg-secondary-700 rounded-full h-2.5 mt-4">
+          <div
+            className="bg-primary-600 h-2.5 rounded-full"
+            style={{ width: `${overallPct}%` }}
+          ></div>
+        </div>
       </div>
 
       <div className="bg-gray-50 p-4 border-b border-gray-200">
