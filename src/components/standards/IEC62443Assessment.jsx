@@ -189,6 +189,17 @@ function IEC62443Assessment() {
   const next = () => { const n = Math.min(7, currentStage + 1); setCurrentStage(n); setMeta(n); };
   const prev = () => { const p = Math.max(1, currentStage - 1); setCurrentStage(p); setMeta(p); };
 
+  // ZCR stage labels mapping
+  const zcrLabels = { 
+    1: 'ZCR 1: Define SuC', 
+    2: 'ZCR 2: Initial Risk Assessment', 
+    3: 'ZCR 3: Zone & Conduit Partitioning', 
+    4: 'ZCR 4: Compare to Tolerable Risk', 
+    5: 'ZCR 5: Detailed Risk Assessment', 
+    6: 'ZCR 6: Document Requirements', 
+    7: 'ZCR 7: Approval' 
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -221,15 +232,36 @@ function IEC62443Assessment() {
         <p className="text-sm text-secondary-500">Choose based on objectives and detail required.</p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
           {[
-            { key: 'initial', title: 'Initial (High-Level)', purpose: 'First stage of IEC 62443 risk analysis' },
-            { key: 'detailed', title: 'Detailed', purpose: 'When risk exceeds tolerable limits' },
-            { key: 'vulnerability', title: 'Vulnerability', purpose: 'Identify current vulnerabilities' },
-            { key: 'compliance', title: 'Compliance/Maturity', purpose: 'Determine alignment with IEC 62443' },
+            { 
+              key: 'initial', 
+              title: 'Initial (High-Level)', 
+              purpose: 'First stage of IEC 62443 risk analysis',
+              description: 'Define System under Consideration (SuC), assume likelihood = 1, estimate worst-case impacts, identify zones and conduits, set initial security-level targets (SL-T). Minimal asset details required.'
+            },
+            { 
+              key: 'detailed', 
+              title: 'Detailed', 
+              purpose: 'When risk exceeds tolerable limits',
+              description: 'Identify realistic threat scenarios, evaluate vulnerabilities and existing countermeasures, estimate likelihood and impact, refine SL-T for each zone/conduit, document cybersecurity requirements.'
+            },
+            { 
+              key: 'vulnerability', 
+              title: 'Vulnerability', 
+              purpose: 'Identify current vulnerabilities',
+              description: 'Use automated scans or manual enumeration to collect OS versions, services and configurations. Map discovered vulnerabilities to risk scenarios and feed into detailed assessment.'
+            },
+            { 
+              key: 'compliance', 
+              title: 'Compliance/Maturity', 
+              purpose: 'Determine alignment with IEC 62443',
+              description: 'Use checklists derived from IEC 62443-2-1, -2-4 and -3-3. Score each requirement, highlight gaps, recommend improvements and link to risk-mitigation plans.'
+            },
           ].map(card => (
             <button key={card.key} onClick={() => setData(d => ({ ...d, assessmentType: card.key }))}
               className={`p-3 rounded-lg border transition ${data.assessmentType === card.key ? 'border-primary-500 bg-primary-50/40' : 'border-secondary-200 dark:border-secondary-700 hover:border-primary-300'}`}>
               <h3 className="text-sm font-semibold text-primary-700 dark:text-primary-400">{card.title}</h3>
               <p className="text-xs text-amber-500 font-medium">Purpose: {card.purpose}</p>
+              <p className="text-xs text-secondary-300 mt-2">{card.description}</p>
             </button>
           ))}
         </div>
@@ -240,7 +272,7 @@ function IEC62443Assessment() {
         {[1,2,3,4,5,6,7].map(n => (
           <button key={n} onClick={() => { setCurrentStage(n); setMeta(n); }}
             className={`px-3 py-2 rounded border text-xs ${n===currentStage ? 'border-primary-500 bg-primary-50/40' : n<currentStage ? 'border-green-500 bg-green-50/40' : 'border-secondary-300 dark:border-secondary-700'}`}>
-            <span className="font-semibold">ZCR {n}</span>
+            <span className="font-semibold">{zcrLabels[n]}</span>
           </button>
         ))}
       </div>
