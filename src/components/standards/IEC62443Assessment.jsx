@@ -315,7 +315,8 @@ function IEC62443Assessment() {
               targetedZones: scenario.targetedZones || '',
               exploitedVulnerabilities: scenario.exploitedVulnerabilities || '',
               existingControls: scenario.existingControls || '',
-              frApplied: scenario.frApplied || []
+              frApplied: scenario.frApplied || [],
+              frImplemented: scenario.frImplemented || []
             };
           });
         }
@@ -417,7 +418,8 @@ function IEC62443Assessment() {
         likelihood: 0.1, 
         impact: 1, 
         existingControls: '',
-        frApplied: []
+        frApplied: [],
+        frImplemented: []
       }
     ] 
   }));
