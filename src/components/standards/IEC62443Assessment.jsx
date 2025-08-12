@@ -28,6 +28,19 @@ const IMPACT_OPTIONS = [
 ];
 
 // ---------------------------------------------------------------------------
+// Foundational Requirements (FR) list for IEC 62443
+// ---------------------------------------------------------------------------
+const FR_LIST = [
+  { key: 'FR1', label: 'FR1 Identification & Authentication' },
+  { key: 'FR2', label: 'FR2 Use Control' },
+  { key: 'FR3', label: 'FR3 System Integrity' },
+  { key: 'FR4', label: 'FR4 Data Confidentiality' },
+  { key: 'FR5', label: 'FR5 Restricted Data Flow' },
+  { key: 'FR6', label: 'FR6 Timely Response to Events' },
+  { key: 'FR7', label: 'FR7 Resource Availability' }
+];
+
+// ---------------------------------------------------------------------------
 // Security-Level Requirements mapping (IEC 62443 FR themes)
 // ---------------------------------------------------------------------------
 const SL_REQUIREMENTS = {
@@ -299,8 +312,10 @@ function IEC62443Assessment() {
             return {
               ...scenario,
               targetedAssets: scenario.targetedAssets || '',
+              targetedZones: scenario.targetedZones || '',
               exploitedVulnerabilities: scenario.exploitedVulnerabilities || '',
-              existingControls: scenario.existingControls || ''
+              existingControls: scenario.existingControls || '',
+              frApplied: scenario.frApplied || []
             };
           });
         }
@@ -397,10 +412,12 @@ function IEC62443Assessment() {
         attackVector: 'network', 
         description: '', 
         targetedAssets: '',
+        targetedZones: '',
         exploitedVulnerabilities: '',
         likelihood: 0.1, 
         impact: 1, 
-        existingControls: '' 
+        existingControls: '',
+        frApplied: []
       }
     ] 
   }));
@@ -416,6 +433,23 @@ function IEC62443Assessment() {
   // Handle impact button selection
   const handleImpactSelect = (id, value) => {
     updateThreat(id, { impact: value });
+  };
+
+  // Handle FR toggle selection
+  const toggleFR = (id, frKey) => {
+    const scenario = data.threatScenarios.find(s => s.id === id);
+    if (!scenario) return;
+    
+    const frApplied = [...(scenario.frApplied || [])];
+    const index = frApplied.indexOf(frKey);
+    
+    if (index >= 0) {
+      frApplied.splice(index, 1);
+    } else {
+      frApplied.push(frKey);
+    }
+    
+    updateThreat(id, { frApplied });
   };
 
   const initialRiskSummary = useMemo(() => {
@@ -1044,15 +1078,24 @@ function IEC62443Assessment() {
                   />
                 </div>
                 
-                {/* Targeted Assets and Exploited Vulnerabilities */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                {/* Targeted Assets, Targeted Zones, and Exploited Vulnerabilities */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div>
-                    <label className="text-xs text-secondary-500">Targeted Assets/Zones:</label>
+                    <label className="text-xs text-secondary-500">Targeted Assets:</label>
                     <input 
                       className="input w-full" 
-                      placeholder="List affected assets or zones" 
+                      placeholder="List affected assets" 
                       value={s.targetedAssets || ''} 
                       onChange={e => updateThreat(s.id, {targetedAssets: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-secondary-500">Targeted Zones:</label>
+                    <input 
+                      className="input w-full" 
+                      placeholder="List affected zones" 
+                      value={s.targetedZones || ''} 
+                      onChange={e => updateThreat(s.id, {targetedZones: e.target.value})}
                     />
                   </div>
                   <div>
@@ -1103,6 +1146,26 @@ function IEC62443Assessment() {
                       >
                         {option.label}
                         <div className="text-xs mt-1">{option.value}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Applicable Foundational Requirements (FR) */}
+                <div className="mb-4">
+                  <label className="text-xs text-secondary-500 block mb-1">Applicable Foundational Requirements (FR):</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-1">
+                    {FR_LIST.map(fr => (
+                      <button
+                        key={fr.key}
+                        onClick={() => toggleFR(s.id, fr.key)}
+                        className={`py-2 px-1 rounded text-center ${
+                          (s.frApplied || []).includes(fr.key) 
+                            ? 'bg-primary-600 text-white' 
+                            : 'bg-secondary-200 text-secondary-700 hover:bg-secondary-300'
+                        }`}
+                      >
+                        {fr.label}
                       </button>
                     ))}
                   </div>
