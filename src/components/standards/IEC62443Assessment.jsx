@@ -9,6 +9,25 @@ const STORAGE_KEY = 'cyberTrustDashboard.iec62443Assessment';
 const META_KEY = 'cyberTrustDashboard.iec62443AssessmentMeta';
 
 // ---------------------------------------------------------------------------
+// Likelihood and Impact options for button groups
+// ---------------------------------------------------------------------------
+const LIKELIHOOD_OPTIONS = [
+  { label: 'Very Low', value: 0.1 },
+  { label: 'Low', value: 0.3 },
+  { label: 'Medium', value: 0.5 },
+  { label: 'High', value: 0.7 },
+  { label: 'Very High', value: 0.9 }
+];
+
+const IMPACT_OPTIONS = [
+  { label: 'Very Low', value: 1 },
+  { label: 'Low', value: 2 },
+  { label: 'Medium', value: 3 },
+  { label: 'High', value: 4 },
+  { label: 'Very High', value: 5 }
+];
+
+// ---------------------------------------------------------------------------
 // Security-Level Requirements mapping (IEC 62443 FR themes)
 // ---------------------------------------------------------------------------
 const SL_REQUIREMENTS = {
@@ -274,6 +293,18 @@ function IEC62443Assessment() {
           });
         }
         
+        // Normalize threat scenarios to ensure they have all required fields
+        if (saved.threatScenarios && saved.threatScenarios.length > 0) {
+          saved.threatScenarios = saved.threatScenarios.map(scenario => {
+            return {
+              ...scenario,
+              targetedAssets: scenario.targetedAssets || '',
+              exploitedVulnerabilities: scenario.exploitedVulnerabilities || '',
+              existingControls: scenario.existingControls || ''
+            };
+          });
+        }
+        
         setData({ ...defaultData, ...saved });
       }
       
@@ -355,9 +386,37 @@ function IEC62443Assessment() {
   const removeConsequence = id => setData(d => ({ ...d, consequenceScenarios: d.consequenceScenarios.filter(s => s.id !== id) }));
   const updateConsequence = (id, patch) => setData(d => ({ ...d, consequenceScenarios: d.consequenceScenarios.map(s => s.id === id ? { ...s, ...patch } : s) }));
 
-  const addThreat = () => setData(d => ({ ...d, threatScenarios: [...d.threatScenarios, { id: Date.now(), name: '', threatActor: 'nation-state', attackVector: 'network', description: '', likelihood: 0.1, impact: 1, existingControls: '' }] }));
+  const addThreat = () => setData(d => ({ 
+    ...d, 
+    threatScenarios: [
+      ...d.threatScenarios, 
+      { 
+        id: Date.now(), 
+        name: '', 
+        threatActor: 'nation-state', 
+        attackVector: 'network', 
+        description: '', 
+        targetedAssets: '',
+        exploitedVulnerabilities: '',
+        likelihood: 0.1, 
+        impact: 1, 
+        existingControls: '' 
+      }
+    ] 
+  }));
+  
   const removeThreat = id => setData(d => ({ ...d, threatScenarios: d.threatScenarios.filter(s => s.id !== id) }));
   const updateThreat = (id, patch) => setData(d => ({ ...d, threatScenarios: d.threatScenarios.map(s => s.id === id ? { ...s, ...patch } : s) }));
+
+  // Handle likelihood button selection
+  const handleLikelihoodSelect = (id, value) => {
+    updateThreat(id, { likelihood: value });
+  };
+
+  // Handle impact button selection
+  const handleImpactSelect = (id, value) => {
+    updateThreat(id, { impact: value });
+  };
 
   const initialRiskSummary = useMemo(() => {
     const risks = data.consequenceScenarios.map(s => Math.max(
@@ -931,39 +990,151 @@ function IEC62443Assessment() {
       {currentStage === 5 && (
         <div className="dashboard-card p-4 space-y-4">
           <h2 className="text-lg font-bold text-primary-600">ZCR 5: Detailed Risk Assessment</h2>
+          
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold">Threat Scenarios</h3>
+            <h3 className="font-semibold">Threat Scenario Analysis</h3>
             <Button size="sm" onClick={addThreat}>Add Threat Scenario</Button>
           </div>
-          <div className="space-y-3">
+          
+          <p className="text-sm text-secondary-500 mb-2">
+            Define realistic threat scenarios with credible attack paths and estimate likelihood based on threat capability and existing controls.
+          </p>
+          
+          <div className="space-y-4">
             {data.threatScenarios.map(s => (
-              <div key={s.id} className="dashboard-card p-3 space-y-2">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  <input className="input" placeholder="Scenario Name" value={s.name} onChange={e=>updateThreat(s.id,{name:e.target.value})} />
-                  <input className="input" placeholder="Description" value={s.description} onChange={e=>updateThreat(s.id,{description:e.target.value})} />
+              <div key={s.id} className="dashboard-card p-4 border-l-4 border-primary-600">
+                <h4 className="font-semibold text-lg mb-3">Threat Scenario Name</h4>
+                
+                {/* Threat Actor and Attack Vector */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="text-xs text-secondary-500">Threat Actor:</label>
+                    <select 
+                      className="input w-full" 
+                      value={s.threatActor} 
+                      onChange={e => updateThreat(s.id, {threatActor: e.target.value})}
+                    >
+                      {['nation-state','cybercriminal','insider-threat','hacktivist','script-kiddie','competitor'].map(v => 
+                        <option key={v} value={v}>{v}</option>
+                      )}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-secondary-500">Attack Vector:</label>
+                    <select 
+                      className="input w-full" 
+                      value={s.attackVector} 
+                      onChange={e => updateThreat(s.id, {attackVector: e.target.value})}
+                    >
+                      {['network','email','removable-media','remote-access','physical','supply-chain','wireless'].map(v => 
+                        <option key={v} value={v}>{v}</option>
+                      )}
+                    </select>
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                  <select className="input" value={s.threatActor} onChange={e=>updateThreat(s.id,{threatActor:e.target.value})}>
-                    {['nation-state','cybercriminal','insider-threat','hacktivist','script-kiddie','competitor'].map(v=> <option key={v} value={v}>{v}</option>)}
-                  </select>
-                  <select className="input" value={s.attackVector} onChange={e=>updateThreat(s.id,{attackVector:e.target.value})}>
-                    {['network','email','removable-media','remote-access','physical','supply-chain','wireless'].map(v=> <option key={v} value={v}>{v}</option>)}
-                  </select>
-                  <select className="input" value={s.likelihood} onChange={e=>updateThreat(s.id,{likelihood:Number(e.target.value)})}>
-                    {[0.1,0.3,0.5,0.7,0.9].map(v=> <option key={v} value={v}>{v}</option>)}
-                  </select>
-                  <select className="input" value={s.impact} onChange={e=>updateThreat(s.id,{impact:Number(e.target.value)})}>
-                    {[1,2,3,4,5].map(v=> <option key={v} value={v}>{v}</option>)}
-                  </select>
+                
+                {/* Attack Description */}
+                <div className="mb-4">
+                  <label className="text-xs text-secondary-500">Attack Description:</label>
+                  <textarea 
+                    className="input w-full min-h-[90px]" 
+                    placeholder="Describe the attack scenario, tactics, techniques, and procedures..." 
+                    value={s.description} 
+                    onChange={e => updateThreat(s.id, {description: e.target.value})}
+                  />
                 </div>
-                <textarea className="input" placeholder="Existing Controls" value={s.existingControls} onChange={e=>updateThreat(s.id,{existingControls:e.target.value})} />
-                <div className="flex items-center justify-between text-sm">
-                  <div><span className="font-semibold text-primary-700">Risk Score:</span> {(s.likelihood * s.impact).toFixed(2)}</div>
-                  <Button size="xs" variant="danger" onClick={()=>removeThreat(s.id)}>Remove Scenario</Button>
+                
+                {/* Targeted Assets and Exploited Vulnerabilities */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="text-xs text-secondary-500">Targeted Assets/Zones:</label>
+                    <input 
+                      className="input w-full" 
+                      placeholder="List affected assets or zones" 
+                      value={s.targetedAssets || ''} 
+                      onChange={e => updateThreat(s.id, {targetedAssets: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-secondary-500">Exploited Vulnerabilities:</label>
+                    <input 
+                      className="input w-full" 
+                      placeholder="CVE numbers or vulnerability descriptions" 
+                      value={s.exploitedVulnerabilities || ''} 
+                      onChange={e => updateThreat(s.id, {exploitedVulnerabilities: e.target.value})}
+                    />
+                  </div>
+                </div>
+                
+                {/* Likelihood Assessment */}
+                <div className="mb-4">
+                  <label className="text-xs text-secondary-500 block mb-1">Likelihood Assessment:</label>
+                  <div className="grid grid-cols-5 gap-1">
+                    {LIKELIHOOD_OPTIONS.map(option => (
+                      <button
+                        key={option.value}
+                        onClick={() => handleLikelihoodSelect(s.id, option.value)}
+                        className={`py-2 px-1 rounded text-center ${
+                          s.likelihood === option.value 
+                            ? 'bg-primary-600 text-white' 
+                            : 'bg-secondary-200 text-secondary-700 hover:bg-secondary-300'
+                        }`}
+                      >
+                        {option.label}
+                        <div className="text-xs mt-1">{option.value}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Impact Assessment */}
+                <div className="mb-4">
+                  <label className="text-xs text-secondary-500 block mb-1">Impact Assessment:</label>
+                  <div className="grid grid-cols-5 gap-1">
+                    {IMPACT_OPTIONS.map(option => (
+                      <button
+                        key={option.value}
+                        onClick={() => handleImpactSelect(s.id, option.value)}
+                        className={`py-2 px-1 rounded text-center ${
+                          s.impact === option.value 
+                            ? 'bg-primary-600 text-white' 
+                            : 'bg-secondary-200 text-secondary-700 hover:bg-secondary-300'
+                        }`}
+                      >
+                        {option.label}
+                        <div className="text-xs mt-1">{option.value}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Existing Controls */}
+                <div className="mb-4">
+                  <label className="text-xs text-secondary-500">Existing Controls:</label>
+                  <textarea 
+                    className="input w-full min-h-[90px]" 
+                    placeholder="List existing security controls that mitigate this threat..." 
+                    value={s.existingControls} 
+                    onChange={e => updateThreat(s.id, {existingControls: e.target.value})}
+                  />
+                </div>
+                
+                {/* Risk Score */}
+                <div className="flex items-center justify-between">
+                  <div className="text-lg">
+                    <span className="font-semibold">Risk Score:</span> 
+                    <span className="text-primary-600 font-bold ml-2">{(s.likelihood * s.impact).toFixed(2)}</span>
+                  </div>
+                  <Button size="sm" variant="danger" onClick={() => removeThreat(s.id)}>Remove Scenario</Button>
                 </div>
               </div>
             ))}
-            {data.threatScenarios.length === 0 && <div className="text-sm text-secondary-500">Add threat scenarios to evaluate detailed risks.</div>}
+            
+            {data.threatScenarios.length === 0 && (
+              <div className="text-sm text-secondary-500 p-4 text-center">
+                Add threat scenarios to evaluate detailed risks.
+              </div>
+            )}
           </div>
 
           <div>
