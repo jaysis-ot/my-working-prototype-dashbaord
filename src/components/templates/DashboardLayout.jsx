@@ -109,11 +109,20 @@ const DashboardLayout = () => {
         <div className="flex items-center justify-center h-16 border-b border-secondary-800">
           {sidebarExpanded ? (
             <div className="flex items-center">
-              <Shield className="w-6 h-6 text-primary-400" />
-              <h1 className="text-xl font-bold ml-2 text-secondary-100">TrustGuard</h1>
+              {/* circular badge with shield */}
+              <div className="w-8 h-8 rounded-full bg-secondary-800 border border-primary-500 flex items-center justify-center">
+                <Shield className="w-5 h-5 text-primary-400" />
+              </div>
+              {/* split-color word-mark */}
+              <h1 className="text-xl font-bold ml-2">
+                <span className="text-secondary-200">Trust</span>
+                <span className="text-white">Guard</span>
+              </h1>
             </div>
           ) : (
-            <Shield className="w-6 h-6 text-primary-400" />
+            <div className="w-8 h-8 rounded-full bg-secondary-800 border border-primary-500 flex items-center justify-center">
+              <Shield className="w-5 h-5 text-primary-400" />
+            </div>
           )}
         </div>
 
@@ -169,9 +178,13 @@ const DashboardLayout = () => {
         {/* Header */}
         <header className="bg-white shadow-sm border-b border-gray-200">
           <div className="flex items-center justify-between px-6 py-4">
-            <h2 className="text-xl font-semibold text-gray-800 capitalize">
-              {currentPath.replace('-', ' ')}
-            </h2>
+            {/* Brand in header */}
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full border border-blue-300 bg-blue-50 flex items-center justify-center">
+                <Shield className="w-4 h-4 text-blue-600" />
+              </div>
+              <span className="text-blue-700 font-semibold">Cyber Trust Sensor</span>
+            </div>
             <div className="flex items-center space-x-4">
               {user && <UserSettingsDropdown />}
             </div>
