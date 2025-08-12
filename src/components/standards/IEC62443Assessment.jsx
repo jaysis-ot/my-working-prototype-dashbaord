@@ -454,6 +454,23 @@ function IEC62443Assessment() {
     updateThreat(id, { frApplied });
   };
 
+  // Handle FR Implementation toggle selection
+  const toggleFRImplemented = (id, frKey) => {
+    const scenario = data.threatScenarios.find(s => s.id === id);
+    if (!scenario) return;
+    // Only allow if FR is marked applicable
+    if (!(scenario.frApplied || []).includes(frKey)) return;
+
+    const frImplemented = [...(scenario.frImplemented || [])];
+    const idx = frImplemented.indexOf(frKey);
+    if (idx >= 0) {
+      frImplemented.splice(idx, 1);
+    } else {
+      frImplemented.push(frKey);
+    }
+    updateThreat(id, { frImplemented });
+  };
+
   const initialRiskSummary = useMemo(() => {
     const risks = data.consequenceScenarios.map(s => Math.max(
       s.impacts?.safety || 1, 
