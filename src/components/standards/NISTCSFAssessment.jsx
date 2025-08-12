@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { ShieldCheck, RotateCcw, ChevronDown, Check, X, Minus, Info, Eye, Download } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ShieldCheck, RotateCcw, ChevronDown, Check, X, Minus, Info, Eye, Download, ArrowLeft } from 'lucide-react';
 import { useStandardsFrameworks } from '../../hooks/useStandardsFrameworks';
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
@@ -12,6 +13,8 @@ const NISTCSFAssessment = () => {
     updateAssessmentResponse,
     resetAssessment,
   } = useStandardsFrameworks();
+
+  const navigate = useNavigate();
 
   const [activeFunctionId, setActiveFunctionId] = useState('GV');
   const [expandedCategories, setExpandedCategories] = useState({});
@@ -59,6 +62,15 @@ const NISTCSFAssessment = () => {
 
   return (
     <div className="space-y-6">
+      {/* Back navigation */}
+      <button
+        onClick={() => navigate('/dashboard/standards-frameworks')}
+        className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-2"
+      >
+        <ArrowLeft className="h-4 w-4 mr-1" />
+        Back
+      </button>
+
       <div className="dashboard-card p-6 mb-6">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
           <div className="mb-4 md:mb-0">

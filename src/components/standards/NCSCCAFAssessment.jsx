@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ShieldCheck, RotateCcw, Download, ChevronDown, Search, Filter } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ShieldCheck, RotateCcw, Download, ChevronDown, Search, Filter, ArrowLeft } from 'lucide-react';
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
 import { 
@@ -260,6 +261,7 @@ const NCSCCAFAssessment = () => {
   const [objectiveFilter, setObjectiveFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
   
   useEffect(() => {
     try {
@@ -363,6 +365,14 @@ const NCSCCAFAssessment = () => {
   
   return (
     <div className="space-y-6">
+      {/* Back navigation */}
+      <button
+        onClick={() => navigate('/dashboard/standards-frameworks')}
+        className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-2"
+      >
+        <ArrowLeft className="h-4 w-4 mr-1" />
+        Back
+      </button>
       <AssessmentHeader 
         title="NCSC CAF v4.0 Assessment" 
         progress={overallProgress.completionPct}

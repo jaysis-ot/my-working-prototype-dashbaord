@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ShieldCheck, Download, RotateCcw, Save, FileText, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ShieldCheck, Download, RotateCcw, Save, FileText, AlertTriangle, CheckCircle, Clock, ArrowLeft } from 'lucide-react';
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
 import { 
@@ -264,6 +265,7 @@ const ISO27001Assessment = () => {
   const [assessment, setAssessment] = useState({});
   const [activeClause, setActiveClause] = useState('A5');
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
   
   // Load assessment data from localStorage on component mount
   useEffect(() => {
@@ -361,6 +363,14 @@ const ISO27001Assessment = () => {
   
   return (
     <div className="space-y-6">
+      {/* Back navigation */}
+      <button
+        onClick={() => navigate('/dashboard/standards-frameworks')}
+        className="inline-flex items-center text-blue-600 hover:text-blue-800"
+      >
+        <ArrowLeft className="h-4 w-4 mr-1" />
+        Back
+      </button>
       <AssessmentHeader 
         title="ISO 27001:2022 Assessment" 
         progress={overallCompletion.completion}

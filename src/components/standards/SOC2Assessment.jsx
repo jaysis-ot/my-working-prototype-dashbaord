@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { 
   SOC2_CATEGORIES, 
   SOC2_STRUCTURE, 
@@ -24,6 +26,7 @@ const SOC2Assessment = () => {
   const [auditType, setAuditType] = useState('');
   const [serviceType, setServiceType] = useState('');
   const [expandedSections, setExpandedSections] = useState({});
+  const navigate = useNavigate();
 
   const STORAGE_KEY = 'cyberTrustDashboard.soc2Assessment';
 
@@ -176,6 +179,15 @@ const SOC2Assessment = () => {
 
   return (
     <div className="bg-white rounded-lg shadow-md">
+      {/* Back navigation */}
+      <button
+        onClick={() => navigate('/dashboard/standards-frameworks')}
+        className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-2 ml-4 mt-4"
+      >
+        <ArrowLeft className="h-4 w-4 mr-1" />
+        Back
+      </button>
+
       <div className="bg-gradient-to-r from-blue-800 to-blue-600 text-white p-6 rounded-t-lg">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">
