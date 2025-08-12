@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ShieldCheck, Save, FileDown, Copy, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
+import * as XLSX from 'xlsx';
 
 const STORAGE_KEY = 'cyberTrustDashboard.iec62443Assessment';
 const META_KEY = 'cyberTrustDashboard.iec62443AssessmentMeta';
@@ -50,29 +51,43 @@ const SL_REQUIREMENTS = {
 };
 
 // ---------------------------------------------------------------------------
-// Helper – impact-scale label options (index matches numeric value 1-5)
+// Impact-scale label options for each category (index matches numeric value 1-5)
 // ---------------------------------------------------------------------------
-const IMPACT_SCALE_OPTIONS = {
+const IMPACT_LABELS = {
   safety: [
-    '1 – Negligible safety impact',
-    '2 – Minor safety concern',
-    '3 – Moderate injury possible',
-    '4 – Severe or multiple injuries',
-    '5 – Fatalities likely'
+    '1 - No safety impact',
+    '2 - Minor safety concern',
+    '3 - Potential injury risk',
+    '4 - Serious injury risk',
+    '5 - Fatality risk'
   ],
   environmental: [
-    '1 – No environmental impact',
-    '2 – Minor localized impact',
-    '3 – Regional impact, reversible',
-    '4 – Major regional impact',
-    '5 – Long-term / national impact'
+    '1 - No environmental impact',
+    '2 - Minor localized impact',
+    '3 - Moderate environmental damage',
+    '4 - Significant environmental damage',
+    '5 - Severe/widespread damage'
   ],
   financial: [
-    '1 – < $10K',
-    '2 – $10K – $100K',
-    '3 – $100K – $1M',
-    '4 – $1M – $10M',
-    '5 – > $10M'
+    '1 - < $10K',
+    '2 - $10K – $100K',
+    '3 - $100K – $1M',
+    '4 - $1M – $10M',
+    '5 - > $10M'
+  ],
+  operational: [
+    '1 - No operational impact',
+    '2 - Minor disruption',
+    '3 - Moderate operational loss',
+    '4 - Significant operational disruption',
+    '5 - Complete operational shutdown'
+  ],
+  regulatory: [
+    '1 - No regulatory impact',
+    '2 - Minor compliance issue',
+    '3 - Regulatory notice/warning',
+    '4 - Significant regulatory action',
+    '5 - License suspension/revocation'
   ]
 };
 
@@ -131,7 +146,7 @@ function IEC62443Assessment() {
   const [dragActive, setDragActive] = useState(false);
 
   /* ------------------------------------------------------------------
-   * CSV IMPORT HELPERS
+   * IMPORT HELPERS
    * ------------------------------------------------------------------ */
   const preventDefault = e => { e.preventDefault(); e.stopPropagation(); };
 
@@ -154,37 +169,73 @@ function IEC62443Assessment() {
     return rows.filter(r=>r.some(c=>c.trim()!==''));
   };
 
-  const importAssetsFromCSVText = (csvText) => {
-    const rows = parseCSV(csvText);
+  const importAssetsFromRows = (rows) => {
     if (!rows.length) return;
-    let headers = rows[0].map(h=>h.trim().toLowerCase());
+    let headers = rows[0].map(h => h?.trim?.().toLowerCase() || '');
     const headerMap = ['name','type','location','vendor','osversion','network','criticality'];
     let startIdx = 1;
-    const hasHeaderRow = headerMap.some(h=>headers.includes(h));
+    const hasHeaderRow = headerMap.some(h => headers.includes(h));
     if(!hasHeaderRow){ headers=headerMap; startIdx=0;}
     const idxOf = (h)=>headers.indexOf(h);
-    const newAssets = rows.slice(startIdx).map(r=>({
-      id: Date.now()+Math.random(),
-      name:r[idxOf('name')]||'',
-      type:r[idxOf('type')]||'',
-      location:r[idxOf('location')]||'',
-      vendor:r[idxOf('vendor')]||'',
-      osVersion:r[idxOf('osversion')]||'',
-      network:r[idxOf('network')]||'',
-      criticality:(r[idxOf('criticality')]||'medium').toLowerCase()
-    }));
-    setData(d=>({...d, assets:[...d.assets, ...newAssets]}));
+    const newAssets = rows.slice(startIdx).map(r => {
+      // Skip empty rows
+      if (!r.some(cell => cell && String(cell).trim() !== '')) return null;
+      
+      return {
+        id: Date.now()+Math.random(),
+        name: r[idxOf('name')] || '',
+        type: r[idxOf('type')] || '',
+        location: r[idxOf('location')] || '',
+        vendor: r[idxOf('vendor')] || '',
+        osVersion: r[idxOf('osversion')] || '',
+        network: r[idxOf('network')] || '',
+        criticality: (r[idxOf('criticality')] || 'medium').toLowerCase()
+      };
+    }).filter(Boolean); // Remove null entries
+    
+    if (newAssets.length === 0) {
+      alert('No valid assets found in the imported file.');
+      return;
+    }
+    
+    setData(d => ({...d, assets:[...d.assets, ...newAssets]}));
     alert(`Imported ${newAssets.length} assets`);
+  };
+
+  const importAssetsFromCSVText = (csvText) => {
+    const rows = parseCSV(csvText);
+    importAssetsFromRows(rows);
+  };
+  
+  const parseXLSX = (file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        importAssetsFromRows(rows);
+      } catch (error) {
+        console.error('Error parsing Excel file:', error);
+        alert('Error parsing Excel file. Please check the format.');
+      }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   const handleFile = (file) => {
     if(!file) return;
-    if(file.name.toLowerCase().endsWith('.csv')){
+    const fileName = file.name.toLowerCase();
+    if(fileName.endsWith('.csv')){
       const reader=new FileReader();
       reader.onload=e=>importAssetsFromCSVText(e.target.result);
       reader.readAsText(file);
-    }else{
-      alert('Excel parsing not supported yet. Please provide CSV.');
+    } else if(fileName.endsWith('.xlsx') || fileName.endsWith('.xls')){
+      parseXLSX(file);
+    } else {
+      alert('Unsupported file format. Please provide a CSV or Excel file.');
     }
   };
 
@@ -573,12 +624,12 @@ function IEC62443Assessment() {
               <input
                 id="iec-asset-upload"
                 type="file"
-                accept=".csv"
+                accept=".csv,.xlsx,.xls"
                 className="hidden"
                 onChange={handleAssetFileSelect}
               />
               <p className="text-primary-600 font-medium">📁 Import Asset Inventory</p>
-              <p className="text-xs text-secondary-500">Click to upload CSV file or drag and drop</p>
+              <p className="text-xs text-secondary-500">Click to upload CSV or Excel file or drag and drop</p>
             </div>
 
             <div className="overflow-x-auto">
@@ -625,7 +676,7 @@ function IEC62443Assessment() {
           <div className="dashboard-card p-3 space-y-3">
             <h3 className="font-semibold text-secondary-900 dark:text-white">Risk Matrix Configuration</h3>
             <p className="text-sm text-secondary-500">
-              Configure your organisation’s risk tolerance levels. This matrix will be used to evaluate all identified risks.
+              Configure your organisation's risk tolerance levels. This matrix will be used to evaluate all identified risks.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
@@ -635,8 +686,8 @@ function IEC62443Assessment() {
                   value={data.riskMatrix.safetyScale}
                   onChange={e => setData(d => ({ ...d, riskMatrix: { ...d.riskMatrix, safetyScale: Number(e.target.value) } }))}
                 >
-                  {IMPACT_SCALE_OPTIONS.safety.map((lbl, idx) => (
-                    <option key={lbl} value={idx + 1}>{lbl}</option>
+                  {IMPACT_LABELS.safety.map((label, index) => (
+                    <option key={index + 1} value={index + 1}>{label}</option>
                   ))}
                 </select>
               </div>
@@ -647,8 +698,8 @@ function IEC62443Assessment() {
                   value={data.riskMatrix.environmentalScale}
                   onChange={e => setData(d => ({ ...d, riskMatrix: { ...d.riskMatrix, environmentalScale: Number(e.target.value) } }))}
                 >
-                  {IMPACT_SCALE_OPTIONS.environmental.map((lbl, idx) => (
-                    <option key={lbl} value={idx + 1}>{lbl}</option>
+                  {IMPACT_LABELS.environmental.map((label, index) => (
+                    <option key={index + 1} value={index + 1}>{label}</option>
                   ))}
                 </select>
               </div>
@@ -659,8 +710,8 @@ function IEC62443Assessment() {
                   value={data.riskMatrix.financialScale}
                   onChange={e => setData(d => ({ ...d, riskMatrix: { ...d.riskMatrix, financialScale: Number(e.target.value) } }))}
                 >
-                  {IMPACT_SCALE_OPTIONS.financial.map((lbl, idx) => (
-                    <option key={lbl} value={idx + 1}>{lbl}</option>
+                  {IMPACT_LABELS.financial.map((label, index) => (
+                    <option key={index + 1} value={index + 1}>{label}</option>
                   ))}
                 </select>
               </div>
@@ -706,7 +757,9 @@ function IEC62443Assessment() {
                     <div key={cat}>
                       <label className="text-xs text-secondary-500 capitalize">{cat} impact</label>
                       <select className="input" value={s.impacts[cat]} onChange={e=>updateConsequence(s.id,{ impacts: { ...s.impacts, [cat]: Number(e.target.value) } })}>
-                        {[1,2,3,4,5].map(v => <option key={v} value={v}>{v}</option>)}
+                        {IMPACT_LABELS[cat].map((label, index) => (
+                          <option key={index + 1} value={index + 1}>{label}</option>
+                        ))}
                       </select>
                     </div>
                   ))}
