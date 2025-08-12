@@ -14,6 +14,26 @@ import {
 } from './iso27001Data';
 
 const STORAGE_KEY = 'cyberTrustDashboard.iso27001Assessment';
+const META_KEY = 'cyberTrustDashboard.iso27001AssessmentMeta';
+
+/**
+ * Retrieve the current user's title & role from the auth data stored in
+ * localStorage (written by AuthProvider on login).  Falls back to nulls.
+ */
+const getCurrentUserInfo = () => {
+  try {
+    const raw = localStorage.getItem('dashboard_current_user');
+    if (!raw) return { userTitle: null, userRole: null };
+    const user = JSON.parse(raw);
+    return {
+      userTitle: user.jobTitle || null,
+      userRole: user.role || null,
+    };
+  } catch (e) {
+    console.warn('ISO27001Assessment:getCurrentUserInfo – parse error', e);
+    return { userTitle: null, userRole: null };
+  }
+};
 
 // Helper components
 const AssessmentHeader = ({ title, progress, onReset, onExport }) => (
@@ -316,6 +336,18 @@ const ISO27001Assessment = () => {
       // Save to localStorage
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedAssessment));
+        // Write meta & global timestamp
+        const { userTitle, userRole } = getCurrentUserInfo();
+        const metaPayload = {
+          lastUpdated: new Date().toISOString(),
+          userTitle,
+          userRole,
+        };
+        localStorage.setItem(META_KEY, JSON.stringify(metaPayload));
+        localStorage.setItem(
+          'cyberTrustDashboard.lastUpdated',
+          JSON.stringify({ lastUpdated: metaPayload.lastUpdated })
+        );
       } catch (e) {
         console.error("Failed to save ISO 27001 assessment to storage:", e);
       }
@@ -331,6 +363,18 @@ const ISO27001Assessment = () => {
         const defaultAssessment = createDefaultAssessment();
         setAssessment(defaultAssessment);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultAssessment));
+        // update meta
+        const { userTitle, userRole } = getCurrentUserInfo();
+        const metaPayload = {
+          lastUpdated: new Date().toISOString(),
+          userTitle,
+          userRole,
+        };
+        localStorage.setItem(META_KEY, JSON.stringify(metaPayload));
+        localStorage.setItem(
+          'cyberTrustDashboard.lastUpdated',
+          JSON.stringify({ lastUpdated: metaPayload.lastUpdated })
+        );
       } catch (e) {
         console.error("Failed to reset ISO 27001 assessment:", e);
       }

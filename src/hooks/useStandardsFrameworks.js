@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { NIST_CSF_STRUCTURE, getAllSubcategories } from '../shared/components/standards/nistCsfData';
 
 const ASSESSMENT_STORAGE_KEY = 'cyberTrustDashboard.nistCsfAssessment';
+const META_STORAGE_KEY = 'cyberTrustDashboard.nistCsfAssessmentMeta';
 
 // --- Main Hook ---
 
@@ -44,6 +45,21 @@ export const useStandardsFrameworks = () => {
       const newAssessment = { ...prev, [subcategoryId]: response };
       try {
         localStorage.setItem(ASSESSMENT_STORAGE_KEY, JSON.stringify(newAssessment));
+        // --- Write meta ---------------------------------------------------
+        const { userTitle, userRole } = getCurrentUserInfo();
+        localStorage.setItem(
+          META_STORAGE_KEY,
+          JSON.stringify({
+            lastUpdated: new Date().toISOString(),
+            userTitle,
+            userRole,
+          })
+        );
+        // store global last updated for snapshot widgets
+        localStorage.setItem(
+          'cyberTrustDashboard.lastUpdated',
+          JSON.stringify({ lastUpdated: new Date().toISOString() })
+        );
       } catch (e) {
         console.error("Failed to save NIST CSF assessment to storage:", e);
         setError(new Error("Could not save your progress."));
@@ -56,6 +72,19 @@ export const useStandardsFrameworks = () => {
     try {
       localStorage.removeItem(ASSESSMENT_STORAGE_KEY);
       setAssessment({});
+      const { userTitle, userRole } = getCurrentUserInfo();
+      localStorage.setItem(
+        META_STORAGE_KEY,
+        JSON.stringify({
+          lastUpdated: new Date().toISOString(),
+          userTitle,
+          userRole,
+        })
+      );
+      localStorage.setItem(
+        'cyberTrustDashboard.lastUpdated',
+        JSON.stringify({ lastUpdated: new Date().toISOString() })
+      );
     } catch (e) {
       console.error("Failed to reset NIST CSF assessment:", e);
       setError(new Error("Could not reset the assessment."));
@@ -176,3 +205,22 @@ export const useStandardsFrameworks = () => {
     resetAssessment,
   };
 };
+
+/**
+ * Utility: safely obtain current user information from localStorage
+ * Returns an object with userTitle and userRole (can be null if unavailable)
+ */
+function getCurrentUserInfo() {
+  try {
+    const raw = localStorage.getItem('dashboard_current_user');
+    if (!raw) return { userTitle: null, userRole: null };
+    const parsed = JSON.parse(raw);
+    return {
+      userTitle: parsed.jobTitle || null,
+      userRole: parsed.role || null,
+    };
+  } catch (e) {
+    console.warn('getCurrentUserInfo: failed to parse user from storage', e);
+    return { userTitle: null, userRole: null };
+  }
+}

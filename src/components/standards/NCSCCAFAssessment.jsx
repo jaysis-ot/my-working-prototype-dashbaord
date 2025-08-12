@@ -17,6 +17,26 @@ import {
 } from './ncscCafData';
 
 const STORAGE_KEY = 'cyberTrustDashboard.ncscCafAssessment';
+const META_KEY = 'cyberTrustDashboard.ncscCafAssessmentMeta';
+
+/**
+ * Extract current user's title and role from the auth data stored in
+ * localStorage by AuthProvider. Falls back to nulls if not logged in.
+ */
+const getCurrentUserInfo = () => {
+  try {
+    const raw = localStorage.getItem('dashboard_current_user');
+    if (!raw) return { userTitle: null, userRole: null };
+    const user = JSON.parse(raw);
+    return {
+      userTitle: user.jobTitle || null,
+      userRole: user.role || null,
+    };
+  } catch (e) {
+    console.warn('NCSCCAFAssessment:getCurrentUserInfo – parse error', e);
+    return { userTitle: null, userRole: null };
+  }
+};
 
 const AssessmentHeader = ({ title, progress, onReset, onExport }) => (
   <div className="dashboard-card p-6 mb-6">
@@ -312,6 +332,18 @@ const NCSCCAFAssessment = () => {
       
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedAssessment));
+        // ------- write meta & global timestamp ---------------------------
+        const { userTitle, userRole } = getCurrentUserInfo();
+        const metaPayload = {
+          lastUpdated: new Date().toISOString(),
+          userTitle,
+          userRole,
+        };
+        localStorage.setItem(META_KEY, JSON.stringify(metaPayload));
+        localStorage.setItem(
+          'cyberTrustDashboard.lastUpdated',
+          JSON.stringify({ lastUpdated: metaPayload.lastUpdated })
+        );
       } catch (e) {
         console.error("Failed to save NCSC CAF assessment to storage:", e);
       }
@@ -326,6 +358,18 @@ const NCSCCAFAssessment = () => {
         const defaultAssessment = createDefaultAssessment();
         setAssessment(defaultAssessment);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultAssessment));
+        // ------- write meta & global timestamp ---------------------------
+        const { userTitle, userRole } = getCurrentUserInfo();
+        const metaPayload = {
+          lastUpdated: new Date().toISOString(),
+          userTitle,
+          userRole,
+        };
+        localStorage.setItem(META_KEY, JSON.stringify(metaPayload));
+        localStorage.setItem(
+          'cyberTrustDashboard.lastUpdated',
+          JSON.stringify({ lastUpdated: metaPayload.lastUpdated })
+        );
       } catch (e) {
         console.error("Failed to reset NCSC CAF assessment:", e);
       }

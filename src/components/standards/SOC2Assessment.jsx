@@ -29,6 +29,25 @@ const SOC2Assessment = () => {
   const navigate = useNavigate();
 
   const STORAGE_KEY = 'cyberTrustDashboard.soc2Assessment';
+  const META_KEY = 'cyberTrustDashboard.soc2AssessmentMeta';
+
+  /* -------------------------------------------------------------
+   * Helper: get current user info (title / role) from auth storage
+   * ------------------------------------------------------------- */
+  const getCurrentUserInfo = () => {
+    try {
+      const raw = localStorage.getItem('dashboard_current_user');
+      if (!raw) return { userTitle: null, userRole: null };
+      const user = JSON.parse(raw);
+      return {
+        userTitle: user.jobTitle || null,
+        userRole: user.role || null,
+      };
+    } catch (e) {
+      console.warn('SOC2Assessment:getCurrentUserInfo failed', e);
+      return { userTitle: null, userRole: null };
+    }
+  };
 
   useEffect(() => {
     const savedData = localStorage.getItem(STORAGE_KEY);
@@ -56,6 +75,19 @@ const SOC2Assessment = () => {
       serviceType,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+
+    /* -------- persist meta ------------- */
+    const { userTitle, userRole } = getCurrentUserInfo();
+    const metaPayload = {
+      lastUpdated: new Date().toISOString(),
+      userTitle,
+      userRole,
+    };
+    localStorage.setItem(META_KEY, JSON.stringify(metaPayload));
+    localStorage.setItem(
+      'cyberTrustDashboard.lastUpdated',
+      JSON.stringify({ lastUpdated: metaPayload.lastUpdated })
+    );
   }, [assessment, selectedCategories, auditType, serviceType]);
 
   /* ------------------------------------------------------------------
@@ -130,6 +162,29 @@ const SOC2Assessment = () => {
   const resetAssessment = useCallback(() => {
     if (window.confirm('Are you sure you want to reset the assessment? All progress will be lost.')) {
       setAssessment(createDefaultAssessment());
+      // also persist reset to localStorage and update meta
+      const defaultData = {
+        assessment: createDefaultAssessment(),
+        selectedCategories: ['security'],
+        auditType: '',
+        serviceType: '',
+      };
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultData));
+        const { userTitle, userRole } = getCurrentUserInfo();
+        const metaPayload = {
+          lastUpdated: new Date().toISOString(),
+          userTitle,
+          userRole,
+        };
+        localStorage.setItem(META_KEY, JSON.stringify(metaPayload));
+        localStorage.setItem(
+          'cyberTrustDashboard.lastUpdated',
+          JSON.stringify({ lastUpdated: metaPayload.lastUpdated })
+        );
+      } catch (e) {
+        console.error('SOC2Assessment: failed to persist reset state', e);
+      }
     }
   }, []);
 

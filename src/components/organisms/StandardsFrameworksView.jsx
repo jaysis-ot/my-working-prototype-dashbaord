@@ -6,6 +6,18 @@ import Badge from '../atoms/Badge';
 import { Link } from 'react-router-dom';
 import CircularProgress from '../atoms/CircularProgress';
 
+// Format date as YYYY-MM-DD HH:mm
+const formatDT = (dateObj) => {
+  if (!dateObj) return '';
+  const date = new Date(dateObj);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}`;
+};
+
 // --- Internal Molecules (Components specific to this Organism) ---
 
 const FrameworkHeader = ({ title, description, progress, onReset }) => (
@@ -133,10 +145,19 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
   const [isoProgress, setIsoProgress] = useState(0);
   const [cafProgress, setCafProgress] = useState(0);
   const [soc2Progress, setSoc2Progress] = useState(0);
+  // IEC 62443
+  const [hasIecAssessment, setHasIecAssessment] = useState(false);
+  const [iecProgress, setIecProgress] = useState(0);
   // Track last updated date
   const [lastUpdated, setLastUpdated] = useState(null);
   // Track average completion
   const [avgCompletion, setAvgCompletion] = useState(0);
+  // Track metadata for each framework
+  const [nistMeta, setNistMeta] = useState(null);
+  const [isoMeta, setIsoMeta] = useState(null);
+  const [cafMeta, setCafMeta] = useState(null);
+  const [soc2Meta, setSoc2Meta] = useState(null);
+  const [iecMeta, setIecMeta] = useState(null);
 
   // On mount, inspect localStorage for saved progress
   useEffect(() => {
@@ -146,11 +167,43 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
       const hasCaf = !!localStorage.getItem('cyberTrustDashboard.ncscCafAssessment');
       const hasSoc2 = !!localStorage.getItem('cyberTrustDashboard.soc2Assessment');
       const hasNist = scores.overall.percentage > 0 || !!localStorage.getItem('cyberTrustDashboard.nistCsfAssessment');
+      const hasIec = !!localStorage.getItem('cyberTrustDashboard.iec62443Assessment');
       
       setHasIsoAssessment(hasIso);
       setHasCafAssessment(hasCaf);
       setHasSoc2Assessment(hasSoc2);
       setHasNistAssessment(hasNist);
+      setHasIecAssessment(hasIec);
+      
+      // Load metadata for each framework
+      try {
+        const nistMetaRaw = localStorage.getItem('cyberTrustDashboard.nistCsfAssessmentMeta');
+        if (nistMetaRaw) {
+          setNistMeta(JSON.parse(nistMetaRaw));
+        }
+        
+        const isoMetaRaw = localStorage.getItem('cyberTrustDashboard.iso27001AssessmentMeta');
+        if (isoMetaRaw) {
+          setIsoMeta(JSON.parse(isoMetaRaw));
+        }
+        
+        const cafMetaRaw = localStorage.getItem('cyberTrustDashboard.ncscCafAssessmentMeta');
+        if (cafMetaRaw) {
+          setCafMeta(JSON.parse(cafMetaRaw));
+        }
+        
+        const soc2MetaRaw = localStorage.getItem('cyberTrustDashboard.soc2AssessmentMeta');
+        if (soc2MetaRaw) {
+          setSoc2Meta(JSON.parse(soc2MetaRaw));
+        }
+        
+        const iecMetaRaw = localStorage.getItem('cyberTrustDashboard.iec62443AssessmentMeta');
+        if (iecMetaRaw) {
+          setIecMeta(JSON.parse(iecMetaRaw));
+        }
+      } catch (e) {
+        console.warn('Error loading framework metadata:', e);
+      }
       
       // Calculate ISO 27001 progress
       let isoProgressValue = 0;
@@ -242,10 +295,24 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
         }
       }
 
+      // Calculate IEC 62443 progress (stage/7 from saved meta)
+      let iecProgressValue = 0;
+      if (hasIec) {
+        try {
+          const iecMeta = JSON.parse(localStorage.getItem('cyberTrustDashboard.iec62443AssessmentMeta') || 'null');
+          const stage = iecMeta?.currentStage || 1;
+          iecProgressValue = Math.min(100, Math.max(0, (stage / 7) * 100));
+          setIecProgress(iecProgressValue);
+        } catch (e) {
+          console.warn('Error calculating IEC 62443 progress:', e);
+          setIecProgress(0);
+        }
+      }
+
       // Calculate average completion
       const nistProgress = scores.overall.percentage || 0;
-      const totalProgress = nistProgress + isoProgressValue + cafProgressValue + soc2ProgressValue;
-      const avgProgress = totalProgress / 4;
+      const totalProgress = nistProgress + isoProgressValue + cafProgressValue + soc2ProgressValue + iecProgressValue;
+      const avgProgress = totalProgress / 5;
       setAvgCompletion(avgProgress);
 
       // Get last updated date
@@ -253,7 +320,8 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
                             localStorage.getItem('cyberTrustDashboard.iso27001AssessmentMeta') ||
                             localStorage.getItem('cyberTrustDashboard.ncscCafAssessmentMeta') ||
                             localStorage.getItem('cyberTrustDashboard.soc2AssessmentMeta') ||
-                            localStorage.getItem('cyberTrustDashboard.nistCsfAssessmentMeta');
+                            localStorage.getItem('cyberTrustDashboard.nistCsfAssessmentMeta') ||
+                            localStorage.getItem('cyberTrustDashboard.iec62443AssessmentMeta');
       
       if (lastUpdatedKey) {
         try {
@@ -270,6 +338,21 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
       console.warn('StandardsFrameworksView: localStorage check failed', e);
     }
   }, [scores.overall.percentage]);
+
+  // Helper to render metadata text
+  const renderMetaText = (meta) => {
+    if (!meta || !meta.lastUpdated) return null;
+    
+    const dateText = `Updated ${formatDT(meta.lastUpdated)}`;
+    const userText = meta.userTitle || meta.userRole ? 
+      ` · ${meta.userTitle || ''}${meta.userRole ? ` (${meta.userRole})` : ''}` : '';
+    
+    return (
+      <p className="text-xs text-center text-secondary-500 mt-1">
+        {dateText}{userText}
+      </p>
+    );
+  };
 
   const PageHeader = () => (
     <div className="mb-6">
@@ -299,10 +382,10 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
         <div className="flex flex-col items-center justify-center">
           <p className="text-sm font-medium text-secondary-600 dark:text-secondary-300 mb-2">Frameworks Available</p>
           <div className="flex items-center justify-center h-20">
-            <span className="text-4xl font-bold text-primary-600">4</span>
+            <span className="text-4xl font-bold text-primary-600">9</span>
           </div>
           <p className="text-xs text-secondary-500 dark:text-secondary-400 mt-2">
-            NIST CSF, ISO 27001, NCSC CAF, SOC 2
+            5 active, 4 coming soon
           </p>
         </div>
         <div className="flex flex-col items-center justify-center">
@@ -310,7 +393,7 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
           <div className="flex items-center justify-center h-20">
             {lastUpdated ? (
               <span className="text-xl font-semibold text-secondary-900 dark:text-white">
-                {lastUpdated.toLocaleString()}
+                {formatDT(lastUpdated)}
               </span>
             ) : (
               <span className="text-xl font-semibold text-secondary-500">
@@ -333,7 +416,8 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
           </p>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* NIST */}
         <div className="dashboard-card p-4 border-primary-300 ring-1 ring-primary-300">
           <div className="flex justify-between items-start">
             <div>
@@ -357,7 +441,9 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
               progressClassName="text-primary-600 stroke-current"
             />
           </div>
+          {renderMetaText(nistMeta)}
         </div>
+        {/* ISO 27001 */}
         <div className="dashboard-card p-4">
           <div className="flex justify-between items-start">
             <div>
@@ -379,7 +465,9 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
               progressClassName="text-primary-600 stroke-current"
             />
           </div>
+          {renderMetaText(isoMeta)}
         </div>
+        {/* NCSC CAF */}
         <div className="dashboard-card p-4">
           <div className="flex justify-between items-start">
             <div>
@@ -401,7 +489,9 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
               progressClassName="text-primary-600 stroke-current"
             />
           </div>
+          {renderMetaText(cafMeta)}
         </div>
+        {/* SOC 2 */}
         <div className="dashboard-card p-4">
           <div className="flex justify-between items-start">
             <div>
@@ -421,6 +511,111 @@ const StandardsFrameworksView = ({ framework, assessment, scores, onUpdateRespon
               size={64} 
               strokeWidth={6}
               progressClassName="text-primary-600 stroke-current"
+            />
+          </div>
+          {renderMetaText(soc2Meta)}
+        </div>
+        {/* IEC 62443-3-2 */}
+        <div className="dashboard-card p-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-semibold">IEC&nbsp;62443-3-2</p>
+              <Badge size="xs" variant="success" className="mt-1">Available</Badge>
+              <p className="text-xs mt-1">Industrial Cybersecurity Zonal Cyber Risk Assessment</p>
+            </div>
+            <Link to="/dashboard/standards-frameworks/iec-62443">
+              <Button size="xs">
+                {hasIecAssessment ? 'Resume Assessment' : 'Open Assessment'}
+              </Button>
+            </Link>
+          </div>
+          <div className="flex justify-center mt-4">
+            <CircularProgress
+              value={iecProgress}
+              size={64}
+              strokeWidth={6}
+              progressClassName="text-primary-600 stroke-current"
+            />
+          </div>
+          {renderMetaText(iecMeta)}
+        </div>
+        
+        {/* PCI DSS v4.0 - Coming Soon */}
+        <div className="dashboard-card p-4 opacity-80">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-semibold">PCI DSS v4.0</p>
+              <Badge size="xs" variant="secondary" className="mt-1">Coming Soon</Badge>
+              <p className="text-xs mt-1">Payment Card Industry Data Security Standard</p>
+            </div>
+            <Button size="xs" disabled>Coming Soon</Button>
+          </div>
+          <div className="flex justify-center mt-4">
+            <CircularProgress 
+              value={0} 
+              size={64} 
+              strokeWidth={6}
+              progressClassName="text-secondary-300 stroke-current"
+            />
+          </div>
+        </div>
+        
+        {/* CIS Controls v8 - Coming Soon */}
+        <div className="dashboard-card p-4 opacity-80">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-semibold">CIS Controls v8</p>
+              <Badge size="xs" variant="secondary" className="mt-1">Coming Soon</Badge>
+              <p className="text-xs mt-1">Center for Internet Security Critical Security Controls</p>
+            </div>
+            <Button size="xs" disabled>Coming Soon</Button>
+          </div>
+          <div className="flex justify-center mt-4">
+            <CircularProgress 
+              value={0} 
+              size={64} 
+              strokeWidth={6}
+              progressClassName="text-secondary-300 stroke-current"
+            />
+          </div>
+        </div>
+        
+        {/* HIPAA Security Rule - Coming Soon */}
+        <div className="dashboard-card p-4 opacity-80">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-semibold">HIPAA Security Rule</p>
+              <Badge size="xs" variant="secondary" className="mt-1">Coming Soon</Badge>
+              <p className="text-xs mt-1">Health Insurance Portability and Accountability Act</p>
+            </div>
+            <Button size="xs" disabled>Coming Soon</Button>
+          </div>
+          <div className="flex justify-center mt-4">
+            <CircularProgress 
+              value={0} 
+              size={64} 
+              strokeWidth={6}
+              progressClassName="text-secondary-300 stroke-current"
+            />
+          </div>
+        </div>
+        
+        {/* GDPR - Coming Soon */}
+        <div className="dashboard-card p-4 opacity-80">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-semibold">GDPR</p>
+              <Badge size="xs" variant="secondary" className="mt-1">Coming Soon</Badge>
+              <p className="text-xs mt-1">General Data Protection Regulation Controls Mapping</p>
+            </div>
+            <Button size="xs" disabled>Coming Soon</Button>
+          </div>
+          <div className="flex justify-center mt-4">
+            <CircularProgress 
+              value={0} 
+              size={64} 
+              strokeWidth={6}
+              progressClassName="text-secondary-300 stroke-current"
             />
           </div>
         </div>

@@ -38,6 +38,7 @@ const ISO27001Assessment = lazy(() => import('./components/standards/ISO27001Ass
 const NCSCCAFAssessment = lazy(() => import('./components/standards/NCSCCAFAssessment'));
 const SOC2Assessment = lazy(() => import('./components/standards/SOC2Assessment'));
 const NISTCSFAssessment = lazy(() => import('./components/standards/NISTCSFAssessment'));
+const IEC62443Assessment = lazy(() => import('./components/standards/IEC62443Assessment'));
 // const UserManagement = lazy(() => import('.components/admin/UserManagement'));
 const ReportingDashboard = lazy(() => import('./components/pages/ReportingDashboard'));
 
@@ -111,6 +112,7 @@ function App() {
               <Route path="standards-frameworks/ncsc-caf" element={<NCSCCAFAssessment />} />
               <Route path="standards-frameworks/soc2" element={<SOC2Assessment />} />
               <Route path="standards-frameworks/nist-csf" element={<NISTCSFAssessment />} />
+              <Route path="standards-frameworks/iec-62443" element={<IEC62443Assessment />} />
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="reporting" element={<ReportingDashboard />} />
               <Route path="business-plan" element={<BusinessPlanPage />} />

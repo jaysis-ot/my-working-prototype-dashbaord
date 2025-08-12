@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ShieldCheck, Save, FileDown, Copy, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Save, FileDown, Copy, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
 
@@ -49,6 +49,47 @@ const SL_REQUIREMENTS = {
   ]
 };
 
+// ---------------------------------------------------------------------------
+// Helper – impact-scale label options (index matches numeric value 1-5)
+// ---------------------------------------------------------------------------
+const IMPACT_SCALE_OPTIONS = {
+  safety: [
+    '1 – Negligible safety impact',
+    '2 – Minor safety concern',
+    '3 – Moderate injury possible',
+    '4 – Severe or multiple injuries',
+    '5 – Fatalities likely'
+  ],
+  environmental: [
+    '1 – No environmental impact',
+    '2 – Minor localized impact',
+    '3 – Regional impact, reversible',
+    '4 – Major regional impact',
+    '5 – Long-term / national impact'
+  ],
+  financial: [
+    '1 – < $10K',
+    '2 – $10K – $100K',
+    '3 – $100K – $1M',
+    '4 – $1M – $10M',
+    '5 – > $10M'
+  ]
+};
+
+// ---------------------------------------------------------------------------
+// Helper to read current user info from auth localStorage
+// ---------------------------------------------------------------------------
+function getCurrentUserInfo() {
+  try {
+    const raw = localStorage.getItem('dashboard_current_user');
+    if (!raw) return { userTitle: null, userRole: null };
+    const u = JSON.parse(raw);
+    return { userTitle: u.jobTitle || null, userRole: u.role || null };
+  } catch {
+    return { userTitle: null, userRole: null };
+  }
+}
+
 function generateSLRequirements(level = 'SL1') {
   return SL_REQUIREMENTS[level] || SL_REQUIREMENTS.SL1;
 }
@@ -73,6 +114,12 @@ const defaultData = {
   tolerableRiskThreshold: 3,
   riskJustification: '',
   decision: ''
+  ,
+  riskMatrix: {
+    safetyScale: 2,
+    environmentalScale: 2,
+    financialScale: 1
+  }
 };
 
 function IEC62443Assessment() {
@@ -93,7 +140,13 @@ function IEC62443Assessment() {
   const progressPct = useMemo(() => Math.min(100, Math.max(0, (currentStage / 7) * 100)), [currentStage]);
 
   const setMeta = useCallback((nextStage) => {
-    const meta = { currentStage: nextStage ?? currentStage, lastUpdated: new Date().toISOString() };
+    const { userTitle, userRole } = getCurrentUserInfo();
+    const meta = {
+      currentStage: nextStage ?? currentStage,
+      lastUpdated: new Date().toISOString(),
+      userTitle,
+      userRole
+    };
     localStorage.setItem(META_KEY, JSON.stringify(meta));
     localStorage.setItem('cyberTrustDashboard.lastUpdated', JSON.stringify({ lastUpdated: meta.lastUpdated }));
   }, [currentStage]);
@@ -458,12 +511,76 @@ function IEC62443Assessment() {
       {currentStage === 2 && (
         <div className="dashboard-card p-4 space-y-4">
           <h2 className="text-lg font-bold text-primary-600">ZCR 2: Initial Risk Assessment</h2>
-          <Badge>Worst-case assumption: Likelihood = 1</Badge>
+          {/* ---------- Risk Matrix Configuration ------------------------- */}
+          <div className="dashboard-card p-3 space-y-3">
+            <h3 className="font-semibold text-secondary-900 dark:text-white">Risk Matrix Configuration</h3>
+            <p className="text-sm text-secondary-500">
+              Configure your organisation’s risk tolerance levels. This matrix will be used to evaluate all identified risks.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs text-secondary-500">Safety Impact Scale</label>
+                <select
+                  className="input w-full"
+                  value={data.riskMatrix.safetyScale}
+                  onChange={e => setData(d => ({ ...d, riskMatrix: { ...d.riskMatrix, safetyScale: Number(e.target.value) } }))}
+                >
+                  {IMPACT_SCALE_OPTIONS.safety.map((lbl, idx) => (
+                    <option key={lbl} value={idx + 1}>{lbl}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-secondary-500">Environmental Impact Scale</label>
+                <select
+                  className="input w-full"
+                  value={data.riskMatrix.environmentalScale}
+                  onChange={e => setData(d => ({ ...d, riskMatrix: { ...d.riskMatrix, environmentalScale: Number(e.target.value) } }))}
+                >
+                  {IMPACT_SCALE_OPTIONS.environmental.map((lbl, idx) => (
+                    <option key={lbl} value={idx + 1}>{lbl}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-secondary-500">Financial Impact Scale</label>
+                <select
+                  className="input w-full"
+                  value={data.riskMatrix.financialScale}
+                  onChange={e => setData(d => ({ ...d, riskMatrix: { ...d.riskMatrix, financialScale: Number(e.target.value) } }))}
+                >
+                  {IMPACT_SCALE_OPTIONS.financial.map((lbl, idx) => (
+                    <option key={lbl} value={idx + 1}>{lbl}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-          <div className="flex items-center justify-between mt-2">
-            <h3 className="font-semibold text-secondary-900 dark:text-white">Consequence Assessment</h3>
-            <Button size="sm" onClick={addConsequence}>Add Scenario</Button>
+            <div className="flex items-center text-amber-600 text-xs mt-2">
+              <AlertTriangle className="w-4 h-4 mr-1" /> Initial assessment assumes likelihood = 1 (worst-case scenario) as per IEC&nbsp;62443-3-2
+            </div>
+
+            {/* Simple visual matrix bar */}
+            <div className="grid grid-cols-5 gap-1 mt-4 text-center text-xs font-semibold">
+              {['Very Low','Low','Medium','High','Very High'].map((lbl,i)=>(
+                <div key={lbl} className={`
+                  py-2 rounded text-white
+                  ${i===0?'bg-sky-600':i===1?'bg-teal-600':i===2?'bg-yellow-600':
+                    i===3?'bg-rose-600':'bg-purple-700'}
+                `}>{lbl}</div>
+              ))}
+            </div>
           </div>
+
+          {/* --- Consequence Assessment ----------------------------------- */}
+          <div className="flex items-center justify-between mt-2">
+            <h3 className="font-semibold text-secondary-900 dark:text-white">Consequence Assessment by Asset/Zone</h3>
+            <Button size="sm" onClick={addConsequence}>Add Consequence Scenario</Button>
+          </div>
+          <p className="text-sm text-secondary-500 mb-2">
+            For each critical asset or system area, assess the worst-case impact if completely compromised.
+          </p>
+
           <div className="space-y-3">
             {data.consequenceScenarios.map(s => (
               <div key={s.id} className="dashboard-card p-3">
