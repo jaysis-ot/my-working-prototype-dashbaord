@@ -249,14 +249,38 @@ function IEC62443Assessment() {
     const f=e.dataTransfer.files?.[0]; if(f) handleFile(f);
   };
 
-  // load existing
+  // load existing and normalize data
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
       const meta = JSON.parse(localStorage.getItem(META_KEY) || 'null');
-      if (saved) setData({ ...defaultData, ...saved });
+      
+      if (saved) {
+        // Normalize consequence scenarios to ensure operational & regulatory impacts exist
+        if (saved.consequenceScenarios && saved.consequenceScenarios.length > 0) {
+          saved.consequenceScenarios = saved.consequenceScenarios.map(scenario => {
+            const impacts = scenario.impacts || {};
+            // Ensure all impact types exist with defaults
+            return {
+              ...scenario,
+              impacts: {
+                safety: impacts.safety || 1,
+                environmental: impacts.environmental || 1,
+                financial: impacts.financial || 1,
+                operational: impacts.operational || 1,
+                regulatory: impacts.regulatory || 1
+              }
+            };
+          });
+        }
+        
+        setData({ ...defaultData, ...saved });
+      }
+      
       if (meta?.currentStage) setCurrentStage(meta.currentStage);
-    } catch {}
+    } catch (error) {
+      console.error("Error loading saved assessment data:", error);
+    }
   }, []);
 
   const progressPct = useMemo(() => Math.min(100, Math.max(0, (currentStage / 7) * 100)), [currentStage]);
@@ -336,7 +360,13 @@ function IEC62443Assessment() {
   const updateThreat = (id, patch) => setData(d => ({ ...d, threatScenarios: d.threatScenarios.map(s => s.id === id ? { ...s, ...patch } : s) }));
 
   const initialRiskSummary = useMemo(() => {
-    const risks = data.consequenceScenarios.map(s => Math.max(s.impacts.safety, s.impacts.environmental, s.impacts.financial, s.impacts.operational, s.impacts.regulatory));
+    const risks = data.consequenceScenarios.map(s => Math.max(
+      s.impacts?.safety || 1, 
+      s.impacts?.environmental || 1, 
+      s.impacts?.financial || 1, 
+      s.impacts?.operational || 1, 
+      s.impacts?.regulatory || 1
+    ));
     const total = risks.length;
     const high = risks.filter(r => r >= 4).length;
     const avg = total ? (risks.reduce((a,b)=>a+b,0)/total) : 0;
@@ -344,7 +374,13 @@ function IEC62443Assessment() {
   }, [data.consequenceScenarios]);
 
   const overallRiskScore = useMemo(() => {
-    const cons = data.consequenceScenarios.map(s => Math.max(s.impacts.safety, s.impacts.environmental, s.impacts.financial, s.impacts.operational, s.impacts.regulatory));
+    const cons = data.consequenceScenarios.map(s => Math.max(
+      s.impacts?.safety || 1, 
+      s.impacts?.environmental || 1, 
+      s.impacts?.financial || 1, 
+      s.impacts?.operational || 1, 
+      s.impacts?.regulatory || 1
+    ));
     const threats = data.threatScenarios.map(s => s.likelihood * s.impact);
     const arr = [...cons, ...threats];
     return arr.length ? (arr.reduce((a,b)=>a+b,0) / arr.length).toFixed(1) : '0.0';
@@ -743,33 +779,50 @@ function IEC62443Assessment() {
           </p>
 
           <div className="space-y-3">
-            {data.consequenceScenarios.map(s => (
-              <div key={s.id} className="dashboard-card p-3">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <input className="input" placeholder="Scenario Name" value={s.name} onChange={e=>updateConsequence(s.id,{name:e.target.value})} />
-                  <input className="input" placeholder="Affected Asset/System" value={s.asset} onChange={e=>updateConsequence(s.id,{asset:e.target.value})} />
-                  <select className="input" value={s.failureMode} onChange={e=>updateConsequence(s.id,{failureMode:e.target.value})}>
-                    {['complete-failure','degraded-performance','data-corruption','unauthorized-access','denial-of-service','safety-system-bypass'].map(v => <option key={v} value={v}>{v}</option>)}
-                  </select>
+            {data.consequenceScenarios.map(s => {
+              // Calculate max risk score for this scenario
+              const maxRiskScore = Math.max(
+                s.impacts?.safety || 1,
+                s.impacts?.environmental || 1,
+                s.impacts?.financial || 1,
+                s.impacts?.operational || 1,
+                s.impacts?.regulatory || 1
+              );
+              
+              return (
+                <div key={s.id} className="dashboard-card p-3">
+                  {/* Risk score banner */}
+                  <div className="bg-primary-600 text-white text-sm font-medium px-3 py-1 rounded mb-3">
+                    Overall Risk Score (Likelihood = 1): {maxRiskScore}
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input className="input" placeholder="Scenario Name" value={s.name} onChange={e=>updateConsequence(s.id,{name:e.target.value})} />
+                    <input className="input" placeholder="Affected Asset/System" value={s.asset} onChange={e=>updateConsequence(s.id,{asset:e.target.value})} />
+                    <select className="input" value={s.failureMode} onChange={e=>updateConsequence(s.id,{failureMode:e.target.value})}>
+                      {['complete-failure','degraded-performance','data-corruption','unauthorized-access','denial-of-service','safety-system-bypass'].map(v => <option key={v} value={v}>{v}</option>)}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mt-2">
+                    {['safety','environmental','financial','operational','regulatory'].map(cat => (
+                      <div key={cat}>
+                        <label className="text-xs text-secondary-500 capitalize">{cat} impact</label>
+                        <select 
+                          className="input" 
+                          value={s.impacts?.[cat] || 1} 
+                          onChange={e=>updateConsequence(s.id,{ impacts: { ...(s.impacts || {}), [cat]: Number(e.target.value) } })}
+                        >
+                          {IMPACT_LABELS[cat].map((label, index) => (
+                            <option key={index + 1} value={index + 1}>{label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-2 text-right"><Button size="xs" variant="danger" onClick={()=>removeConsequence(s.id)}>Remove Scenario</Button></div>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mt-2">
-                  {['safety','environmental','financial','operational','regulatory'].map(cat => (
-                    <div key={cat}>
-                      <label className="text-xs text-secondary-500 capitalize">{cat} impact</label>
-                      <select className="input" value={s.impacts[cat]} onChange={e=>updateConsequence(s.id,{ impacts: { ...s.impacts, [cat]: Number(e.target.value) } })}>
-                        {IMPACT_LABELS[cat].map((label, index) => (
-                          <option key={index + 1} value={index + 1}>{label}</option>
-                        ))}
-                      </select>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-2 text-sm">
-                  <span className="font-semibold text-primary-700">Risk Score:</span> {Math.max(s.impacts.safety, s.impacts.environmental, s.impacts.financial, s.impacts.operational, s.impacts.regulatory)}
-                </div>
-                <div className="mt-2 text-right"><Button size="xs" variant="danger" onClick={()=>removeConsequence(s.id)}>Remove Scenario</Button></div>
-              </div>
-            ))}
+              );
+            })}
             {data.consequenceScenarios.length === 0 && (
               <div className="text-sm text-secondary-500">Add consequence scenarios to calculate initial risks.</div>
             )}
