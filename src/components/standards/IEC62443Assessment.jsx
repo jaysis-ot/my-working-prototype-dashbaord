@@ -471,6 +471,25 @@ function IEC62443Assessment() {
     updateThreat(id, { frImplemented });
   };
 
+  // Calculate residual risk after considering implemented FRs & controls
+  const calculateResidualRisk = (scenario) => {
+    const baseRisk = scenario.likelihood * scenario.impact;
+    // Apply reduction only when controls are documented AND at least one FR implemented
+    if (
+      scenario.existingControls &&
+      scenario.existingControls.trim() !== '' &&
+      (scenario.frImplemented || []).length > 0
+    ) {
+      const coverage =
+        (scenario.frImplemented || []).length /
+        Math.max(1, (scenario.frApplied || []).length);
+      // Up to 40 % mitigation when all applicable FRs are implemented
+      const mitigation = Math.min(0.4, 0.4 * coverage);
+      return baseRisk * (1 - mitigation);
+    }
+    return baseRisk;
+  };
+
   const initialRiskSummary = useMemo(() => {
     const risks = data.consequenceScenarios.map(s => Math.max(
       s.impacts?.safety || 1, 
@@ -1202,13 +1221,44 @@ function IEC62443Assessment() {
                 </div>
                 
                 {/* Risk Score */}
-                <div className="flex items-center justify-between">
-                  <div className="text-lg">
-                    <span className="font-semibold">Risk Score:</span> 
-                    <span className="text-primary-600 font-bold ml-2">{(s.likelihood * s.impact).toFixed(2)}</span>
-                  </div>
-                  <Button size="sm" variant="danger" onClick={() => removeThreat(s.id)}>Remove Scenario</Button>
-                </div>
+                {(() => {
+                  const baseRisk = s.likelihood * s.impact;
+                  const residualRisk = calculateResidualRisk(s);
+                  const hasReduction = baseRisk !== residualRisk;
+                  return (
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+                      <div className="space-y-1">
+                        <div className="text-sm">
+                          <span className="font-semibold">Base Risk Score:</span>
+                          <span className="ml-2">{baseRisk.toFixed(2)}</span>
+                        </div>
+                        <div className="text-lg">
+                          <span className="font-semibold">Residual Risk Score:</span>
+                          <span
+                            className={`font-bold ml-2 ${
+                              hasReduction ? 'text-green-600' : 'text-primary-600'
+                            }`}
+                          >
+                            {residualRisk.toFixed(2)}
+                            {hasReduction && (
+                              <span className="text-xs ml-1 text-green-600">
+                                ({((baseRisk - residualRisk) / baseRisk * 100).toFixed(0)}% reduction)
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        className="mt-2 sm:mt-0"
+                        onClick={() => removeThreat(s.id)}
+                      >
+                        Remove Scenario
+                      </Button>
+                    </div>
+                  );
+                })()}
               </div>
             ))}
             
