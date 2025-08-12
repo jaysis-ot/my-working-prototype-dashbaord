@@ -98,7 +98,8 @@ const defaultData = {
   assessmentType: '',
   metadata: {
     name: '', assessor: '', date: '', facilityType: '', criticalityLevel: '', systemDescription: '',
-    accessPoints: '', networkDiagram: ''
+    accessPoints: '', networkDiagram: '',
+    boundaries: '' // NEW – physical & logical boundaries
   },
   assets: [],
   zones: [],
@@ -126,6 +127,76 @@ function IEC62443Assessment() {
   const navigate = useNavigate();
   const [currentStage, setCurrentStage] = useState(1);
   const [data, setData] = useState(defaultData);
+  // drag-and-drop state for CSV import
+  const [dragActive, setDragActive] = useState(false);
+
+  /* ------------------------------------------------------------------
+   * CSV IMPORT HELPERS
+   * ------------------------------------------------------------------ */
+  const preventDefault = e => { e.preventDefault(); e.stopPropagation(); };
+
+  const parseCSV = (text) => {
+    // rudimentary CSV parser good enough for simple inventories
+    const rows = [];
+    let cur = '', inQuotes = false;
+    const pushCell = (r) => { r.push(cur.replace(/^"(.*)"$/,'$1').replace(/""/g,'"')); cur=''; };
+    let row=[];
+    for (let i=0;i<text.length;i++){
+      const c=text[i];
+      if(c==='"'){ inQuotes=!inQuotes || text[i+1]==='"' && (cur+='"', i++); continue;}
+      if(c===','&&!inQuotes){ pushCell(row);}
+      else if((c==='\n'||c==='\r')&&!inQuotes){
+        if(c==='\r'&&text[i+1]==='\n') i++;
+        pushCell(row); rows.push(row); row=[];
+      }else cur+=c;
+    }
+    if(cur||row.length) { pushCell(row); rows.push(row); }
+    return rows.filter(r=>r.some(c=>c.trim()!==''));
+  };
+
+  const importAssetsFromCSVText = (csvText) => {
+    const rows = parseCSV(csvText);
+    if (!rows.length) return;
+    let headers = rows[0].map(h=>h.trim().toLowerCase());
+    const headerMap = ['name','type','location','vendor','osversion','network','criticality'];
+    let startIdx = 1;
+    const hasHeaderRow = headerMap.some(h=>headers.includes(h));
+    if(!hasHeaderRow){ headers=headerMap; startIdx=0;}
+    const idxOf = (h)=>headers.indexOf(h);
+    const newAssets = rows.slice(startIdx).map(r=>({
+      id: Date.now()+Math.random(),
+      name:r[idxOf('name')]||'',
+      type:r[idxOf('type')]||'',
+      location:r[idxOf('location')]||'',
+      vendor:r[idxOf('vendor')]||'',
+      osVersion:r[idxOf('osversion')]||'',
+      network:r[idxOf('network')]||'',
+      criticality:(r[idxOf('criticality')]||'medium').toLowerCase()
+    }));
+    setData(d=>({...d, assets:[...d.assets, ...newAssets]}));
+    alert(`Imported ${newAssets.length} assets`);
+  };
+
+  const handleFile = (file) => {
+    if(!file) return;
+    if(file.name.toLowerCase().endsWith('.csv')){
+      const reader=new FileReader();
+      reader.onload=e=>importAssetsFromCSVText(e.target.result);
+      reader.readAsText(file);
+    }else{
+      alert('Excel parsing not supported yet. Please provide CSV.');
+    }
+  };
+
+  const handleAssetFileSelect = e => {
+    const f=e.target.files?.[0]; if(f) handleFile(f); e.target.value='';
+  };
+
+  const handleAssetDrop = e => {
+    preventDefault(e);
+    setDragActive(false);
+    const f=e.dataTransfer.files?.[0]; if(f) handleFile(f);
+  };
 
   // load existing
   useEffect(() => {
@@ -467,10 +538,49 @@ function IEC62443Assessment() {
             </div>
           </div>
 
+          {/* Physical and Logical Boundaries */}
+          <div>
+            <label className="text-xs text-secondary-500">Physical and Logical Boundaries</label>
+            <textarea
+              className="w-full input min-h-[90px]"
+              value={data.metadata.boundaries}
+              placeholder="Define what is included/excluded from the assessment scope. Include network boundaries, physical locations, organizational boundaries..."
+              onChange={e =>
+                setData(d => ({
+                  ...d,
+                  metadata: { ...d.metadata, boundaries: e.target.value }
+                }))
+              }
+            />
+          </div>
+
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-semibold text-secondary-900 dark:text-white">Asset Inventory</h3>
               <Button size="sm" onClick={addAsset}>Add Asset</Button>
             </div>
+
+            {/* Import Drop-zone */}
+            <div
+              className={`dashboard-card p-3 mb-4 border-2 border-dashed transition-colors text-center cursor-pointer ${
+                dragActive ? 'border-primary-600 bg-primary-50/40' : 'border-secondary-300 dark:border-secondary-600'
+              }`}
+              onDragEnter={e => { preventDefault(e); setDragActive(true); }}
+              onDragOver={e => { preventDefault(e); setDragActive(true); }}
+              onDragLeave={e => { preventDefault(e); setDragActive(false); }}
+              onDrop={handleAssetDrop}
+              onClick={() => document.getElementById('iec-asset-upload').click()}
+            >
+              <input
+                id="iec-asset-upload"
+                type="file"
+                accept=".csv"
+                className="hidden"
+                onChange={handleAssetFileSelect}
+              />
+              <p className="text-primary-600 font-medium">📁 Import Asset Inventory</p>
+              <p className="text-xs text-secondary-500">Click to upload CSV file or drag and drop</p>
+            </div>
+
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead>
