@@ -6,16 +6,15 @@ import { useAuth } from './AuthContext';
 /**
  * LoginPage Component
  * 
- * A clean, simple login page that handles authentication
- * using the AuthContext.
+ * A clean, professional login page without demo credentials
  */
 const LoginPage = () => {
   // Get auth context
   const { isAuthenticated, loading: authLoading, login } = useAuth();
   
-  // Form state
-  const [email, setEmail] = useState('admin@dashboard.com');
-  const [password, setPassword] = useState('demo123');
+  // Form state - no default values
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -59,10 +58,10 @@ const LoginPage = () => {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Dashboard Login
+            Business Assurance Platform
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Enter your credentials to access the dashboard
+            Sign in to access your risk intelligence dashboard
           </p>
         </div>
         
@@ -101,8 +100,8 @@ const LoginPage = () => {
           </div>
 
           {error && (
-            <div className="text-red-600 text-sm bg-red-50 p-3 rounded-md">
-              {error}
+            <div className="rounded-md bg-red-50 p-4">
+              <p className="text-sm text-red-800">{error}</p>
             </div>
           )}
 
@@ -110,21 +109,10 @@ const LoginPage = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-400"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? (
-                <span className="absolute left-0 inset-y-0 flex items-center pl-3">
-                  <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                </span>
-              ) : null}
-              Sign in
+              {isSubmitting ? 'Signing in...' : 'Sign in'}
             </button>
-          </div>
-          
-          <div className="text-sm text-center">
-            <div className="font-medium text-blue-600 hover:text-blue-500">
-              Demo credentials are pre-filled for you
-            </div>
           </div>
         </form>
       </div>

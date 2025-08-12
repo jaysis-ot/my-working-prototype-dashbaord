@@ -2,6 +2,7 @@
 import React, { useState, useEffect, createContext } from 'react';
 import { JWTManager, TokenStorage, LoginAttemptManager } from './JWTManager';
 import { JWT_CONFIG } from './auth-config';
+import { userDB } from './userDatabase';
 
 // Create Auth Context
 export const AuthContext = createContext();
@@ -82,24 +83,14 @@ export const JWTAuthProvider = ({ children }) => {
       throw new Error('Account temporarily locked due to too many failed attempts');
     }
 
-    // Demo authentication - replace with your authentication logic
-    const isValidCredentials = JWT_CONFIG.demoMode 
-      ? (credentials.password === JWT_CONFIG.demoPassword)
-      : false; // Add your real authentication here
-
-    if (isValidCredentials) {
+    try {
+      // Use the userDatabase for authentication
+      const authenticatedUser = userDB.authenticate(credentials.email, credentials.password);
+      
       LoginAttemptManager.reset();
       
       const userPayload = {
-        user: {
-          id: '12345',
-          email: credentials.email,
-          name: 'OT Administrator',
-          role: 'admin',
-          permissions: ['read', 'write', 'admin'],
-          department: 'OT Security',
-          lastLogin: new Date().toISOString()
-        }
+        user: authenticatedUser
       };
       
       // Create access token (15 minutes)
@@ -108,13 +99,13 @@ export const JWTAuthProvider = ({ children }) => {
       // Create refresh token (7 days)
       const refreshToken = JWT_CONFIG.enableRefreshTokens ? 
         JWTManager.createToken({ 
-          userId: userPayload.user.id, 
+          userId: authenticatedUser.id, 
           type: 'refresh' 
         }, JWT_CONFIG.refreshTokenExpiry) : null;
       
       TokenStorage.setTokens(accessToken, refreshToken);
       
-      setUser(userPayload.user);
+      setUser(authenticatedUser);
       setIsAuthenticated(true);
       setTokenInfo({
         accessToken,
@@ -124,9 +115,9 @@ export const JWTAuthProvider = ({ children }) => {
       });
       
       return true;
-    } else {
+    } catch (error) {
       LoginAttemptManager.recordAttempt();
-      throw new Error('Invalid credentials');
+      throw error;
     }
   };
 
@@ -138,16 +129,17 @@ export const JWTAuthProvider = ({ children }) => {
       const payload = JWTManager.verifyToken(refreshToken);
       if (payload.type !== 'refresh') throw new Error('Invalid refresh token');
       
+      // Get current user data
+      const currentUser = user || {
+        id: payload.userId,
+        email: 'user@company.com',
+        name: 'User',
+        role: 'viewer',
+        permissions: ['read']
+      };
+      
       const userPayload = {
-        user: {
-          id: payload.userId,
-          email: user?.email || 'admin@ot-dashboard.com',
-          name: user?.name || 'OT Administrator',
-          role: 'admin',
-          permissions: ['read', 'write', 'admin'],
-          department: 'OT Security',
-          lastLogin: new Date().toISOString()
-        }
+        user: currentUser
       };
       
       const newAccessToken = JWTManager.createToken(userPayload, JWT_CONFIG.accessTokenExpiry);
@@ -180,16 +172,84 @@ export const JWTAuthProvider = ({ children }) => {
     return token ? `Bearer ${token}` : null;
   };
 
+  // User management functions (delegated to userDB)
+  const getAllUsers = () => {
+    if (!user || !user.permissions?.includes('manage_users')) {
+      throw new Error('Unauthorized');
+    }
+    return userDB.getAllUsers();
+  };
+
+  const addUser = (email, password, profile) => {
+    if (!user || !user.permissions?.includes('manage_users')) {
+      throw new Error('Unauthorized');
+    }
+    return userDB.addUser(email, password, profile);
+  };
+
+  const updateUser = (userId, updates) => {
+    if (!user || !user.permissions?.includes('manage_users')) {
+      throw new Error('Unauthorized');
+    }
+    return userDB.updateUser(userId, updates);
+  };
+
+  const deleteUser = (userId) => {
+    if (!user || !user.permissions?.includes('manage_users')) {
+      throw new Error('Unauthorized');
+    }
+    if (userId === user.id) {
+      throw new Error('Cannot delete your own account');
+    }
+    return userDB.deleteUser(userId);
+  };
+
+  const changePassword = async (currentPassword, newPassword) => {
+    if (!user) throw new Error('No user logged in');
+    
+    try {
+      // Verify current password first
+      userDB.authenticate(user.email, currentPassword);
+      
+      // Update password
+      userDB.updateUser(user.id, { password: newPassword });
+      
+      return true;
+    } catch (error) {
+      throw new Error('Current password is incorrect');
+    }
+  };
+
   const value = {
     isAuthenticated,
+    loading,
     user,
     tokenInfo,
     login,
     logout,
     refreshAccessToken,
     getAuthHeader,
-    loading
+    getAllUsers,
+    addUser,
+    updateUser,
+    deleteUser,
+    changePassword
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
+
+// Hook to use auth context
+export const useAuth = () => {
+  const context = React.useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+export default JWTAuthProvider;

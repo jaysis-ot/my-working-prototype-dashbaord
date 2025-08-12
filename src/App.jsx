@@ -5,12 +5,16 @@ import useAuth from './auth/useAuth';
 
 // Context Providers
 import { ThemeProvider } from './contexts/ThemeContext';
-import { JWTAuthProvider } from './auth/JWTAuthProvider';
+// import { JWTAuthProvider } from './auth/JWTAuthProvider';
+import { AuthProvider } from './auth/AuthContext';
 import { DashboardUIProvider } from './contexts/DashboardUIContext';
 
 // Templates
 import DashboardLayout from './components/templates/DashboardLayout';
 import ModalManager from './components/templates/ModalManager';
+
+// User Management
+import UserManagement from './components/admin/UserManagement';
 
 // Lazy-loaded Pages
 const OverviewPage = lazy(() => import('./components/pages/OverviewPage'));
@@ -28,17 +32,25 @@ const BusinessPlanPage = lazy(() => import('./components/pages/BusinessPlanPage'
 const MaturityAnalysisPage = lazy(() => import('./components/pages/MaturityAnalysisPage'));
 const TrustPage = lazy(() => import('./components/pages/TrustPage'));
 const IncidentManagementPage = lazy(() => import('./components/pages/IncidentManagementPage'));
+const EvidencePage = lazy(() => import('./components/pages/EvidencePage'));
+const RepositoryPage = lazy(() => import('./components/pages/RepositoryPage'));
+const ISO27001Assessment = lazy(() => import('./components/standards/ISO27001Assessment'));
+const NCSCCAFAssessment = lazy(() => import('./components/standards/NCSCCAFAssessment'));
+const SOC2Assessment = lazy(() => import('./components/standards/SOC2Assessment'));
+const NISTCSFAssessment = lazy(() => import('./components/standards/NISTCSFAssessment'));
+// const UserManagement = lazy(() => import('.components/admin/UserManagement'));
+const ReportingDashboard = lazy(() => import('./components/pages/ReportingDashboard'));
 
 // AppProviders wrapper
 const AppProviders = ({ children }) => {
   return (
     <ThemeProvider>
-      <JWTAuthProvider>
+      <AuthProvider>
         <DashboardUIProvider>
           {children}
           <ModalManager />
         </DashboardUIProvider>
-      </JWTAuthProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 };
@@ -72,37 +84,45 @@ function App() {
             {/* Login route */}
             <Route path="/login" element={<LoginPage />} />
 
-            {/* Dashboard routes */}
+            {/* Dashboard routes (nested rendering into DashboardLayout's Outlet) */}
             <Route
-              path="/dashboard/*"
+              path="/dashboard"
               element={
                 <ProtectedRoute>
-                  <DashboardLayout>
-                    <Routes>
-                      <Route path="overview" element={<OverviewPage />} />
-                      <Route path="settings" element={<SettingsPage />} />
-                      <Route path="requirements" element={<RequirementsPage />} />
-                      <Route path="capabilities" element={<CapabilitiesPage />} />
-                      <Route path="resources" element={<ResourcePlanningPage />} />
-                      <Route path="mitre-attack" element={<MitreAttackPage />} />
-                      <Route path="maturity-analysis" element={<MaturityAnalysisPage />} />
-                      <Route path="threat-intelligence" element={<ThreatIntelligencePage />} />
-                      <Route path="risk-management" element={<RiskManagementPage />} />
-                      <Route path="standards-frameworks" element={<StandardsFrameworksPage />} />
-                      <Route path="analytics" element={<AnalyticsPage />} />
-                      <Route path="business-plan" element={<BusinessPlanPage />} />
-
-                      {/* ✅ Newly added working routes */}
-                      <Route path="trust-page" element={<TrustPage />} />
-                      <Route path="incident-management" element={<IncidentManagementPage />} />
-
-                      {/* Dashboard fallback */}
-                      <Route path="*" element={<Navigate to="/dashboard/overview" replace />} />
-                    </Routes>
-                  </DashboardLayout>
+                  <DashboardLayout />
                 </ProtectedRoute>
               }
-            />
+            >
+              {/* default redirect */}
+              <Route index element={<Navigate to="overview" replace />} />
+
+              {/* dashboard pages */}
+              <Route path="overview" element={<OverviewPage />} />
+              <Route path="settings" element={<SettingsPage />} />
+              <Route path="requirements" element={<RequirementsPage />} />
+              <Route path="capabilities" element={<CapabilitiesPage />} />
+              <Route path="resources" element={<ResourcePlanningPage />} />
+              <Route path="mitre-attack" element={<MitreAttackPage />} />
+              <Route path="maturity-analysis" element={<MaturityAnalysisPage />} />
+              <Route path="threat-intelligence" element={<ThreatIntelligencePage />} />
+              <Route path="risk-management" element={<RiskManagementPage />} />
+              <Route path="standards-frameworks" element={<StandardsFrameworksPage />} />
+              <Route path="standards-frameworks/iso27001" element={<ISO27001Assessment />} />
+              <Route path="standards-frameworks/ncsc-caf" element={<NCSCCAFAssessment />} />
+              <Route path="standards-frameworks/soc2" element={<SOC2Assessment />} />
+              <Route path="standards-frameworks/nist-csf" element={<NISTCSFAssessment />} />
+              <Route path="analytics" element={<AnalyticsPage />} />
+              <Route path="reporting" element={<ReportingDashboard />} />
+              <Route path="business-plan" element={<BusinessPlanPage />} />
+              <Route path="repository" element={<RepositoryPage />} />
+              <Route path="evidence" element={<EvidencePage />} />
+              <Route path="trust" element={<TrustPage />} />
+              <Route path="incident-management" element={<IncidentManagementPage />} />
+              <Route path="users" element={<UserManagement />} />
+
+              {/* Dashboard fallback */}
+              <Route path="*" element={<Navigate to="overview" replace />} />
+            </Route>
 
             {/* Default root redirect */}
             <Route path="/" element={<Navigate to="/dashboard/overview" replace />} />
