@@ -19,6 +19,19 @@ const LIKELIHOOD_OPTIONS = [
   { label: 'Very High', value: 0.9 }
 ];
 
+// ---------------------------------------------------------------------------
+// Advisory mapping for each FR – concise best-practice recommendations
+// ---------------------------------------------------------------------------
+const FR_ADVISORIES = {
+  FR1: ['Unique user IDs', 'MFA for admins', 'Secure credential storage'],
+  FR2: ['RBAC / least privilege', 'Session timeouts', 'Approval for privileged ops'],
+  FR3: ['Application allow-listing', 'Secure boot', 'Integrity monitoring'],
+  FR4: ['TLS 1.2+ encryption', 'Encrypt data at rest', 'Key management'],
+  FR5: ['Zoning / segmentation', 'ACLs between zones', 'Unidirectional gateways'],
+  FR6: ['Centralised logging', 'Alerts to SOC', 'Response playbooks'],
+  FR7: ['Back-ups & restore tests', 'Redundancy / HA', 'Capacity monitoring']
+};
+
 const IMPACT_OPTIONS = [
   { label: 'Very Low', value: 1 },
   { label: 'Low', value: 2 },
@@ -731,6 +744,27 @@ function IEC62443Assessment() {
     return actions;
   }, [data.threatScenarios, data.consequenceScenarios, data.tolerableRiskThreshold]);
 
+  const frCoverage = useMemo(() => {
+    const scenarios = data.threatScenarios || [];
+    return FR_LIST.map(fr => {
+      const appliedCount = scenarios.reduce((acc, s) => acc + (((s.frApplied || []).includes(fr.key)) ? 1 : 0), 0);
+      const implementedCount = scenarios.reduce((acc, s) => acc + (((s.frImplemented || []).includes(fr.key)) ? 1 : 0), 0);
+      const coveragePct = appliedCount ? (implementedCount / appliedCount) * 100 : 0;
+      return { frKey: fr.key, label: fr.label, appliedCount, implementedCount, coveragePct };
+    });
+  }, [data.threatScenarios]);
+
+  const outstandingRequirements = useMemo(() => {
+    const list = [];
+    (data.threatScenarios || []).forEach(s => {
+      const applied = s.frApplied || [];
+      const implemented = s.frImplemented || [];
+      applied.filter(fr => !implemented.includes(fr)).forEach(fr => {
+        list.push({ scenarioId: s.id, scenarioName: s.name || 'Unnamed scenario', fr });
+      });
+    });
+    return list;
+  }, [data.threatScenarios]);
   const complianceScore = useMemo(() => Math.floor(Math.random()*30)+70, [data.assets.length, data.zones.length]);
 
   const next = () => { const n = Math.min(7, currentStage + 1); setCurrentStage(n); setMeta(n); };
@@ -1551,7 +1585,39 @@ function IEC62443Assessment() {
           </div>
 
           <div className="dashboard-card p-3">
-            <h4 className="font-semibold mb-2">Risk Mitigation Plan</h4>
+                      <div className="dashboard-card p-3">
+            <h4 className="font-semibold mb-2">FR Coverage Summary</h4>
+            <div className="space-y-2">
+              {frCoverage.reduce((sum, i) => sum + i.appliedCount, 0) === 0 ? (
+                <div className="text-sm text-secondary-500">No FRs applied yet in threat scenarios.</div>
+              ) : (
+                frCoverage.map(item => (
+                  <div key={item.frKey} className="flex items-center text-sm">
+                    <div className="w-64 shrink-0">{item.label}</div>
+                    <div className="flex-1 mx-3">
+                      <div className="w-full bg-secondary-200 dark:bg-secondary-700 rounded h-2">
+                        <div className="bg-primary-600 h-2 rounded" style={{ width: `${item.coveragePct}%` }} />
+                      </div>
+                    </div>
+                    <div className="w-40 text-right">{item.implementedCount}/{item.appliedCount} ({item.coveragePct.toFixed(0)}%)</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="dashboard-card p-3">
+            <h4 className="font-semibold mb-2">Outstanding Requirements</h4>
+            {outstandingRequirements.length > 0 ? (
+              <ul className="list-disc pl-5 text-sm">
+                {outstandingRequirements.map((o, idx) => (
+                  <li key={o.scenarioId + '-' + idx}>Scenario: {o.scenarioName} — {o.fr} not implemented</li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-sm text-secondary-500">All applied FRs are implemented.</div>
+            )}
+          </div><h4 className="font-semibold mb-2">Risk Mitigation Plan</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
               <div>
                 <h5 className="font-semibold">High Priority</h5>
@@ -1585,6 +1651,23 @@ function IEC62443Assessment() {
             {['FR1 Identification & Authentication','FR2 Use Control','FR3 System Integrity','FR4 Data Confidentiality','FR5 Restricted Data Flow','FR6 Timely Response to Events','FR7 Resource Availability'].map(fr => (
               <ComplianceRow key={fr} label={fr} />
             ))}
+          </div>
+          <div className="dashboard-card p-3">
+            <h4 className="font-semibold mb-2">Advisory Mapping</h4>
+            {frCoverage.filter(i => i.appliedCount > 0 && i.coveragePct < 100).length === 0 ? (
+              <div className="text-sm text-secondary-500">No advisory items — all applied FRs are implemented.</div>
+            ) : (
+              <div className="space-y-2">
+                {frCoverage.filter(i => i.appliedCount > 0 && i.coveragePct < 100).map(item => (
+                  <div key={item.frKey} className="p-2 rounded border border-secondary-200 dark:border-secondary-700">
+                    <div className="text-sm font-semibold">{item.label}</div>
+                    <ul className="list-disc pl-5 text-sm">
+                      {(FR_ADVISORIES[item.frKey] || []).map((adv, i) => <li key={i}>{adv}</li>)}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1624,7 +1707,7 @@ function IEC62443Assessment() {
         <Button variant="secondary" leadingIcon={ChevronLeft} onClick={prev} disabled={currentStage===1}>Previous</Button>
         <div className="flex items-center gap-2">
           <Button variant="secondary" leadingIcon={Save} onClick={save}>Save</Button>
-          <Button variant="secondary" leadingIcon={FileDown} onClick={exportCSV}>Export CSV</Button>
+          <Button variant="secondary" leadingIcon={FileDown} onClick={exportCSV}>Export CSV</Button>`n          <Button variant="secondary" onClick={exportXLSX}>Export Excel</Button>
           <Button variant="secondary" onClick={exportJSON}>Export JSON</Button>
           <Button variant="secondary" onClick={exportPDF}>Export PDF</Button>
           <Button variant="secondary" leadingIcon={Copy} onClick={cloneAssessment}>Clone</Button>
@@ -1681,3 +1764,6 @@ function download(blob, filename) {
 }
 
 export default IEC62443Assessment;
+
+
+
