@@ -1252,6 +1252,29 @@ function IEC62443Assessment() {
                     ))}
                   </div>
                 </div>
+
+                {/* Implemented FR Controls */}
+                <div className="mb-4">
+                  <label className="text-xs text-secondary-500 block mb-1">Implemented FR Controls:</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-1">
+                    {FR_LIST.map(fr => (
+                      <button
+                        key={fr.key}
+                        onClick={() => toggleFRImplemented(s.id, fr.key)}
+                        disabled={!(s.frApplied || []).includes(fr.key)}
+                        className={`py-2 px-1 rounded text-center ${
+                          !(s.frApplied || []).includes(fr.key)
+                            ? 'bg-secondary-100 text-secondary-400 cursor-not-allowed'
+                            : (s.frImplemented || []).includes(fr.key)
+                              ? 'bg-primary-600 text-white'
+                              : 'bg-secondary-200 text-secondary-700 hover:bg-secondary-300'
+                        }`}
+                      >
+                        {fr.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 
                 {/* Existing Controls */}
                 <div className="mb-4">
