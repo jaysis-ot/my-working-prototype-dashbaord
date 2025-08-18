@@ -386,9 +386,174 @@ function IEC62443Assessment() {
   };
 
   // Helpers
-  const addAsset = () => setData(d => ({ ...d, assets: [...d.assets, { id: Date.now(), name: '', type: '', location: '', vendor: '', osVersion: '', network: '', criticality: 'medium' }] }));
+  // ------------------------------------------------------------------
+  // Asset helpers (add/clear/template/etc.)
+  // ------------------------------------------------------------------
+
+  // Add a blank asset (now includes zone field)
+  const addAsset = () =>
+    setData(d => ({
+      ...d,
+      assets: [
+        ...d.assets,
+        {
+          id: Date.now(),
+          name: '',
+          type: '',
+          location: '',
+          vendor: '',
+          osVersion: '',
+          network: '',
+          zone: '',
+          criticality: 'medium'
+        }
+      ]
+    }));
   const removeAsset = (id) => setData(d => ({ ...d, assets: d.assets.filter(a => a.id !== id) }));
   const updateAsset = (id, patch) => setData(d => ({ ...d, assets: d.assets.map(a => a.id === id ? { ...a, ...patch } : a) }));
+
+  // Download a blank CSV template for assets
+  const downloadAssetCSVTemplate = () => {
+    const header =
+      'name,type,location,vendor,osversion,network,criticality\n' +
+      'PLC-01,plc,Control Room,Siemens,S7-1500,control,high';
+    const blob = new Blob([header], { type: 'text/csv' });
+    download(blob, 'asset_template.csv');
+  };
+
+  // Load a small “Gas Template” inventory
+  const loadGasTemplateAssets = () => {
+    if (
+      !window.confirm(
+        'Load sample Gas Template assets? This will append about 10 sample rows to your current inventory.'
+      )
+    )
+      return;
+
+    const sampleAssets = [
+      { name: 'PLC-01', type: 'plc', location: 'Compressor A', vendor: 'Siemens', osVersion: 'S7-1500', network: 'control', zone: '', criticality: 'high' },
+      { name: 'PLC-02', type: 'plc', location: 'Compressor B', vendor: 'Siemens', osVersion: 'S7-1500', network: 'control', zone: '', criticality: 'high' },
+      { name: 'HMI-01', type: 'hmi', location: 'Control Room', vendor: 'Rockwell', osVersion: 'PanelView Plus', network: 'control', zone: '', criticality: 'medium' },
+      { name: 'SCADA-SRV', type: 'scada', location: 'Server Rack', vendor: 'Schneider', osVersion: 'EcoStruxure', network: 'dmz', zone: '', criticality: 'critical' },
+      { name: 'Historian', type: 'historian', location: 'Server Rack', vendor: 'OSIsoft', osVersion: 'Pi 2023', network: 'dmz', zone: '', criticality: 'medium' },
+      { name: 'FW-OT', type: 'firewall', location: 'Edge', vendor: 'Palo Alto', osVersion: 'PAN-OS 10', network: 'dmz', zone: '', criticality: 'high' },
+      { name: 'Layer2-SW', type: 'switch', location: 'MCC', vendor: 'Cisco', osVersion: 'IOS 15', network: 'control', zone: '', criticality: 'medium' },
+      { name: 'Router-Corp', type: 'router', location: 'Edge', vendor: 'Cisco', osVersion: 'IOS XE', network: 'enterprise', zone: '', criticality: 'medium' },
+      { name: 'Eng-WS', type: 'workstation', location: 'Control Room', vendor: 'Dell', osVersion: 'Win10', network: 'control', zone: '', criticality: 'low' },
+      { name: 'SIS-CPU', type: 'safety-system', location: 'Safety Panel', vendor: 'HIMA', osVersion: 'HIMax', network: 'safety', zone: '', criticality: 'critical' }
+    ].map(a => ({ ...a, id: Date.now() + Math.random() }));
+
+    setData(d => ({ ...d, assets: [...d.assets, ...sampleAssets] }));
+  };
+
+  // Clear all assets
+  const clearAssets = () => {
+    if (
+      window.confirm(
+        'Are you sure you want to delete the entire asset inventory? This action cannot be undone.'
+      )
+    ) {
+      setData(d => ({ ...d, assets: [] }));
+    }
+  };
+
+  // Memoised validation summary
+  const assetValidation = useMemo(() => {
+    const summary = {
+      total: data.assets.length,
+      byType: {},
+      byCriticality: {},
+      missing: 0
+    };
+
+    data.assets.forEach(a => {
+      summary.byType[a.type || 'unknown'] = (summary.byType[a.type || 'unknown'] || 0) + 1;
+      summary.byCriticality[a.criticality || 'unknown'] =
+        (summary.byCriticality[a.criticality || 'unknown'] || 0) + 1;
+      // Required fields
+      if (!a.name || !a.type || !a.network || !a.criticality) summary.missing++;
+    });
+    return summary;
+  }, [data.assets]);
+
+  // ------------------------------------------------------------------
+  // Excel export (multi-sheet)
+  // ------------------------------------------------------------------
+  const exportXLSX = () => {
+    const wb = XLSX.utils.book_new();
+
+    // Summary sheet
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.json_to_sheet([
+        {
+          AssessmentName: data.metadata.name,
+          Assessor: data.metadata.assessor,
+          Date: data.metadata.date,
+          OverallRisk: overallRiskScore,
+          HighRiskZones: highRiskZones,
+          RequiredActions: requiredActions.length
+        }
+      ]),
+      'Summary'
+    );
+
+    // Simple helpers to sheet-ify
+    const append = (name, arr, columns) => {
+      const rows = arr.map(item => {
+        const row = {};
+        columns.forEach(col => (row[col] = item[col] ?? ''));
+        return row;
+      });
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), name);
+    };
+
+    append('Assets', data.assets, [
+      'name',
+      'type',
+      'location',
+      'vendor',
+      'osVersion',
+      'network',
+      'zone',
+      'criticality'
+    ]);
+    append('Zones', data.zones, ['name', 'type', 'securityLevel']);
+    append('Conduits', data.conduits, [
+      'name',
+      'sourceZone',
+      'destinationZone',
+      'type',
+      'protocols',
+      'securityRequirements'
+    ]);
+    append('Consequence Scenarios', data.consequenceScenarios, [
+      'name',
+      'asset',
+      'failureMode',
+      'impacts'
+    ]);
+
+    const threatsSheet = data.threatScenarios.map(t => ({
+      name: t.name,
+      threatActor: t.threatActor,
+      attackVector: t.attackVector,
+      likelihood: t.likelihood,
+      impact: t.impact,
+      existingControls: t.existingControls,
+      FR_Applied: (t.frApplied || []).join(', '),
+      FR_Implemented: (t.frImplemented || []).join(', ')
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(threatsSheet), 'Threat Scenarios');
+
+    append(
+      'Required Actions',
+      requiredActions,
+      ['type', 'text']
+    );
+
+    XLSX.writeFile(wb, 'iec62443_assessment.xlsx');
+  };
 
   const addZone = () => setData(d => ({ ...d, zones: [...d.zones, { id: Date.now(), name: '', type: 'control', securityLevel: 'SL1' }] }));
   const removeZone = (id) => setData(d => ({ ...d, zones: d.zones.filter(z => z.id !== id) }));
