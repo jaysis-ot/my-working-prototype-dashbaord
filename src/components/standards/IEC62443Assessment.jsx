@@ -982,6 +982,13 @@ function IEC62443Assessment() {
               <Button size="sm" onClick={addAsset}>Add Asset</Button>
             </div>
 
+            {/* Action bar */}
+            <div className="flex flex-wrap gap-2 mb-3">
+              <Button size="xs" variant="secondary" onClick={downloadAssetCSVTemplate}>Download CSV Template</Button>
+              <Button size="xs" variant="secondary" onClick={loadGasTemplateAssets}>Load Gas Template</Button>
+              <Button size="xs" variant="danger" onClick={clearAssets}>Clear Assets</Button>
+            </div>
+
             {/* Import Drop-zone */}
             <div
               className={`dashboard-card p-3 mb-4 border-2 border-dashed transition-colors text-center cursor-pointer ${
@@ -1008,7 +1015,7 @@ function IEC62443Assessment() {
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="text-left text-secondary-500">
-                    {['Name','Type','Location','Vendor/Model','OS/Firmware','Network','Criticality',''].map(h => <th key={h} className="py-2 pr-3">{h}</th>)}
+                    {['Name','Type','Location','Vendor/Model','OS/Firmware','Network','Zone','Criticality',''].map(h => <th key={h} className="py-2 pr-3">{h}</th>)}
                   </tr>
                 </thead>
                 <tbody>
@@ -1025,6 +1032,12 @@ function IEC62443Assessment() {
                       <td className="py-1 pr-2"><input className="input" value={a.osVersion} onChange={e=>updateAsset(a.id,{osVersion:e.target.value})} /></td>
                       <td className="py-1 pr-2"><input className="input" value={a.network} onChange={e=>updateAsset(a.id,{network:e.target.value})} /></td>
                       <td className="py-1 pr-2">
+                        <select className="input" value={a.zone || ''} onChange={e=>updateAsset(a.id,{zone:e.target.value})}>
+                          <option value="">Unassigned</option>
+                          {data.zones.map(z => <option key={z.id} value={z.name||z.id}>{z.name || z.id}</option>)}
+                        </select>
+                      </td>
+                      <td className="py-1 pr-2">
                         <select className="input" value={a.criticality} onChange={e=>updateAsset(a.id,{criticality:e.target.value})}>
                           {['critical','high','medium','low'].map(v=> <option key={v} value={v}>{v}</option>)}
                         </select>
@@ -1033,10 +1046,18 @@ function IEC62443Assessment() {
                     </tr>
                   ))}
                   {data.assets.length === 0 && (
-                    <tr><td colSpan={8} className="py-4 text-center text-secondary-500">No assets yet. Click Add Asset to begin.</td></tr>
+                    <tr><td colSpan={9} className="py-4 text-center text-secondary-500">No assets yet. Click Add Asset to begin.</td></tr>
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Validation summary */}
+            <div className="mt-2 text-xs text-secondary-600">
+              <div>Total assets: {assetValidation.total}</div>
+              <div>By type: {Object.entries(assetValidation.byType).map(([k,v])=>`${k}:${v}`).join(', ') || '—'}</div>
+              <div>By criticality: {Object.entries(assetValidation.byCriticality).map(([k,v])=>`${k}:${v}`).join(', ') || '—'}</div>
+              <div>Assets with missing required fields: {assetValidation.missing}</div>
             </div>
           </div>
       )}
