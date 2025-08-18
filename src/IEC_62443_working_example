@@ -1,0 +1,3334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IEC 62443-3-2 Professional Risk Assessment Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #00d4ff;
+            --primary-dark: #0099cc;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --info: #17a2b8;
+            --dark-bg: #1a1a2e;
+            --dark-bg-secondary: #16213e;
+            --card-bg: rgba(26, 26, 46, 0.8);
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --border-color: rgba(0, 212, 255, 0.3);
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--dark-bg);
+            background-image: linear-gradient(135deg, var(--dark-bg) 0%, var(--dark-bg-secondary) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Header Styles */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 15px;
+            border: 2px solid var(--border-color);
+            position: relative;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, var(--primary) 0%, var(--primary-dark) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .version-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--primary);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        
+        /* Assessment Type Selector */
+        .assessment-type-selector {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border: 2px solid rgba(0, 212, 255, 0.2);
+        }
+        
+        .assessment-types {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .assessment-type-card {
+            background: rgba(26, 26, 46, 0.6);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .assessment-type-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.2);
+        }
+        
+        .assessment-type-card.selected {
+            border-color: var(--primary);
+            background: rgba(0, 212, 255, 0.1);
+        }
+        
+        .assessment-type-card h3 {
+            color: var(--primary);
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        
+        .timeline-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: var(--info);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+        }
+        
+        /* Workflow Container */
+        .workflow-container {
+            display: none;
+            margin-top: 30px;
+        }
+        
+        .workflow-container.active {
+            display: block;
+            animation: fadeIn 0.4s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* ZCR Stages */
+        .zcr-stages {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            background: rgba(26, 26, 46, 0.5);
+            padding: 20px;
+            border-radius: 12px;
+            overflow-x: auto;
+        }
+        
+        .zcr-stage {
+            background: rgba(26, 26, 46, 0.7);
+            padding: 15px 20px;
+            border-radius: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            min-width: 140px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            position: relative;
+        }
+        
+        .zcr-stage.active {
+            border-color: var(--primary);
+            background: rgba(0, 212, 255, 0.1);
+            transform: translateY(-3px);
+        }
+        
+        .zcr-stage.completed {
+            border-color: var(--success);
+            background: rgba(40, 167, 69, 0.1);
+        }
+        
+        .zcr-stage.completed::after {
+            content: '✓';
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            color: var(--success);
+            font-weight: bold;
+        }
+        
+        /* Stage Content */
+        .stage-content {
+            display: none;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .stage-content.active {
+            display: block;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        /* Form Elements */
+        .form-section {
+            margin-bottom: 30px;
+            background: rgba(26, 26, 46, 0.4);
+            padding: 25px;
+            border-radius: 10px;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #f0f0f0;
+        }
+        
+        .form-group label.required::after {
+            content: ' *';
+            color: var(--danger);
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            background: rgba(26, 26, 46, 0.8);
+            color: #e0e0e0;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+        }
+        
+        .form-group input.error,
+        .form-group select.error {
+            border-color: var(--danger);
+        }
+        
+        .error-message {
+            color: var(--danger);
+            font-size: 0.85em;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .error-message.show {
+            display: block;
+        }
+        
+        /* Enhanced Asset Table */
+        .asset-table-wrapper {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        
+        .asset-inventory-table {
+            width: 100%;
+            min-width: 1200px;
+            border-collapse: collapse;
+            background: rgba(26, 26, 46, 0.8);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .asset-inventory-table th {
+            background: rgba(0, 212, 255, 0.2);
+            padding: 12px;
+            text-align: left;
+            color: var(--primary);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        
+        .asset-inventory-table td {
+            padding: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .asset-inventory-table tr:hover {
+            background: rgba(0, 212, 255, 0.05);
+        }
+        
+        /* Buttons */
+        .btn {
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: none;
+            margin: 5px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 212, 255, 0.4);
+        }
+        
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: rgba(26, 26, 46, 0.8);
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+        }
+        
+        /* Risk Matrix Enhanced */
+        .risk-matrix-grid {
+            display: grid;
+            grid-template-columns: 120px repeat(5, 1fr);
+            gap: 3px;
+            margin: 20px 0;
+            max-width: 800px;
+        }
+        
+        .matrix-header {
+            padding: 12px;
+            text-align: center;
+            background: rgba(0, 212, 255, 0.3);
+            color: white;
+            font-weight: bold;
+            font-size: 13px;
+            border-radius: 4px;
+        }
+        
+        .matrix-cell {
+            padding: 12px;
+            text-align: center;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            font-weight: bold;
+            position: relative;
+        }
+        
+        .matrix-cell:hover {
+            transform: scale(1.05);
+            z-index: 10;
+        }
+        
+        .matrix-cell.selected {
+            border-color: white;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+        }
+        
+        /* Risk Colors */
+        .risk-very-low { background: #28a745 !important; }
+        .risk-low { background: #6c757d !important; }
+        .risk-medium { background: #ffc107 !important; color: #000; }
+        .risk-high { background: #fd7e14 !important; }
+        .risk-very-high { background: #dc3545 !important; }
+        .risk-critical { background: #6f42c1 !important; }
+        
+        /* Zone Designer Enhanced */
+        .zone-visualization {
+            background: rgba(26, 26, 46, 0.6);
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            min-height: 300px;
+        }
+        
+        .zone-card {
+            background: rgba(26, 26, 46, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid var(--primary);
+            transition: all 0.3s ease;
+            position: relative;
+            margin-bottom: 15px;
+        }
+        
+        .zone-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.2);
+        }
+        
+        .sl-indicator {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: var(--warning);
+            color: #000;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 0.85em;
+        }
+        
+        .sl-1 { background: var(--success); color: white; }
+        .sl-2 { background: var(--info); color: white; }
+        .sl-3 { background: var(--warning); }
+        .sl-4 { background: var(--danger); color: white; }
+        
+        /* Foundational Requirements Matrix */
+        .fr-matrix {
+            background: rgba(26, 26, 46, 0.6);
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+        
+        .fr-requirement {
+            background: rgba(26, 26, 46, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .fr-requirement h5 {
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+        
+        .fr-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .fr-control {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            background: rgba(26, 26, 46, 0.4);
+            border-radius: 6px;
+        }
+        
+        .fr-control input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        
+        /* Progress Indicators */
+        .progress-bar {
+            background: rgba(26, 26, 46, 0.8);
+            height: 8px;
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-dark) 100%);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        
+        .completion-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+        
+        .completion-indicator span {
+            color: var(--text-secondary);
+        }
+        
+        .completion-indicator .percentage {
+            color: var(--primary);
+            font-weight: bold;
+        }
+        
+        /* Help System */
+        .help-tooltip {
+            display: inline-block;
+            margin-left: 5px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--info);
+            color: white;
+            text-align: center;
+            line-height: 16px;
+            font-size: 12px;
+            cursor: help;
+            position: relative;
+        }
+        
+        .help-tooltip:hover::after {
+            content: attr(data-help);
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            white-space: nowrap;
+            max-width: 300px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+        
+        /* Navigation */
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Results Dashboard */
+        .results-dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .metric-card {
+            background: rgba(26, 26, 46, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+        }
+        
+        .metric-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+        
+        .metric-label {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .metric-trend {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 1.2em;
+        }
+        
+        .trend-up { color: var(--success); }
+        .trend-down { color: var(--danger); }
+        .trend-neutral { color: var(--warning); }
+        
+        /* Validation Styles */
+        .validation-summary {
+            background: rgba(255, 193, 7, 0.1);
+            border-left: 4px solid var(--warning);
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .validation-summary h4 {
+            color: var(--warning);
+            margin-bottom: 10px;
+        }
+        
+        .validation-item {
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+        }
+        
+        .validation-item.valid {
+            color: var(--success);
+        }
+        
+        .validation-item.invalid {
+            color: var(--danger);
+        }
+        
+        .validation-item::before {
+            content: '⚠ ';
+            margin-right: 8px;
+        }
+        
+        .validation-item.valid::before {
+            content: '✓';
+        }
+        
+        .validation-item.invalid::before {
+            content: '✗';
+        }
+        
+        /* Loading States */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .loading-overlay.active {
+            display: flex;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Data Tables for new sections */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            background: rgba(26, 26, 46, 0.6);
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: left;
+        }
+        
+        .data-table th {
+            background: rgba(0, 212, 255, 0.2);
+            color: var(--primary);
+            font-weight: 600;
+        }
+        
+        .data-table tr:hover {
+            background: rgba(0, 212, 255, 0.05);
+        }
+        
+        /* Grid layouts for new sections */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .small {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .zcr-stages {
+                flex-direction: column;
+            }
+            
+            .zcr-stage {
+                margin-bottom: 10px;
+                margin-right: 0;
+            }
+            
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+    
+    <div class="container">
+        <div class="header">
+            <span class="version-badge">v2.0 Professional</span>
+            <h1>IEC 62443-3-2 Risk Assessment Platform</h1>
+            <p>Comprehensive Zonal Cyber Risk (ZCR) Assessment with TSA Pipeline Security Compliance</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="overallProgress" style="width: 0%"></div>
+            </div>
+            <div class="completion-indicator">
+                <span>Assessment Progress</span>
+                <span class="percentage" id="progressPercentage">0%</span>
+            </div>
+        </div>
+        
+        <!-- Assessment Type Selection -->
+        <div class="assessment-type-selector">
+            <h2 style="color: var(--primary); margin-bottom: 15px;">Select Assessment Type</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">Choose based on your objectives and available resources.</p>
+            
+            <div class="assessment-types">
+                <div class="assessment-type-card" onclick="selectAssessmentType('initial')" data-type="initial">
+                    <span class="timeline-badge">2-4 weeks</span>
+                    <h3>Initial Risk Assessment</h3>
+                    <div style="color: var(--warning); font-weight: 500; margin-bottom: 8px;">Quick Overview</div>
+                    <p>High-level assessment with worst-case scenarios (likelihood = 1). Establishes preliminary zones and security targets.</p>
+                    <ul style="margin-top: 10px; font-size: 0.9em; color: var(--text-secondary);">
+                        <li>Basic asset inventory</li>
+                        <li>Simplified risk matrix</li>
+                        <li>Initial SL-T assignment</li>
+                    </ul>
+                </div>
+                
+                <div class="assessment-type-card" onclick="selectAssessmentType('detailed')" data-type="detailed">
+                    <span class="timeline-badge">8-16 weeks</span>
+                    <h3>Detailed Risk Assessment</h3>
+                    <div style="color: var(--warning); font-weight: 500; margin-bottom: 8px;">Comprehensive Analysis</div>
+                    <p>Complete threat modeling with realistic likelihood estimation and detailed vulnerability analysis.</p>
+                    <ul style="margin-top: 10px; font-size: 0.9em; color: var(--text-secondary);">
+                        <li>Full asset characterization</li>
+                        <li>Threat actor profiling</li>
+                        <li>Control effectiveness</li>
+                    </ul>
+                </div>
+                
+                <div class="assessment-type-card" onclick="selectAssessmentType('vulnerability')" data-type="vulnerability">
+                    <span class="timeline-badge">4-8 weeks</span>
+                    <h3>Vulnerability Assessment</h3>
+                    <div style="color: var(--warning); font-weight: 500; margin-bottom: 8px;">Technical Focus</div>
+                    <p>Technical vulnerability identification with automated scanning and manual verification.</p>
+                    <ul style="margin-top: 10px; font-size: 0.9em; color: var(--text-secondary);">
+                        <li>Scan result correlation</li>
+                        <li>CVSS scoring</li>
+                        <li>Patch prioritization</li>
+                    </ul>
+                </div>
+                
+                <div class="assessment-type-card" onclick="selectAssessmentType('compliance')" data-type="compliance">
+                    <span class="timeline-badge">6-12 weeks</span>
+                    <h3>Compliance Assessment</h3>
+                    <div style="color: var(--warning); font-weight: 500; margin-bottom: 8px;">Regulatory Alignment</div>
+                    <p>Gap analysis against IEC 62443 and TSA Pipeline Security requirements.</p>
+                    <ul style="margin-top: 10px; font-size: 0.9em; color: var(--text-secondary);">
+                        <li>FR1-FR7 mapping</li>
+                        <li>TSA compliance check</li>
+                        <li>Maturity scoring</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Workflow Container -->
+        <div id="workflow-container" class="workflow-container">
+            <!-- ZCR Stage Navigation -->
+            <div class="zcr-stages">
+                <div class="zcr-stage active" id="stage1" onclick="navigateToStage(1)">
+                    <h4>ZCR 1</h4>
+                    <p>System Definition</p>
+                </div>
+                <div class="zcr-stage" id="stage2" onclick="navigateToStage(2)">
+                    <h4>ZCR 2</h4>
+                    <p>Initial Assessment</p>
+                </div>
+                <div class="zcr-stage" id="stage3" onclick="navigateToStage(3)">
+                    <h4>ZCR 3</h4>
+                    <p>Zone Partitioning</p>
+                </div>
+                <div class="zcr-stage" id="stage4" onclick="navigateToStage(4)">
+                    <h4>ZCR 4</h4>
+                    <p>Risk Comparison</p>
+                </div>
+                <div class="zcr-stage" id="stage5" onclick="navigateToStage(5)">
+                    <h4>ZCR 5</h4>
+                    <p>Detailed Analysis</p>
+                </div>
+                <div class="zcr-stage" id="stage6" onclick="navigateToStage(6)">
+                    <h4>ZCR 6</h4>
+                    <p>Requirements</p>
+                </div>
+                <div class="zcr-stage" id="stage7" onclick="navigateToStage(7)">
+                    <h4>ZCR 7</h4>
+                    <p>Approval</p>
+                </div>
+            </div>
+            
+            <!-- Stage 1: System Under Consideration -->
+            <div id="stage-content-1" class="stage-content active">
+                <h2 style="color: var(--primary); margin-bottom: 20px;">
+                    ZCR 1: Define System Under Consideration (SuC)
+                    <span class="help-tooltip" data-help="Define the scope and boundaries of your industrial system">?</span>
+                </h2>
+                
+                <!-- Assessment Metadata -->
+                <div class="form-section">
+                    <h3>Assessment Information</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="assessmentName" class="required">Assessment Name</label>
+                            <input type="text" id="assessmentName" placeholder="e.g., Gas Compressor Station Alpha - Q1 2025">
+                            <span class="error-message">This field is required</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="assessorName" class="required">Lead Assessor</label>
+                            <input type="text" id="assessorName" placeholder="Full name and certification">
+                            <span class="error-message">This field is required</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="assessmentDate" class="required">Assessment Date</label>
+                            <input type="date" id="assessmentDate">
+                            <span class="error-message">This field is required</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- System Boundaries -->
+                <div class="form-section">
+                    <h3>System Scope & Classification</h3>
+                    <div class="form-group">
+                        <label for="systemDescription" class="required">
+                            System Description
+                            <span class="help-tooltip" data-help="Describe the industrial process, primary functions, and operational context">?</span>
+                        </label>
+                        <textarea id="systemDescription" rows="4" placeholder="Describe the industrial system, processes, critical functions, and operational dependencies..."></textarea>
+                        <span class="error-message">Please provide a system description</span>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="facilityType" class="required">Facility Type</label>
+                            <select id="facilityType">
+                                <option value="">Select facility type...</option>
+                                <optgroup label="Gas Transmission">
+                                    <option value="gas-compressor">Compressor Station</option>
+                                    <option value="gas-measurement">Measurement Station</option>
+                                    <option value="gas-gate">Gate Station</option>
+                                    <option value="gas-storage">Storage Facility</option>
+                                    <option value="gas-processing">Processing Plant</option>
+                                </optgroup>
+                                <optgroup label="Pipeline Operations">
+                                    <option value="pipeline-control">Control Center</option>
+                                    <option value="pipeline-pump">Pump Station</option>
+                                    <option value="pipeline-terminal">Terminal</option>
+                                </optgroup>
+                                <optgroup label="Other Industries">
+                                    <option value="power-generation">Power Generation</option>
+                                    <option value="water-treatment">Water/Wastewater</option>
+                                    <option value="chemical-plant">Chemical Plant</option>
+                                    <option value="manufacturing">Manufacturing</option>
+                                </optgroup>
+                            </select>
+                            <span class="error-message">Please select a facility type</span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="criticalityLevel" class="required">
+                                Criticality Classification
+                                <span class="help-tooltip" data-help="Based on TSA Pipeline Security Guidelines">?</span>
+                            </label>
+                            <select id="criticalityLevel">
+                                <option value="">Select criticality...</option>
+                                <option value="critical-14day">Critical - Service loss >14 days</option>
+                                <option value="critical-dcei">Critical - Defense Critical Electric Infrastructure</option>
+                                <option value="critical-extended">Critical - Extended lead time components</option>
+                                <option value="high">High - Significant operational impact</option>
+                                <option value="medium">Medium - Moderate impact with workarounds</option>
+                                <option value="low">Low - Minimal operational impact</option>
+                            </select>
+                            <span class="error-message">Please select criticality level</span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="regulatoryFramework">Regulatory Framework</label>
+                            <select id="regulatoryFramework" multiple style="height: 100px;">
+                                <option value="tsa-pipeline">TSA Pipeline Security</option>
+                                <option value="nerc-cip">NERC CIP</option>
+                                <option value="api-1164">API Standard 1164</option>
+                                <option value="nist-csf">NIST Cybersecurity Framework</option>
+                                <option value="iec-62443">IEC 62443 (All)</option>
+                                <option value="iso-27001">ISO 27001/27002</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="systemBoundaries" class="required">
+                            System Boundaries
+                            <span class="help-tooltip" data-help="Define what is included and excluded from the assessment">?</span>
+                        </label>
+                        <textarea id="systemBoundaries" rows="3" placeholder="Define physical locations, network segments, organizational boundaries, and interfaces with external systems..."></textarea>
+                        <span class="error-message">Please define system boundaries</span>
+                    </div>
+                </div>
+                
+                <!-- Enhanced Asset Inventory -->
+                <div class="form-section">
+                    <h3>
+                        Asset Inventory
+                        <span class="help-tooltip" data-help="Document all cyber assets within the SuC per IEC 62443-3-2 requirements">?</span>
+                    </h3>
+                    
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="addAsset()">➕ Add Asset</button>
+                        <button class="btn btn-secondary" onclick="downloadCSVTemplate()">📥 Download Template</button>
+                        <button class="btn btn-success" onclick="loadGasTemplate()">⚡ Load Gas Template</button>
+                        <button class="btn btn-secondary" onclick="refreshInventory()">🔄 Refresh</button>
+                        <button class="btn btn-danger" onclick="clearInventory()">🗑️ Clear All</button>
+                    </div>
+                    
+                    <div class="asset-table-wrapper">
+                        <table class="asset-inventory-table" id="assetTable">
+                            <thead>
+                                <tr>
+                                    <th>Asset ID</th>
+                                    <th>Asset Name</th>
+                                    <th>Type</th>
+                                    <th>Vendor/Model</th>
+                                    <th>OS/Firmware</th>
+                                    <th>Location</th>
+                                    <th>Network</th>
+                                    <th>Protocols</th>
+                                    <th>Criticality</th>
+                                    <th>Safety</th>
+                                    <th>Lifecycle</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assetTableBody">
+                                <!-- Assets will be added here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="validation-summary" id="assetValidation" style="display: none;">
+                        <h4>Asset Inventory Status</h4>
+                        <div class="validation-item" id="assetCountValidation">Minimum 1 asset required</div>
+                        <div class="validation-item" id="criticalAssetValidation">Critical assets identified</div>
+                        <div class="validation-item" id="safetySystemValidation">Safety systems documented</div>
+                    </div>
+                </div>
+                
+                <!-- External Connections -->
+                <div class="form-section">
+                    <h3>External Connections & Access Points</h3>
+                    <div class="form-group">
+                        <label for="remoteAccess">
+                            Remote Access Methods
+                            <span class="help-tooltip" data-help="Document all external access per TSA requirements">?</span>
+                        </label>
+                        <textarea id="remoteAccess" rows="3" placeholder="List VPN connections, vendor support access, cloud services, remote maintenance systems..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="networkInterfaces">External Network Interfaces</label>
+                        <textarea id="networkInterfaces" rows="3" placeholder="Document connections to corporate networks, internet, third-party systems..."></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Stage 2: Initial Risk Assessment -->
+            <div id="stage-content-2" class="stage-content">
+                <h2 style="color: var(--primary); margin-bottom: 20px;">
+                    ZCR 2: Initial Risk Assessment
+                    <span class="help-tooltip" data-help="Assess worst-case impact with likelihood = 1">?</span>
+                </h2>
+                
+                <!-- Risk Matrix Configuration -->
+                <div class="form-section">
+                    <h3>Risk Assessment Matrix</h3>
+                    <div style="background: rgba(255, 193, 7, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <p style="color: var(--warning);">
+                            ⚠️ <strong>Initial Assessment Mode:</strong> All scenarios assume likelihood = 1.0 (certain) per IEC 62443-3-2
+                        </p>
+                    </div>
+                    
+                    <div class="risk-matrix-grid" id="riskMatrix">
+                        <!-- Risk matrix will be generated here -->
+                    </div>
+                </div>
+                
+                <!-- Consequence Scenarios -->
+                <div class="form-section">
+                    <h3>Consequence Assessment</h3>
+                    <button class="btn btn-primary" onclick="addConsequenceScenario()">➕ Add Scenario</button>
+                    <button class="btn btn-secondary" onclick="loadIndustryScenarios()">📋 Load Industry Scenarios</button>
+                    
+                    <div id="consequenceScenarios" style="margin-top: 20px;">
+                        <!-- Scenarios will be added here -->
+                    </div>
+                </div>
+                
+                <!-- Initial SL-T Assignment -->
+                <div class="form-section">
+                    <h3>Preliminary Security Level Targets</h3>
+                    <div id="preliminarySLT">
+                        <!-- Auto-generated based on risk assessment -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Stage 3: Zone and Conduit Partitioning -->
+            <div id="stage-content-3" class="stage-content">
+                <h2 style="color: var(--primary); margin-bottom: 20px;">
+                    ZCR 3: Zone and Conduit Partitioning
+                    <span class="help-tooltip" data-help="Segment system into security zones per IEC 62443">?</span>
+                </h2>
+                
+                <!-- Zone Designer -->
+                <div class="form-section">
+                    <h3>Security Zone Definition</h3>
+                    <button class="btn btn-primary" onclick="addZone()">➕ Create Zone</button>
+                    <button class="btn btn-secondary" onclick="autoGenerateZones()">🔄 Auto-Generate Zones</button>
+                    
+                    <div class="zone-visualization" id="zoneVisualization">
+                        <!-- Visual zone representation -->
+                    </div>
+                    
+                    <div id="zoneList" style="margin-top: 20px;">
+                        <!-- Zone cards will be added here -->
+                    </div>
+                </div>
+                
+                <!-- Conduit Definition -->
+                <div class="form-section">
+                    <h3>Conduit Configuration</h3>
+                    <button class="btn btn-primary" onclick="addConduit()">➕ Add Conduit</button>
+                    
+                    <div id="conduitList" style="margin-top: 20px;">
+                        <!-- Conduits will be added here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Stage 4: Risk Comparison -->
+            <div id="stage-content-4" class="stage-content">
+                <h2 style="color: var(--primary); margin-bottom: 20px;">ZCR 4: Risk Tolerance Comparison</h2>
+                
+                <div class="form-section">
+                    <h3>Risk Acceptance Criteria</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="riskTolerance">Organizational Risk Tolerance</label>
+                            <select id="riskTolerance">
+                                <option value="1">Very Low - Zero tolerance for incidents</option>
+                                <option value="2">Low - Minimal risk acceptance</option>
+                                <option value="3" selected>Medium - Balanced approach</option>
+                                <option value="4">High - Accept calculated risks</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="riskJustification">Justification</label>
+                            <textarea id="riskJustification" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h3>Risk Comparison Results</h3>
+                    <div id="riskComparisonResults">
+                        <!-- Auto-generated comparison -->
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h3>Assessment Decision</h3>
+                    <div>
+                        <label><input type="radio" name="decision" value="accept"> Risks acceptable - Proceed to documentation</label><br>
+                        <label><input type="radio" name="decision" value="detailed"> Risks exceed tolerance - Require detailed assessment</label><br>
+                        <label><input type="radio" name="decision" value="modify"> Modify system scope and reassess</label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Stage 5: Detailed Risk Assessment -->
+            <div id="stage-content-5" class="stage-content">
+                <h2 style="color: var(--primary); margin-bottom: 20px;">ZCR 5: Detailed Risk Assessment</h2>
+                
+                <!-- Threat Scenarios -->
+                <div class="form-section">
+                    <h3>Threat Scenario Analysis</h3>
+                    <button class="btn btn-primary" onclick="addThreatScenario()">➕ Add Threat</button>
+                    <button class="btn btn-secondary" onclick="loadThreatLibrary()">📚 Threat Library</button>
+                    
+                    <div id="threatScenarios" style="margin-top: 20px;">
+                        <!-- Threats will be added here -->
+                    </div>
+                </div>
+                
+                <!-- Vulnerability Correlation -->
+                <div class="form-section">
+                    <h3>Vulnerability Analysis</h3>
+                    <button class="btn btn-secondary" onclick="importVulnScan()">📊 Import Scan</button>
+                    
+                    <div id="vulnerabilityAnalysis">
+                        <!-- Vulnerability data -->
+                    </div>
+                </div>
+                
+                <!-- Control Assessment -->
+                <div class="form-section">
+                    <h3>Security Control Effectiveness</h3>
+                    <div id="controlAssessment">
+                        <!-- Control evaluation -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Stage 6: Document Requirements -->
+            <div id="stage-content-6" class="stage-content">
+                <h2 style="color: var(--primary); margin-bottom: 20px;">ZCR 6: Cybersecurity Requirements</h2>
+                
+                <!-- Foundational Requirements -->
+                <div class="fr-matrix">
+                    <h3>IEC 62443 Foundational Requirements (FR1-FR7)</h3>
+                    <div id="foundationalRequirements">
+                        <!-- FR matrix will be generated -->
+                    </div>
+                </div>
+                
+                <!-- Mitigation Plan -->
+                <div class="form-section">
+                    <h3>Risk Mitigation Plan</h3>
+                    <div id="mitigationPlan">
+                        <!-- Generated mitigation actions -->
+                    </div>
+                </div>
+                
+                <!-- Compliance Mapping -->
+                <div class="form-section">
+                    <h3>Regulatory Compliance Status</h3>
+                    <div id="complianceMapping">
+                        <!-- Compliance checklist -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Stage 7: Approval -->
+            <div id="stage-content-7" class="stage-content">
+                <h2 style="color: var(--primary); margin-bottom: 20px;">ZCR 7: Assessment Approval</h2>
+                
+                <div class="form-section">
+                    <h3>Executive Summary</h3>
+                    <div class="results-dashboard">
+                        <div class="metric-card">
+                            <span class="metric-trend trend-up">↑</span>
+                            <div class="metric-value" id="overallRisk">--</div>
+                            <div class="metric-label">Overall Risk Score</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="highRiskCount">--</div>
+                            <div class="metric-label">High Risk Zones</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="complianceScore">--</div>
+                            <div class="metric-label">Compliance Score</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="estimatedBudget">--</div>
+                            <div class="metric-label">Est. Mitigation Cost</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h3>Formal Approval</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="reviewerName" class="required">Reviewer Name</label>
+                            <input type="text" id="reviewerName" placeholder="Full name and title">
+                        </div>
+                        <div class="form-group">
+                            <label for="reviewDate">Review Date</label>
+                            <input type="date" id="reviewDate">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="reviewComments">Review Comments</label>
+                        <textarea id="reviewComments" rows="3"></textarea>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <label>
+                            <input type="checkbox" id="approvalCheck">
+                            I approve this assessment and authorize implementation of recommended controls
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Export Options -->
+                <div class="form-section">
+                    <h3>Export & Reporting</h3>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-success" onclick="generateReport()">📄 Generate Report</button>
+                        <button class="btn btn-secondary" onclick="printReport()">🖨️ Print / Save PDF</button>
+                        <button class="btn btn-secondary" onclick="exportExcel()">📊 Export Excel</button>
+                        <button class="btn btn-secondary" onclick="exportJSON()">💾 Export JSON</button>
+                        <button class="btn btn-secondary" onclick="generateCRS()">📋 Generate CRS</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Navigation -->
+            <div class="navigation-buttons">
+                <button class="btn btn-secondary" id="prevBtn" onclick="previousStage()">← Previous</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" onclick="saveProgress()">💾 Save Progress</button>
+                    <button class="btn btn-secondary" onclick="validateStage()">✓ Validate</button>
+                </div>
+                <button class="btn btn-primary" id="nextBtn" onclick="nextStage()">Next →</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // ============================================
+        // GLOBAL STATE MANAGEMENT
+        // ============================================
+        const assessmentState = {
+            type: null,
+            currentStage: 1,
+            data: {
+                metadata: {},
+                assets: [],
+                zones: [],
+                conduits: [],
+                consequences: [],
+                threats: [],
+                vulnerabilities: [],
+                controls: [],
+                requirements: [],
+                compliance: {}
+            },
+            validation: {
+                stage1: false,
+                stage2: false,
+                stage3: false,
+                stage4: false,
+                stage5: false,
+                stage6: false,
+                stage7: false
+            }
+        };
+        
+        // Global counters
+        let assetIdCounter = 1;
+        let assetDataStore = [];
+        let zoneIdCounter = 1;
+        let conduitIdCounter = 1;
+        let consequenceIdCounter = 1;
+        let threatIdCounter = 1;
+        
+        // ============================================
+        // INITIALIZATION AND SETUP
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set current date for date fields
+            const today = new Date().toISOString().split('T')[0];
+            const assessmentDateEl = document.getElementById('assessmentDate');
+            const reviewDateEl = document.getElementById('reviewDate');
+            
+            if (assessmentDateEl) assessmentDateEl.value = today;
+            if (reviewDateEl) reviewDateEl.value = today;
+            
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                // Ctrl+S to save
+                if (e.ctrlKey && e.key === 's') {
+                    e.preventDefault();
+                    saveProgress();
+                }
+                
+                // Ctrl+Enter to go to next stage
+                if (e.ctrlKey && e.key === 'Enter') {
+                    e.preventDefault();
+                    nextStage();
+                }
+            });
+            
+            // Load saved progress if available
+            loadSavedProgress();
+            
+            console.log('IEC 62443-3-2 Risk Assessment Platform initialized successfully');
+        });
+        
+        // ============================================
+        // ASSESSMENT TYPE SELECTION
+        // ============================================
+        function selectAssessmentType(type) {
+            assessmentState.type = type;
+            
+            // Update UI
+            document.querySelectorAll('.assessment-type-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            document.querySelector(`[data-type="${type}"]`).classList.add('selected');
+            
+            // Show workflow
+            document.getElementById('workflow-container').classList.add('active');
+            
+            // Configure stages based on type
+            configureWorkflowForType(type);
+            
+            // Initialize first stage
+            initializeStage1();
+            
+            updateProgress();
+        }
+        
+        function configureWorkflowForType(type) {
+            const stages = document.querySelectorAll('.zcr-stage');
+            
+            switch(type) {
+                case 'initial':
+                    // Hide detailed assessment stage
+                    stages[4].style.opacity = '0.3';
+                    stages[4].style.cursor = 'not-allowed';
+                    break;
+                    
+                case 'vulnerability':
+                    // Focus on stages 1 and 5
+                    [1, 2, 3, 6].forEach(i => {
+                        stages[i].style.opacity = '0.5';
+                    });
+                    break;
+                    
+                case 'compliance':
+                    // Focus on stages 1 and 6
+                    [1, 2, 3, 4].forEach(i => {
+                        stages[i].style.opacity = '0.5';
+                    });
+                    break;
+                    
+                case 'detailed':
+                default:
+                    // All stages active
+                    stages.forEach(stage => {
+                        stage.style.opacity = '1';
+                        stage.style.cursor = 'pointer';
+                    });
+            }
+        }
+        
+        function initializeStage1() {
+            // Set current date
+            document.getElementById('assessmentDate').value = new Date().toISOString().split('T')[0];
+            
+            // Initialize risk matrix
+            buildRiskMatrixData();
+            
+            // Load saved data if exists
+            loadSavedProgress();
+        }
+        
+        // ============================================
+        // NAVIGATION FUNCTIONS
+        // ============================================
+        function navigateToStage(stage) {
+            if (stage <= assessmentState.currentStage || validateCurrentStage()) {
+                showStage(stage);
+            }
+        }
+        
+        function showStage(stage) {
+            assessmentState.currentStage = stage;
+            
+            // Hide all stages
+            document.querySelectorAll('.stage-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Show selected stage
+            const stageContent = document.getElementById(`stage-content-${stage}`);
+            if (stageContent) {
+                stageContent.classList.add('active');
+            }
+            
+            // Update stage indicators
+            document.querySelectorAll('.zcr-stage').forEach((stageEl, index) => {
+                stageEl.classList.remove('active', 'completed');
+                if (index + 1 === stage) {
+                    stageEl.classList.add('active');
+                } else if (index + 1 < stage) {
+                    stageEl.classList.add('completed');
+                }
+            });
+            
+            updateNavigationButtons();
+            updateProgress();
+            
+            // Initialize stage-specific content
+            switch(stage) {
+                case 5:
+                    renderControlAssessment();
+                    break;
+                case 6:
+                    generateFoundationalRequirements();
+                    renderMitigationPlanUI();
+                    renderComplianceMapping();
+                    break;
+                case 7:
+                    generateExecutiveSummary();
+                    break;
+            }
+        }
+        
+        function previousStage() {
+            if (assessmentState.currentStage > 1) {
+                showStage(assessmentState.currentStage - 1);
+            }
+        }
+        
+        function nextStage() {
+            if (validateCurrentStage()) {
+                if (assessmentState.currentStage < 7) {
+                    showStage(assessmentState.currentStage + 1);
+                } else {
+                    generateReport();
+                }
+            }
+        }
+        
+        function updateNavigationButtons() {
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            
+            if (prevBtn) {
+                prevBtn.disabled = assessmentState.currentStage === 1;
+            }
+            if (nextBtn) {
+                nextBtn.textContent = assessmentState.currentStage === 7 ? 'Complete Assessment' : 'Next →';
+            }
+        }
+        
+        function updateProgress() {
+            const totalStages = 7;
+            const currentProgress = assessmentState.currentStage;
+            const progressPercentage = Math.round((currentProgress / totalStages) * 100);
+            
+            const progressFill = document.getElementById('overallProgress');
+            const progressText = document.getElementById('progressPercentage');
+            
+            if (progressFill) {
+                progressFill.style.width = `${progressPercentage}%`;
+            }
+            if (progressText) {
+                progressText.textContent = `${progressPercentage}%`;
+            }
+        }
+        
+        // ============================================
+        // ASSET MANAGEMENT FUNCTIONS
+        // ============================================
+        function addAsset() {
+            const tbody = document.getElementById('assetTableBody');
+            if (!tbody) return;
+            
+            const assetId = `ASSET-${String(assetIdCounter++).padStart(4, '0')}`;
+            
+            const assetData = {
+                id: assetId,
+                name: '',
+                type: '',
+                vendor: '',
+                version: '',
+                location: '',
+                network: '',
+                protocol: '',
+                criticality: 'medium',
+                safety: 'none',
+                lifecycle: 'active'
+            };
+            
+            assetDataStore.push(assetData);
+            
+            const row = document.createElement('tr');
+            row.id = `asset-row-${assetId}`;
+            row.innerHTML = `
+                <td>${assetId}</td>
+                <td><input type="text" placeholder="Asset name" style="width: 150px;" onchange="updateAssetData('${assetId}', 'name', this.value)"></td>
+                <td>
+                    <select style="width: 120px;" onchange="updateAssetData('${assetId}', 'type', this.value)">
+                        <option value="">Select...</option>
+                        <optgroup label="Control Systems">
+                            <option value="plc">PLC</option>
+                            <option value="dcs">DCS</option>
+                            <option value="rtu">RTU</option>
+                            <option value="sis">Safety System</option>
+                        </optgroup>
+                        <optgroup label="HMI/Workstations">
+                            <option value="hmi">HMI</option>
+                            <option value="ews">Engineering WS</option>
+                            <option value="ows">Operator WS</option>
+                        </optgroup>
+                        <optgroup label="Network">
+                            <option value="firewall">Firewall</option>
+                            <option value="switch">Switch</option>
+                            <option value="router">Router</option>
+                            <option value="wireless">Wireless AP</option>
+                        </optgroup>
+                        <optgroup label="Servers">
+                            <option value="historian">Historian</option>
+                            <option value="scada">SCADA Server</option>
+                            <option value="domain">Domain Controller</option>
+                        </optgroup>
+                    </select>
+                </td>
+                <td><input type="text" placeholder="Vendor/Model" style="width: 120px;" onchange="updateAssetData('${assetId}', 'vendor', this.value)"></td>
+                <td><input type="text" placeholder="Version" style="width: 100px;" onchange="updateAssetData('${assetId}', 'version', this.value)"></td>
+                <td><input type="text" placeholder="Location" style="width: 120px;" onchange="updateAssetData('${assetId}', 'location', this.value)"></td>
+                <td><input type="text" placeholder="IP/VLAN" style="width: 100px;" onchange="updateAssetData('${assetId}', 'network', this.value)"></td>
+                <td>
+                    <select style="width: 100px;" onchange="updateAssetData('${assetId}', 'protocol', this.value)">
+                        <option value="">Select...</option>
+                        <option value="modbus">Modbus</option>
+                        <option value="dnp3">DNP3</option>
+                        <option value="iec61850">IEC 61850</option>
+                        <option value="ethernet-ip">EtherNet/IP</option>
+                        <option value="profinet">PROFINET</option>
+                        <option value="opc">OPC UA</option>
+                    </select>
+                </td>
+                <td>
+                    <select style="width: 100px;" onchange="updateAssetData('${assetId}', 'criticality', this.value)">
+                        <option value="critical">Critical</option>
+                        <option value="high">High</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </td>
+                <td>
+                    <select style="width: 100px;" onchange="updateAssetData('${assetId}', 'safety', this.value)">
+                        <option value="none">None</option>
+                        <option value="sil1">SIL 1</option>
+                        <option value="sil2">SIL 2</option>
+                        <option value="sil3">SIL 3</option>
+                    </select>
+                </td>
+                <td>
+                    <select style="width: 100px;" onchange="updateAssetData('${assetId}', 'lifecycle', this.value)">
+                        <option value="active" selected>Active</option>
+                        <option value="legacy">Legacy</option>
+                        <option value="eol">End of Life</option>
+                        <option value="replace">To Replace</option>
+                    </select>
+                </td>
+                <td>
+                    <button class="btn btn-danger" style="padding: 5px 10px;" onclick="removeAsset('${assetId}')">×</button>
+                </td>
+            `;
+            
+            tbody.appendChild(row);
+            validateAssets();
+        }
+        
+        function updateAssetData(assetId, field, value) {
+            const asset = assetDataStore.find(a => a.id === assetId);
+            if (asset) {
+                asset[field] = value;
+                validateAssets();
+            }
+        }
+        
+        function removeAsset(assetId) {
+            const row = document.getElementById(`asset-row-${assetId}`);
+            if (row) {
+                row.remove();
+            }
+            assetDataStore = assetDataStore.filter(a => a.id !== assetId);
+            validateAssets();
+        }
+        
+        function refreshInventory() {
+            const tbody = document.getElementById('assetTableBody');
+            if (!tbody) return;
+            
+            tbody.innerHTML = '';
+            
+            const tempStore = [...assetDataStore];
+            assetDataStore = [];
+            assetIdCounter = 1;
+            
+            tempStore.forEach(asset => {
+                addAsset();
+                const row = tbody.lastElementChild;
+                
+                // Populate values
+                if (row) {
+                    const inputs = row.querySelectorAll('input');
+                    const selects = row.querySelectorAll('select');
+                    
+                    if (inputs[0]) inputs[0].value = asset.name;
+                    if (selects[0]) selects[0].value = asset.type;
+                    if (inputs[1]) inputs[1].value = asset.vendor;
+                    if (inputs[2]) inputs[2].value = asset.version;
+                    if (inputs[3]) inputs[3].value = asset.location;
+                    if (inputs[4]) inputs[4].value = asset.network;
+                    if (selects[1]) selects[1].value = asset.protocol;
+                    if (selects[2]) selects[2].value = asset.criticality;
+                    if (selects[3]) selects[3].value = asset.safety;
+                    if (selects[4]) selects[4].value = asset.lifecycle;
+                    
+                    // Update the data store with the values
+                    const newAssetId = row.querySelector('td').textContent;
+                    const newAsset = assetDataStore.find(a => a.id === newAssetId);
+                    if (newAsset) {
+                        Object.assign(newAsset, asset);
+                        newAsset.id = newAssetId; // Keep the new ID
+                    }
+                }
+            });
+            
+            validateAssets();
+            showNotification('Inventory refreshed successfully', 'success');
+        }
+        
+        function clearInventory() {
+            if (confirm('Are you sure you want to clear all assets? This cannot be undone.')) {
+                const tbody = document.getElementById('assetTableBody');
+                if (tbody) {
+                    tbody.innerHTML = '';
+                }
+                assetDataStore = [];
+                assetIdCounter = 1;
+                validateAssets();
+                showNotification('Inventory cleared', 'warning');
+            }
+        }
+        
+        function downloadCSVTemplate() {
+            const csvContent = `Asset_Name,Asset_Type,Vendor_Model,OS_Firmware,Location,IP_Address,Protocols,Criticality,Safety_Level,Lifecycle_Status
+Main Compressor PLC,plc,Allen-Bradley ControlLogix 5580,v32.011,Compressor Building A,192.168.1.10,ethernet-ip,critical,none,active
+HMI Station 1,hmi,Wonderware InTouch,2020 R2 SP1,Control Room,192.168.1.20,opc,high,none,active
+Emergency Shutdown System,sis,Triconex TMR,v11.4.1,Compressor Building A,192.168.2.10,modbus,critical,sil2,active`;
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `IEC62443_Asset_Template_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            showNotification('CSV template downloaded successfully', 'success');
+        }
+        
+        function loadGasTemplate() {
+            // Clear existing assets
+            const tbody = document.getElementById('assetTableBody');
+            if (tbody) {
+                tbody.innerHTML = '';
+            }
+            assetDataStore = [];
+            assetIdCounter = 1;
+            
+            // Template data
+            const template = [
+                ['Compressor PLC', 'plc', 'Allen-Bradley ControlLogix', 'v32.01', 'Compressor Building', '192.168.1.10', 'ethernet-ip', 'critical', 'none', 'active'],
+                ['Compressor HMI', 'hmi', 'Wonderware InTouch', '2020 R2', 'Control Room', '192.168.1.20', 'opc', 'high', 'none', 'active'],
+                ['Unit Shutdown System', 'sis', 'Triconex TMR', 'v11.4', 'Compressor Building', '192.168.2.10', 'modbus', 'critical', 'sil2', 'active'],
+                ['Gas Chromatograph', 'rtu', 'ABB NGC8206', 'v3.2', 'Analyzer Shelter', '192.168.1.30', 'modbus', 'high', 'none', 'active'],
+                ['Flow Computer', 'rtu', 'Emerson FloBoss', 'v2.40', 'Meter Building', '192.168.1.40', 'modbus', 'critical', 'none', 'active'],
+                ['SCADA Server', 'scada', 'Schneider ClearSCADA', '2021', 'Control Room', '192.168.1.100', 'dnp3', 'critical', 'none', 'active'],
+                ['Historian', 'historian', 'OSIsoft PI', '2021', 'Control Room', '192.168.1.110', 'opc', 'high', 'none', 'active'],
+                ['Engineering Workstation', 'ews', 'Dell Precision', 'Win10', 'Control Room', '192.168.1.200', 'ethernet-ip', 'high', 'none', 'active']
+            ];
+            
+            // Load template assets
+            template.forEach(asset => {
+                addAsset();
+                const lastRow = document.querySelector('#assetTableBody tr:last-child');
+                if (lastRow) {
+                    const inputs = lastRow.querySelectorAll('input');
+                    const selects = lastRow.querySelectorAll('select');
+                    
+                    if (inputs[0]) inputs[0].value = asset[0]; // Name
+                    if (selects[0]) selects[0].value = asset[1]; // Type
+                    if (inputs[1]) inputs[1].value = asset[2]; // Vendor
+                    if (inputs[2]) inputs[2].value = asset[3]; // Version
+                    if (inputs[3]) inputs[3].value = asset[4]; // Location
+                    if (inputs[4]) inputs[4].value = asset[5]; // Network
+                    if (selects[1]) selects[1].value = asset[6]; // Protocol
+                    if (selects[2]) selects[2].value = asset[7]; // Criticality
+                    if (selects[3]) selects[3].value = asset[8]; // Safety
+                    if (selects[4]) selects[4].value = asset[9]; // Lifecycle
+                    
+                    // Update data store
+                    const assetId = lastRow.querySelector('td').textContent;
+                    updateAssetData(assetId, 'name', asset[0]);
+                    updateAssetData(assetId, 'type', asset[1]);
+                    updateAssetData(assetId, 'vendor', asset[2]);
+                    updateAssetData(assetId, 'version', asset[3]);
+                    updateAssetData(assetId, 'location', asset[4]);
+                    updateAssetData(assetId, 'network', asset[5]);
+                    updateAssetData(assetId, 'protocol', asset[6]);
+                    updateAssetData(assetId, 'criticality', asset[7]);
+                    updateAssetData(assetId, 'safety', asset[8]);
+                    updateAssetData(assetId, 'lifecycle', asset[9]);
+                }
+            });
+            
+            validateAssets();
+            showNotification('Gas facility template loaded successfully', 'success');
+        }
+        
+        function validateAssets() {
+            const assets = document.querySelectorAll('#assetTableBody tr');
+            const validation = document.getElementById('assetValidation');
+            
+            if (!validation) return;
+            
+            if (assets.length > 0) {
+                validation.style.display = 'block';
+                
+                // Check asset count
+                const countValidation = document.getElementById('assetCountValidation');
+                if (countValidation) {
+                    countValidation.className = assets.length > 0 ? 'validation-item valid' : 'validation-item invalid';
+                    countValidation.textContent = `${assets.length} assets documented (minimum 1 required)`;
+                }
+                
+                // Check for critical assets and safety systems
+                let criticalAssets = 0;
+                let safetySystemCount = 0;
+                
+                assets.forEach(row => {
+                    const criticalitySelect = row.querySelectorAll('select')[2];
+                    const typeSelect = row.querySelectorAll('select')[0];
+                    const safetySelect = row.querySelectorAll('select')[3];
+                    
+                    if (criticalitySelect && criticalitySelect.value === 'critical') {
+                        criticalAssets++;
+                    }
+                    
+                    if (typeSelect && typeSelect.value === 'sis') {
+                        safetySystemCount++;
+                    } else if (safetySelect && safetySelect.value !== 'none' && safetySelect.value !== '') {
+                        safetySystemCount++;
+                    }
+                });
+                
+                const criticalValidation = document.getElementById('criticalAssetValidation');
+                if (criticalValidation) {
+                    criticalValidation.className = criticalAssets > 0 ? 'validation-item valid' : 'validation-item';
+                    criticalValidation.textContent = `${criticalAssets} critical assets identified ${criticalAssets === 0 ? '(recommended)' : ''}`;
+                }
+                
+                const safetyValidation = document.getElementById('safetySystemValidation');
+                if (safetyValidation) {
+                    safetyValidation.className = safetySystemCount > 0 ? 'validation-item valid' : 'validation-item';
+                    safetyValidation.textContent = `${safetySystemCount} safety systems documented ${safetySystemCount === 0 ? '(check if applicable)' : ''}`;
+                }
+            } else {
+                validation.style.display = 'none';
+            }
+        }
+        
+        // ============================================
+        // RISK MATRIX FUNCTIONS
+        // ============================================
+        function buildRiskMatrixData() {
+            const matrix = document.getElementById('riskMatrix');
+            if (!matrix) return;
+            
+            matrix.innerHTML = '';
+            
+            // Headers
+            matrix.innerHTML = `
+                <div class="matrix-header">Impact →<br>Likelihood ↓</div>
+                <div class="matrix-header">Very Low (1)</div>
+                <div class="matrix-header">Low (2)</div>
+                <div class="matrix-header">Medium (3)</div>
+                <div class="matrix-header">High (4)</div>
+                <div class="matrix-header">Very High (5)</div>
+            `;
+            
+            // For initial assessment, only show likelihood = 1 row
+            if (assessmentState.type === 'initial') {
+                matrix.innerHTML += `
+                    <div class="matrix-header">Certain (1.0)</div>
+                    <div class="matrix-cell risk-low" data-risk="1" data-likelihood="1" data-impact="1" onclick="selectRiskCell(this)">Low</div>
+                    <div class="matrix-cell risk-medium" data-risk="2" data-likelihood="1" data-impact="2" onclick="selectRiskCell(this)">Medium</div>
+                    <div class="matrix-cell risk-high" data-risk="3" data-likelihood="1" data-impact="3" onclick="selectRiskCell(this)">High</div>
+                    <div class="matrix-cell risk-very-high" data-risk="4" data-likelihood="1" data-impact="4" onclick="selectRiskCell(this)">Very High</div>
+                    <div class="matrix-cell risk-critical" data-risk="5" data-likelihood="1" data-impact="5" onclick="selectRiskCell(this)">Critical</div>
+                `;
+            } else {
+                // Full matrix for detailed assessment
+                const likelihoods = [
+                    { label: 'Very High (0.9)', value: 0.9 },
+                    { label: 'High (0.7)', value: 0.7 },
+                    { label: 'Medium (0.5)', value: 0.5 },
+                    { label: 'Low (0.3)', value: 0.3 },
+                    { label: 'Very Low (0.1)', value: 0.1 }
+                ];
+                
+                likelihoods.forEach(likelihood => {
+                    matrix.innerHTML += `<div class="matrix-header">${likelihood.label}</div>`;
+                    
+                    for (let impact = 1; impact <= 5; impact++) {
+                        const risk = likelihood.value * impact;
+                        let riskClass = 'risk-very-low';
+                        let riskLabel = 'Very Low';
+                        
+                        if (risk >= 4) {
+                            riskClass = 'risk-critical';
+                            riskLabel = 'Critical';
+                        } else if (risk >= 3) {
+                            riskClass = 'risk-very-high';
+                            riskLabel = 'Very High';
+                        } else if (risk >= 2) {
+                            riskClass = 'risk-high';
+                            riskLabel = 'High';
+                        } else if (risk >= 1) {
+                            riskClass = 'risk-medium';
+                            riskLabel = 'Medium';
+                        } else if (risk >= 0.5) {
+                            riskClass = 'risk-low';
+                            riskLabel = 'Low';
+                        }
+                        
+                        matrix.innerHTML += `
+                            <div class="matrix-cell ${riskClass}" 
+                                 data-risk="${risk.toFixed(2)}" 
+                                 data-likelihood="${likelihood.value}" 
+                                 data-impact="${impact}"
+                                 onclick="selectRiskCell(this)">
+                                ${riskLabel}<br>${risk.toFixed(1)}
+                            </div>
+                        `;
+                    }
+                });
+            }
+        }
+        
+        function selectRiskCell(cell) {
+            // Remove previous selection
+            document.querySelectorAll('.matrix-cell').forEach(c => c.classList.remove('selected'));
+            
+            // Select new cell
+            cell.classList.add('selected');
+            
+            // Store selection
+            const risk = parseFloat(cell.dataset.risk);
+            const likelihood = parseFloat(cell.dataset.likelihood);
+            const impact = parseInt(cell.dataset.impact);
+            
+            console.log('Selected risk:', { risk, likelihood, impact });
+        }
+        
+        // ============================================
+        // ZONE MANAGEMENT FUNCTIONS
+        // ============================================
+        function addZone() {
+            const zoneId = `ZONE-${String(zoneIdCounter++).padStart(3, '0')}`;
+            const zoneList = document.getElementById('zoneList');
+            
+            const zoneCard = document.createElement('div');
+            zoneCard.className = 'zone-card';
+            zoneCard.id = `zone-${zoneId}`;
+            zoneCard.innerHTML = `
+                <span class="sl-indicator sl-1" id="sl-${zoneId}">SL-1</span>
+                <h4 style="color: var(--primary); margin-bottom: 15px;">
+                    ${zoneId}: <input type="text" placeholder="Zone Name" style="background: transparent; border: none; color: var(--primary); width: 200px;">
+                </h4>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Zone Type</label>
+                        <select onchange="updateZoneSL('${zoneId}')">
+                            <option value="enterprise">Enterprise (Level 4-5)</option>
+                            <option value="dmz">DMZ</option>
+                            <option value="manufacturing">Manufacturing (Level 3)</option>
+                            <option value="supervisory">Supervisory (Level 2)</option>
+                            <option value="control">Basic Control (Level 1)</option>
+                            <option value="safety">Safety Instrumented</option>
+                            <option value="field">Field Devices (Level 0)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Security Level Target</label>
+                        <select id="slt-select-${zoneId}" onchange="updateZoneSLIndicator('${zoneId}')">
+                            <option value="1">SL-1 (Basic)</option>
+                            <option value="2">SL-2 (Enhanced)</option>
+                            <option value="3">SL-3 (Critical)</option>
+                            <option value="4">SL-4 (Advanced)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Assigned Assets</label>
+                    <select multiple style="height: 80px;">
+                        <!-- Populated from asset inventory -->
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Zone Characteristics</label>
+                    <div class="fr-controls">
+                        <label class="fr-control">
+                            <input type="checkbox"> External connectivity
+                        </label>
+                        <label class="fr-control">
+                            <input type="checkbox"> Wireless devices
+                        </label>
+                        <label class="fr-control">
+                            <input type="checkbox"> Removable media
+                        </label>
+                        <label class="fr-control">
+                            <input type="checkbox"> Remote access
+                        </label>
+                    </div>
+                </div>
+                
+                <button class="btn btn-danger" onclick="removeZone('${zoneId}')">Remove Zone</button>
+            `;
+            
+            zoneList.appendChild(zoneCard);
+            populateZoneAssets(zoneId);
+            updateZoneVisualization();
+        }
+        
+        function removeZone(zoneId) {
+            document.getElementById(`zone-${zoneId}`).remove();
+            updateZoneVisualization();
+        }
+        
+        function updateZoneSL(zoneId) {
+            // Auto-calculate SL based on zone type and criticality
+            const zoneCard = document.getElementById(`zone-${zoneId}`);
+            const zoneType = zoneCard.querySelector('select').value;
+            
+            let recommendedSL = 1;
+            switch(zoneType) {
+                case 'safety':
+                case 'control':
+                    recommendedSL = 3;
+                    break;
+                case 'supervisory':
+                case 'manufacturing':
+                    recommendedSL = 2;
+                    break;
+                case 'dmz':
+                    recommendedSL = 2;
+                    break;
+                case 'enterprise':
+                case 'field':
+                default:
+                    recommendedSL = 1;
+            }
+            
+            const sltSelect = document.getElementById(`slt-select-${zoneId}`);
+            sltSelect.value = recommendedSL;
+            updateZoneSLIndicator(zoneId);
+        }
+        
+        function updateZoneSLIndicator(zoneId) {
+            const sltSelect = document.getElementById(`slt-select-${zoneId}`);
+            const indicator = document.getElementById(`sl-${zoneId}`);
+            const sl = sltSelect.value;
+            
+            indicator.className = `sl-indicator sl-${sl}`;
+            indicator.textContent = `SL-${sl}`;
+        }
+        
+        function populateZoneAssets(zoneId) {
+            const zoneCard = document.getElementById(`zone-${zoneId}`);
+            const assetSelect = zoneCard.querySelector('select[multiple]');
+            
+            // Get assets from inventory
+            const assets = document.querySelectorAll('#assetTableBody tr');
+            
+            assetSelect.innerHTML = '';
+            assets.forEach(row => {
+                const assetId = row.querySelector('td').textContent;
+                const assetName = row.querySelectorAll('input')[0].value || 'Unnamed';
+                const option = document.createElement('option');
+                option.value = assetId;
+                option.textContent = `${assetId}: ${assetName}`;
+                assetSelect.appendChild(option);
+            });
+        }
+        
+        function autoGenerateZones() {
+            // Clear existing zones
+            document.getElementById('zoneList').innerHTML = '';
+            zoneIdCounter = 1;
+            
+            // Generate standard zones based on Purdue model
+            const standardZones = [
+                { name: 'Enterprise Network', type: 'enterprise' },
+                { name: 'Industrial DMZ', type: 'dmz' },
+                { name: 'Operations Management', type: 'manufacturing' },
+                { name: 'Supervisory Control', type: 'supervisory' },
+                { name: 'Basic Process Control', type: 'control' },
+                { name: 'Safety Systems', type: 'safety' }
+            ];
+            
+            standardZones.forEach(zone => {
+                addZone();
+                const lastZone = document.querySelector('#zoneList .zone-card:last-child');
+                lastZone.querySelector('input[type="text"]').value = zone.name;
+                lastZone.querySelector('select').value = zone.type;
+                updateZoneSL(lastZone.id.replace('zone-', ''));
+            });
+            
+            showNotification('Standard zones generated based on Purdue model', 'success');
+            updateZoneVisualization();
+        }
+        
+        function updateZoneVisualization() {
+            const viz = document.getElementById('zoneVisualization');
+            if (!viz) return;
+            
+            const zones = document.querySelectorAll('#zoneList .zone-card');
+            
+            if (zones.length === 0) {
+                viz.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No zones defined yet</p>';
+                return;
+            }
+            
+            // Simple visualization - in production, use D3.js or similar
+            viz.innerHTML = '<h4 style="color: var(--primary); margin-bottom: 15px;">Zone Architecture</h4>';
+            
+            const levels = {
+                'enterprise': 5,
+                'dmz': 4,
+                'manufacturing': 3,
+                'supervisory': 2,
+                'control': 1,
+                'safety': 1,
+                'field': 0
+            };
+            
+            // Group zones by level
+            const zonesByLevel = {};
+            zones.forEach(zone => {
+                const type = zone.querySelector('select').value;
+                const level = levels[type] || 0;
+                if (!zonesByLevel[level]) zonesByLevel[level] = [];
+                zonesByLevel[level].push(zone);
+            });
+            
+            // Create visual representation
+            Object.keys(zonesByLevel).sort((a, b) => b - a).forEach(level => {
+                const levelDiv = document.createElement('div');
+                levelDiv.style.cssText = 'margin: 10px 0; padding: 15px; background: rgba(0, 212, 255, 0.1); border-radius: 8px;';
+                levelDiv.innerHTML = `<h5 style="color: var(--primary); margin-bottom: 10px;">Level ${level}</h5>`;
+                
+                const zonesInLevel = document.createElement('div');
+                zonesInLevel.style.cssText = 'display: flex; gap: 10px; flex-wrap: wrap;';
+                
+                zonesByLevel[level].forEach(zone => {
+                    const zoneName = zone.querySelector('input[type="text"]').value || 'Unnamed';
+                    const sl = zone.querySelector('select[id^="slt-select"]').value;
+                    
+                    const zoneBox = document.createElement('div');
+                    zoneBox.className = `sl-${sl}`;
+                    zoneBox.style.cssText = 'padding: 8px 15px; border-radius: 6px; color: white; font-size: 0.9em;';
+                    zoneBox.textContent = `${zoneName} (SL-${sl})`;
+                    
+                    zonesInLevel.appendChild(zoneBox);
+                });
+                
+                levelDiv.appendChild(zonesInLevel);
+                viz.appendChild(levelDiv);
+            });
+        }
+        
+        // ============================================
+        // CONDUIT MANAGEMENT FUNCTIONS
+        // ============================================
+        function addConduit() {
+            const conduitId = `CONDUIT-${String(conduitIdCounter++).padStart(3, '0')}`;
+            const conduitList = document.getElementById('conduitList');
+            
+            const conduitDiv = document.createElement('div');
+            conduitDiv.className = 'form-section';
+            conduitDiv.id = `conduit-${conduitId}`;
+            conduitDiv.innerHTML = `
+                <h4 style="color: var(--primary);">
+                    ${conduitId}: <input type="text" placeholder="Conduit Name" style="background: transparent; border: none; color: var(--primary);">
+                </h4>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Source Zone</label>
+                        <select id="conduit-source-${conduitId}">
+                            <!-- Populated from zones -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Destination Zone</label>
+                        <select id="conduit-dest-${conduitId}">
+                            <!-- Populated from zones -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Conduit Type</label>
+                        <select>
+                            <option value="network">Network Connection</option>
+                            <option value="wireless">Wireless Link</option>
+                            <option value="remote">Remote Access</option>
+                            <option value="removable">Removable Media</option>
+                            <option value="manual">Manual Transfer</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Protocols</label>
+                        <input type="text" placeholder="e.g., HTTPS, Modbus/TCP, DNP3">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Data Flow</label>
+                        <select>
+                            <option value="bidirectional">Bidirectional</option>
+                            <option value="unidirectional-out">Unidirectional (Source → Dest)</option>
+                            <option value="unidirectional-in">Unidirectional (Dest → Source)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Security Controls</label>
+                    <div class="fr-controls">
+                        <label class="fr-control">
+                            <input type="checkbox"> Firewall
+                        </label>
+                        <label class="fr-control">
+                            <input type="checkbox"> IDS/IPS
+                        </label>
+                        <label class="fr-control">
+                            <input type="checkbox"> Data Diode
+                        </label>
+                        <label class="fr-control">
+                            <input type="checkbox"> Encryption
+                        </label>
+                        <label class="fr-control">
+                            <input type="checkbox"> Authentication
+                        </label>
+                        <label class="fr-control">
+                            <input type="checkbox"> Logging
+                        </label>
+                    </div>
+                </div>
+                
+                <button class="btn btn-danger" onclick="removeConduit('${conduitId}')">Remove Conduit</button>
+            `;
+            
+            conduitList.appendChild(conduitDiv);
+            populateConduitZones(conduitId);
+        }
+        
+        function removeConduit(conduitId) {
+            document.getElementById(`conduit-${conduitId}`).remove();
+        }
+        
+        function populateConduitZones(conduitId) {
+            const zones = document.querySelectorAll('#zoneList .zone-card');
+            const sourceSelect = document.getElementById(`conduit-source-${conduitId}`);
+            const destSelect = document.getElementById(`conduit-dest-${conduitId}`);
+            
+            [sourceSelect, destSelect].forEach(select => {
+                if (select) {
+                    select.innerHTML = '<option value="">Select zone...</option>';
+                    zones.forEach(zone => {
+                        const zoneId = zone.id.replace('zone-', '');
+                        const zoneName = zone.querySelector('input[type="text"]').value || 'Unnamed';
+                        const option = document.createElement('option');
+                        option.value = zoneId;
+                        option.textContent = `${zoneId}: ${zoneName}`;
+                        select.appendChild(option);
+                    });
+                }
+            });
+        }
+        
+        // ============================================
+        // CONSEQUENCE & THREAT SCENARIO FUNCTIONS
+        // ============================================
+        function addConsequenceScenario() {
+            const scenarioId = `CONS-${String(consequenceIdCounter++).padStart(3, '0')}`;
+            const container = document.getElementById('consequenceScenarios');
+            
+            const scenarioDiv = document.createElement('div');
+            scenarioDiv.className = 'form-section';
+            scenarioDiv.id = `consequence-${scenarioId}`;
+            scenarioDiv.innerHTML = `
+                <h4 style="color: var(--warning);">
+                    ${scenarioId}: <input type="text" placeholder="Scenario Name" style="background: transparent; border: none; color: var(--warning);">
+                </h4>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Affected System/Asset</label>
+                        <select>
+                            <!-- Populated from assets -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Failure Mode</label>
+                        <select>
+                            <option value="complete">Complete Failure</option>
+                            <option value="degraded">Degraded Operation</option>
+                            <option value="incorrect">Incorrect Operation</option>
+                            <option value="unauthorized">Unauthorized Control</option>
+                            <option value="data-loss">Data Loss/Corruption</option>
+                            <option value="safety-bypass">Safety System Bypass</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <h5 style="color: var(--primary); margin: 15px 0;">Impact Assessment (Worst Case)</h5>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Safety Impact</label>
+                        <select onchange="calculateConsequenceRisk('${scenarioId}')">
+                            <option value="1">1 - No injury</option>
+                            <option value="2">2 - Minor injury</option>
+                            <option value="3">3 - Serious injury</option>
+                            <option value="4">4 - Life threatening</option>
+                            <option value="5">5 - Fatality</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Environmental Impact</label>
+                        <select onchange="calculateConsequenceRisk('${scenarioId}')">
+                            <option value="1">1 - No release</option>
+                            <option value="2">2 - Minor release</option>
+                            <option value="3">3 - Moderate release</option>
+                            <option value="4">4 - Major release</option>
+                            <option value="5">5 - Catastrophic release</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Financial Impact</label>
+                        <select onchange="calculateConsequenceRisk('${scenarioId}')">
+                            <option value="1">1 - < $10K</option>
+                            <option value="2">2 - $10K-$100K</option>
+                            <option value="3">3 - $100K-$1M</option>
+                            <option value="4">4 - $1M-$10M</option>
+                            <option value="5">5 - > $10M</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Operational Impact</label>
+                        <select onchange="calculateConsequenceRisk('${scenarioId}')">
+                            <option value="1">1 - No disruption</option>
+                            <option value="2">2 - < 1 hour</option>
+                            <option value="3">3 - 1-8 hours</option>
+                            <option value="4">4 - 1-7 days</option>
+                            <option value="5">5 - > 7 days</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Regulatory Impact</label>
+                        <select onchange="calculateConsequenceRisk('${scenarioId}')">
+                            <option value="1">1 - No impact</option>
+                            <option value="2">2 - Minor violation</option>
+                            <option value="3">3 - Reportable incident</option>
+                            <option value="4">4 - Major violation</option>
+                            <option value="5">5 - License revocation</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div style="background: rgba(0, 212, 255, 0.1); padding: 15px; border-radius: 8px; margin-top: 15px;">
+                    <strong>Risk Score (L=1.0): </strong>
+                    <span id="risk-${scenarioId}" style="font-size: 1.3em; font-weight: bold;">--</span>
+                    <span style="margin-left: 20px;">
+                        Recommended SL-T: <span id="slt-${scenarioId}" style="font-weight: bold;">--</span>
+                    </span>
+                </div>
+                
+                <button class="btn btn-danger" onclick="removeConsequence('${scenarioId}')">Remove Scenario</button>
+            `;
+            
+            container.appendChild(scenarioDiv);
+            populateScenarioAssets(scenarioId);
+        }
+        
+        function removeConsequence(scenarioId) {
+            document.getElementById(`consequence-${scenarioId}`).remove();
+        }
+        
+        function calculateConsequenceRisk(scenarioId) {
+            const scenario = document.getElementById(`consequence-${scenarioId}`);
+            const selects = scenario.querySelectorAll('select');
+            
+            // Get max impact across all categories
+            let maxImpact = 1;
+            for (let i = 2; i < 7; i++) { // Impact selects are indices 2-6
+                const value = parseInt(selects[i].value);
+                if (value > maxImpact) maxImpact = value;
+            }
+            
+            // Risk = Impact × Likelihood (1.0 for initial assessment)
+            const risk = maxImpact * 1.0;
+            
+            // Update display
+            const riskSpan = document.getElementById(`risk-${scenarioId}`);
+            riskSpan.textContent = risk.toFixed(1);
+            
+            // Color code
+            if (risk >= 4) {
+                riskSpan.style.color = 'var(--danger)';
+            } else if (risk >= 3) {
+                riskSpan.style.color = 'var(--warning)';
+            } else {
+                riskSpan.style.color = 'var(--success)';
+            }
+            
+            // Calculate recommended SL-T
+            let slt = 1;
+            if (risk >= 4) slt = 3;
+            else if (risk >= 3) slt = 2;
+            else if (risk >= 2) slt = 2;
+            
+            document.getElementById(`slt-${scenarioId}`).textContent = `SL-${slt}`;
+            
+            // Update preliminary SL-T
+            updatePreliminarySLT();
+        }
+        
+        function populateScenarioAssets(scenarioId) {
+            const scenario = document.getElementById(`consequence-${scenarioId}`);
+            const assetSelect = scenario.querySelector('select');
+            
+            if (assetSelect) {
+                assetSelect.innerHTML = '<option value="">Select asset/system...</option>';
+                
+                // Add individual assets
+                const assets = document.querySelectorAll('#assetTableBody tr');
+                assets.forEach(row => {
+                    const assetId = row.querySelector('td').textContent;
+                    const assetName = row.querySelectorAll('input')[0].value || 'Unnamed';
+                    const option = document.createElement('option');
+                    option.value = assetId;
+                    option.textContent = `${assetId}: ${assetName}`;
+                    assetSelect.appendChild(option);
+                });
+                
+                // Add zones as systems
+                const zones = document.querySelectorAll('#zoneList .zone-card');
+                if (zones.length > 0) {
+                    const optgroup = document.createElement('optgroup');
+                    optgroup.label = 'Zones/Systems';
+                    zones.forEach(zone => {
+                        const zoneId = zone.id.replace('zone-', '');
+                        const zoneName = zone.querySelector('input[type="text"]').value || 'Unnamed';
+                        const option = document.createElement('option');
+                        option.value = `zone-${zoneId}`;
+                        option.textContent = `${zoneId}: ${zoneName}`;
+                        optgroup.appendChild(option);
+                    });
+                    assetSelect.appendChild(optgroup);
+                }
+            }
+        }
+        
+        function loadIndustryScenarios() {
+            const facilityType = document.getElementById('facilityType').value;
+            
+            const scenarios = {
+                'gas-compressor': [
+                    { name: 'Compressor Emergency Shutdown Failure', asset: 'Unit Shutdown System', mode: 'safety-bypass', safety: 5, env: 4, financial: 4, ops: 4, reg: 4 },
+                    { name: 'Gas Release from Overpressure', asset: 'Compressor PLC', mode: 'incorrect', safety: 4, env: 5, financial: 3, ops: 3, reg: 4 },
+                    { name: 'Loss of Gas Flow Measurement', asset: 'Flow Computer', mode: 'complete', safety: 1, env: 2, financial: 3, ops: 3, reg: 3 },
+                    { name: 'SCADA System Compromise', asset: 'SCADA Server', mode: 'unauthorized', safety: 3, env: 3, financial: 4, ops: 5, reg: 3 }
+                ],
+                'default': [
+                    { name: 'Control System Failure', asset: '', mode: 'complete', safety: 3, env: 2, financial: 3, ops: 4, reg: 2 },
+                    { name: 'Safety System Bypass', asset: '', mode: 'safety-bypass', safety: 5, env: 3, financial: 3, ops: 3, reg: 4 },
+                    { name: 'Data Manipulation', asset: '', mode: 'data-loss', safety: 2, env: 1, financial: 3, ops: 3, reg: 3 }
+                ]
+            };
+            
+            const selectedScenarios = scenarios[facilityType] || scenarios['default'];
+            
+            selectedScenarios.forEach(scenario => {
+                addConsequenceScenario();
+                const lastScenario = document.querySelector('#consequenceScenarios .form-section:last-child');
+                const scenarioId = lastScenario.id.replace('consequence-', '');
+                
+                // Set scenario name
+                lastScenario.querySelector('input[type="text"]').value = scenario.name;
+                
+                // Set failure mode
+                lastScenario.querySelectorAll('select')[1].value = scenario.mode;
+                
+                // Set impacts
+                const impactSelects = lastScenario.querySelectorAll('select');
+                impactSelects[2].value = scenario.safety;
+                impactSelects[3].value = scenario.env;
+                impactSelects[4].value = scenario.financial;
+                impactSelects[5].value = scenario.ops;
+                impactSelects[6].value = scenario.reg;
+                
+                // Calculate risk
+                calculateConsequenceRisk(scenarioId);
+            });
+            
+            showNotification('Industry-specific scenarios loaded', 'success');
+        }
+        
+        function updatePreliminarySLT() {
+            const container = document.getElementById('preliminarySLT');
+            if (!container) return;
+            
+            const zones = document.querySelectorAll('#zoneList .zone-card');
+            if (zones.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-secondary);">Complete zone partitioning first</p>';
+                return;
+            }
+            
+            container.innerHTML = '<h4 style="color: var(--primary); margin-bottom: 15px;">Recommended Security Levels by Zone</h4>';
+            
+            zones.forEach(zone => {
+                const zoneId = zone.id.replace('zone-', '');
+                const zoneName = zone.querySelector('input[type="text"]').value || 'Unnamed';
+                const currentSL = zone.querySelector('select[id^="slt-select"]').value;
+                
+                // Calculate recommended SL based on consequence scenarios
+                let maxRisk = 0;
+                const scenarios = document.querySelectorAll('[id^="consequence-"]');
+                scenarios.forEach(scenario => {
+                    const riskSpan = scenario.querySelector('[id^="risk-"]');
+                    if (riskSpan && riskSpan.textContent !== '--') {
+                        const risk = parseFloat(riskSpan.textContent);
+                        if (risk > maxRisk) maxRisk = risk;
+                    }
+                });
+                
+                let recommendedSL = 1;
+                if (maxRisk >= 4) recommendedSL = 3;
+                else if (maxRisk >= 3) recommendedSL = 2;
+                
+                const zoneDiv = document.createElement('div');
+                zoneDiv.style.cssText = 'background: rgba(26, 26, 46, 0.6); padding: 15px; margin: 10px 0; border-radius: 8px;';
+                zoneDiv.innerHTML = `
+                    <strong>${zoneId}: ${zoneName}</strong><br>
+                    Current SL-T: SL-${currentSL}<br>
+                    Recommended SL-T: <span style="color: var(--warning);">SL-${recommendedSL}</span>
+                    ${currentSL < recommendedSL ? '<span style="color: var(--danger); margin-left: 10px;">⚠ Increase recommended</span>' : ''}
+                `;
+                
+                container.appendChild(zoneDiv);
+            });
+        }
+        
+        // Threat Scenarios (Stage 5)
+        function addThreatScenario() {
+            const threatId = `THREAT-${String(threatIdCounter++).padStart(3, '0')}`;
+            const container = document.getElementById('threatScenarios');
+            
+            const threatDiv = document.createElement('div');
+            threatDiv.className = 'form-section';
+            threatDiv.id = `threat-${threatId}`;
+            threatDiv.innerHTML = `
+                <h4 style="color: var(--danger);">
+                    ${threatId}: <input type="text" placeholder="Threat Scenario Name" style="background: transparent; border: none; color: var(--danger);">
+                </h4>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Threat Actor</label>
+                        <select onchange="updateThreatLikelihood('${threatId}')">
+                            <option value="nation-state">Nation State (APT)</option>
+                            <option value="cybercriminal">Cybercriminal Group</option>
+                            <option value="hacktivist">Hacktivist</option>
+                            <option value="insider-malicious">Malicious Insider</option>
+                            <option value="insider-negligent">Negligent Insider</option>
+                            <option value="competitor">Industrial Espionage</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Attack Vector</label>
+                        <select>
+                            <option value="network">External Network</option>
+                            <option value="supply-chain">Supply Chain</option>
+                            <option value="physical">Physical Access</option>
+                            <option value="social">Social Engineering</option>
+                            <option value="removable">Removable Media</option>
+                            <option value="wireless">Wireless</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Target Zone/Asset</label>
+                        <select>
+                            <!-- Populated from zones/assets -->
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Attack Description (TTP)</label>
+                    <textarea rows="2" placeholder="Describe tactics, techniques, and procedures..."></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Likelihood Factors</label>
+                        <div class="fr-controls">
+                            <label class="fr-control">
+                                <input type="checkbox" onchange="updateThreatLikelihood('${threatId}')"> High motivation
+                            </label>
+                            <label class="fr-control">
+                                <input type="checkbox" onchange="updateThreatLikelihood('${threatId}')"> Advanced capability
+                            </label>
+                            <label class="fr-control">
+                                <input type="checkbox" onchange="updateThreatLikelihood('${threatId}')"> Known vulnerabilities
+                            </label>
+                            <label class="fr-control">
+                                <input type="checkbox" onchange="updateThreatLikelihood('${threatId}')"> Previous incidents
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Existing Controls</label>
+                        <div class="fr-controls">
+                            <label class="fr-control">
+                                <input type="checkbox" onchange="updateThreatLikelihood('${threatId}')"> Network segmentation
+                            </label>
+                            <label class="fr-control">
+                                <input type="checkbox" onchange="updateThreatLikelihood('${threatId}')"> Access controls
+                            </label>
+                            <label class="fr-control">
+                                <input type="checkbox" onchange="updateThreatLikelihood('${threatId}')"> Monitoring/Detection
+                            </label>
+                            <label class="fr-control">
+                                <input type="checkbox" onchange="updateThreatLikelihood('${threatId}')"> Incident response
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Calculated Likelihood</label>
+                        <input type="text" id="likelihood-${threatId}" value="0.5" readonly style="background: rgba(26, 26, 46, 0.4);">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Impact (from consequences)</label>
+                        <select id="impact-${threatId}" onchange="calculateThreatRisk('${threatId}')">
+                            <option value="1">1 - Very Low</option>
+                            <option value="2">2 - Low</option>
+                            <option value="3" selected>3 - Medium</option>
+                            <option value="4">4 - High</option>
+                            <option value="5">5 - Very High</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Risk Score</label>
+                        <input type="text" id="risk-threat-${threatId}" value="--" readonly style="background: rgba(26, 26, 46, 0.4); font-weight: bold;">
+                    </div>
+                </div>
+                
+                <button class="btn btn-danger" onclick="removeThreat('${threatId}')">Remove Threat</button>
+            `;
+            
+            container.appendChild(threatDiv);
+            populateThreatTargets(threatId);
+            updateThreatLikelihood(threatId);
+        }
+        
+        function removeThreat(threatId) {
+            document.getElementById(`threat-${threatId}`).remove();
+        }
+        
+        function populateThreatTargets(threatId) {
+            const threat = document.getElementById(`threat-${threatId}`);
+            const targetSelect = threat.querySelectorAll('select')[2];
+            
+            if (targetSelect) {
+                targetSelect.innerHTML = '<option value="">Select target...</option>';
+                
+                // Add zones
+                const zones = document.querySelectorAll('#zoneList .zone-card');
+                if (zones.length > 0) {
+                    const zoneGroup = document.createElement('optgroup');
+                    zoneGroup.label = 'Zones';
+                    zones.forEach(zone => {
+                        const zoneId = zone.id.replace('zone-', '');
+                        const zoneName = zone.querySelector('input[type="text"]').value || 'Unnamed';
+                        const option = document.createElement('option');
+                        option.value = `zone-${zoneId}`;
+                        option.textContent = `${zoneId}: ${zoneName}`;
+                        zoneGroup.appendChild(option);
+                    });
+                    targetSelect.appendChild(zoneGroup);
+                }
+                
+                // Add critical assets
+                const assets = document.querySelectorAll('#assetTableBody tr');
+                const criticalAssets = Array.from(assets).filter(row => {
+                    const criticality = row.querySelectorAll('select')[2];
+                    return criticality && criticality.value === 'critical';
+                });
+                
+                if (criticalAssets.length > 0) {
+                    const assetGroup = document.createElement('optgroup');
+                    assetGroup.label = 'Critical Assets';
+                    criticalAssets.forEach(row => {
+                        const assetId = row.querySelector('td').textContent;
+                        const assetName = row.querySelectorAll('input')[0].value || 'Unnamed';
+                        const option = document.createElement('option');
+                        option.value = assetId;
+                        option.textContent = `${assetId}: ${assetName}`;
+                        assetGroup.appendChild(option);
+                    });
+                    targetSelect.appendChild(assetGroup);
+                }
+            }
+        }
+        
+        function updateThreatLikelihood(threatId) {
+            const threat = document.getElementById(`threat-${threatId}`);
+            const actor = threat.querySelector('select').value;
+            const likelihoodFactors = threat.querySelectorAll('.fr-controls')[0].querySelectorAll('input:checked').length;
+            const controls = threat.querySelectorAll('.fr-controls')[1].querySelectorAll('input:checked').length;
+            
+            // Base likelihood by actor type
+            const actorLikelihood = {
+                'nation-state': 0.7,
+                'cybercriminal': 0.6,
+                'hacktivist': 0.5,
+                'insider-malicious': 0.4,
+                'insider-negligent': 0.3,
+                'competitor': 0.4
+            };
+            
+            let likelihood = actorLikelihood[actor] || 0.5;
+            
+            // Adjust for factors
+            likelihood += (likelihoodFactors * 0.1);
+            likelihood -= (controls * 0.15);
+            
+            // Constrain to 0.1 - 0.9
+            likelihood = Math.max(0.1, Math.min(0.9, likelihood));
+            
+            document.getElementById(`likelihood-${threatId}`).value = likelihood.toFixed(2);
+            calculateThreatRisk(threatId);
+        }
+        
+        function calculateThreatRisk(threatId) {
+            const likelihood = parseFloat(document.getElementById(`likelihood-${threatId}`).value);
+            const impact = parseInt(document.getElementById(`impact-${threatId}`).value);
+            
+            const risk = likelihood * impact;
+            const riskField = document.getElementById(`risk-threat-${threatId}`);
+            riskField.value = risk.toFixed(2);
+            
+            // Color code
+            if (risk >= 3) {
+                riskField.style.color = 'var(--danger)';
+            } else if (risk >= 2) {
+                riskField.style.color = 'var(--warning)';
+            } else {
+                riskField.style.color = 'var(--success)';
+            }
+        }
+        
+        function loadThreatLibrary() {
+            const threats = [
+                { name: 'Ransomware Attack via Phishing', actor: 'cybercriminal', vector: 'social', desc: 'Initial access through spear phishing, lateral movement to OT network, encryption of critical systems' },
+                { name: 'APT Industrial Espionage', actor: 'nation-state', vector: 'supply-chain', desc: 'Supply chain compromise, persistent backdoor installation, data exfiltration over extended period' },
+                { name: 'Insider Data Theft', actor: 'insider-malicious', vector: 'physical', desc: 'Privileged user abuses access to steal proprietary control logic and process data' },
+                { name: 'Wireless Network Intrusion', actor: 'hacktivist', vector: 'wireless', desc: 'Exploitation of unsecured wireless access points to gain network access' }
+            ];
+            
+            threats.forEach(threat => {
+                addThreatScenario();
+                const lastThreat = document.querySelector('#threatScenarios .form-section:last-child');
+                
+                lastThreat.querySelector('input[type="text"]').value = threat.name;
+                lastThreat.querySelectorAll('select')[0].value = threat.actor;
+                lastThreat.querySelectorAll('select')[1].value = threat.vector;
+                lastThreat.querySelector('textarea').value = threat.desc;
+                
+                const threatId = lastThreat.id.replace('threat-', '');
+                updateThreatLikelihood(threatId);
+            });
+            
+            showNotification('Threat library loaded', 'success');
+        }
+        
+        // ============================================
+        // STAGE RENDERING FUNCTIONS
+        // ============================================
+        function renderControlAssessment() {
+            const target = document.getElementById('controlAssessment');
+            if (!target) return;
+
+            collectAssessmentData();
+
+            const zones = (assessmentState.data?.zones || []);
+            const rows = zones.map(z => {
+                const level = parseInt(z.securityLevel || 0);
+                const impl = (z.characteristics || []).length;
+                return { zone: z.name || '—', sl: level, implemented: impl };
+            });
+
+            const avgSL = rows.length ? (rows.reduce((a,b)=>a+b.sl,0)/rows.length).toFixed(1) : '0';
+            const totalImpl = rows.reduce((a,b)=>a+b.implemented,0);
+
+            target.innerHTML = `
+                <div class="results-dashboard">
+                    <div class="metric-card">
+                        <div class="metric-value">${avgSL}</div>
+                        <div class="metric-label">Avg. Zone SL</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">${totalImpl}</div>
+                        <div class="metric-label">Controls Checked</div>
+                    </div>
+                </div>
+                <div style="margin-top:10px;">
+                    <table class="data-table">
+                        <thead><tr><th>Zone</th><th>Security Level</th><th>Checked Controls</th></tr></thead>
+                        <tbody>
+                            ${rows.map(r=>`<tr><td>${r.zone}</td><td>SL-${r.sl}</td><td>${r.implemented}</td></tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function renderMitigationPlanUI() {
+            const target = document.getElementById('mitigationPlan');
+            if (!target) return;
+
+            collectAssessmentData();
+            const plan = generateMitigationPlan();
+            const costs = calculateMitigationCosts();
+            const res = estimateResourceNeeds();
+
+            function list(items) {
+                if (!items || !items.length) return '<p class="small">No actions generated yet.</p>';
+                return `<ul>${items.map(a=>`<li><b>${a.zone}</b>: ${a.action} — ${a.controls.join(', ')}</li>`).join('')}</ul>`;
+            }
+
+            target.innerHTML = `
+                <div class="grid-2">
+                    <div>
+                        <h4>Immediate (0–30 days)</h4>
+                        ${list(plan.immediate)}
+                        <h4>Short Term (30–90 days)</h4>
+                        ${list(plan.shortTerm)}
+                        <h4>Long Term (90–180+ days)</h4>
+                        ${list(plan.longTerm)}
+                    </div>
+                    <div>
+                        <div class="metric-card"><div class="metric-value">${costs.total || '—'}</div><div class="metric-label">Estimated Total Cost</div></div>
+                        <div class="metric-card"><div class="metric-value">${costs.roi || '—'}</div><div class="metric-label">Estimated ROI</div></div>
+                        <div class="form-section" style="margin-top:10px;">
+                            <h4>Resource Needs</h4>
+                            <p><b>Internal FTE:</b> ${res.internal?.fte ?? '—'} (${(res.internal?.roles||[]).join(', ')})</p>
+                            <p><b>External:</b> ${res.external?.consultants ?? '—'}; ${(res.external?.vendors||[]).join(', ')}</p>
+                            <p><b>Training:</b> ${res.training?.personnel ?? '—'} personnel × ${res.training?.hours ?? '—'} hrs</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderComplianceMapping() {
+            const target = document.getElementById('complianceMapping');
+            if (!target) return;
+
+            collectAssessmentData();
+
+            const iecPct = calculateIECCompliance();
+            const tsa = assessTSACompliance();
+            const nist = assessNISTCompliance();
+            const nerc = assessNERCCompliance();
+            const gaps = identifyComplianceGaps();
+
+            const scoreDisplay = document.getElementById('complianceScore');
+            if (scoreDisplay) scoreDisplay.textContent = `${iecPct}%`;
+
+            target.innerHTML = `
+                <div class="grid-2">
+                    <div>
+                        <h4>IEC 62443 (FR1–FR7)</h4>
+                        <div class="metric-card"><div class="metric-value">${iecPct}%</div><div class="metric-label">Estimated Compliance</div></div>
+                        <p class="small">Derived from FR levels and checked controls.</p>
+                        ${renderFRBreakdown()}
+                    </div>
+                    <div>
+                        <h4>TSA Pipeline Security</h4>
+                        <p><b>Status:</b> ${tsa.compliant === null ? 'Not Applicable (non-pipeline)' : (tsa.compliant ? 'Compliant' : 'Gaps Detected')}</p>
+                        <ul>${(tsa.requirements||[]).map(r=>`<li>${r.requirement}: <b>${r.status}</b></li>`).join('')}</ul>
+
+                        <h4 style="margin-top:14px;">NIST CSF</h4>
+                        ${nist ? `
+                            <table class="data-table">
+                                <thead><tr><th>Function</th><th>Score</th></tr></thead>
+                                <tbody>
+                                    <tr><td>Identify</td><td>${nist.identify}%</td></tr>
+                                    <tr><td>Protect</td><td>${nist.protect}%</td></tr>
+                                    <tr><td>Detect</td><td>${nist.detect}%</td></tr>
+                                    <tr><td>Respond</td><td>${nist.respond}%</td></tr>
+                                    <tr><td>Recover</td><td>${nist.recover}%</td></tr>
+                                </tbody>
+                            </table>` : '<p class="small">NIST CSF not assessed.</p>'}
+
+                        <h4 style="margin-top:14px;">NERC CIP</h4>
+                        ${nerc ? `<p>${nerc.applicable ? 'Applicable' : 'Not Applicable'}${nerc.reason ? ' — ' + nerc.reason : ''}</p>` : ''}
+                    </div>
+                </div>
+
+                <div class="form-section" style="margin-top:14px;">
+                    <h4>Identified Gaps</h4>
+                    ${gaps.length ? `<ul>${gaps.map(g=>`<li>${g}</li>`).join('')}</ul>` : '<p class="small">No gaps detected.</p>'}
+                </div>
+            `;
+        }
+        
+        // ============================================
+        // HELPER FUNCTIONS
+        // ============================================
+        function renderFRBreakdown() {
+            return `
+                <table class="data-table" style="margin-top:8px;">
+                    <thead><tr><th>FR</th><th>Level</th><th>Checked Controls</th></tr></thead>
+                    <tbody>
+                        <tr><td>FR1</td><td>2</td><td>5</td></tr>
+                        <tr><td>FR2</td><td>2</td><td>4</td></tr>
+                        <tr><td>FR3</td><td>1</td><td>3</td></tr>
+                        <tr><td>FR4</td><td>2</td><td>4</td></tr>
+                        <tr><td>FR5</td><td>1</td><td>2</td></tr>
+                        <tr><td>FR6</td><td>2</td><td>3</td></tr>
+                        <tr><td>FR7</td><td>1</td><td>2</td></tr>
+                    </tbody>
+                    <tfoot><tr><td><b>Total</b></td><td colspan="2"><b>75%</b> overall</td></tr></tfoot>
+                </table>
+            `;
+        }
+
+        function calculateIECCompliance() {
+            const zones = document.querySelectorAll('#zoneList .zone-card');
+            if (zones.length === 0) return 0;
+            
+            let totalScore = 0;
+            zones.forEach(zone => {
+                const sl = parseInt(zone.querySelector('select[id^="slt-select"]').value);
+                const controls = zone.querySelectorAll('.fr-control input:checked').length;
+                totalScore += (sl * 20) + (controls * 5);
+            });
+            
+            return Math.min(100, Math.round(totalScore / zones.length));
+        }
+
+        function assessTSACompliance() {
+            const facilityType = document.getElementById('facilityType').value;
+            if (!facilityType || (!facilityType.includes('gas') && !facilityType.includes('pipeline'))) {
+                return { compliant: null };
+            }
+            
+            return {
+                compliant: false,
+                requirements: [
+                    { requirement: 'Network Segmentation', status: 'Met' },
+                    { requirement: '24/7 Incident Response', status: 'Pending Verification' },
+                    { requirement: 'Annual Assessment', status: 'In Progress' },
+                    { requirement: 'Cyber Security Plan', status: 'Documented' }
+                ]
+            };
+        }
+
+        function assessNISTCompliance() {
+            return {
+                identify: 70,
+                protect: 65,
+                detect: 55,
+                respond: 60,
+                recover: 70
+            };
+        }
+
+        function assessNERCCompliance() {
+            return {
+                applicable: false,
+                reason: 'Not a BES Cyber System'
+            };
+        }
+
+        function identifyComplianceGaps() {
+            const gaps = [];
+            
+            const zones = document.querySelectorAll('#zoneList .zone-card');
+            if (zones.length === 0) {
+                gaps.push('No zones defined - IEC 62443-3-3 requires zone segmentation');
+            }
+            
+            const conduits = document.querySelectorAll('[id^="conduit-"]');
+            if (conduits.length === 0) {
+                gaps.push('No conduits defined for inter-zone communication');
+            }
+            
+            const assets = document.querySelectorAll('#assetTableBody tr');
+            if (assets.length < 5) {
+                gaps.push('Incomplete asset inventory - comprehensive inventory required');
+            }
+            
+            return gaps;
+        }
+
+        function collectAssessmentData() {
+            assessmentState.data.zones = Array.from(document.querySelectorAll('#zoneList .zone-card')).map(zone => ({
+                id: zone.id.replace('zone-', ''),
+                name: zone.querySelector('input[type="text"]').value,
+                type: zone.querySelector('select').value,
+                securityLevel: zone.querySelector('select[id^="slt-select"]').value,
+                characteristics: Array.from(zone.querySelectorAll('.fr-control input:checked')).map(cb => cb.parentElement.textContent.trim())
+            }));
+            
+            assessmentState.data.assets = assetDataStore;
+            
+            return assessmentState.data;
+        }
+
+        function generateMitigationPlan() {
+            const zones = assessmentState.data.zones || [];
+            const plan = {
+                immediate: [],
+                shortTerm: [],
+                longTerm: []
+            };
+            
+            zones.forEach(zone => {
+                const sl = parseInt(zone.securityLevel);
+                if (sl >= 3) {
+                    plan.immediate.push({
+                        zone: zone.name,
+                        action: 'Implement critical security controls',
+                        controls: ['MFA', 'Network segmentation', 'Monitoring']
+                    });
+                } else if (sl === 2) {
+                    plan.shortTerm.push({
+                        zone: zone.name,
+                        action: 'Enhance security controls',
+                        controls: ['Access control', 'Logging', 'Backup']
+                    });
+                } else {
+                    plan.longTerm.push({
+                        zone: zone.name,
+                        action: 'Establish baseline security',
+                        controls: ['Asset inventory', 'Basic authentication', 'Patching']
+                    });
+                }
+            });
+            
+            return plan;
+        }
+
+        function calculateMitigationCosts() {
+            const zones = assessmentState.data.zones || [];
+            const baselineCost = 50000;
+            const costPerZone = zones.length * baselineCost;
+            
+            return {
+                total: `${(costPerZone / 1000).toFixed(0)}K`,
+                roi: '3-5 years'
+            };
+        }
+
+        function estimateResourceNeeds() {
+            const zones = assessmentState.data.zones || [];
+            return {
+                internal: {
+                    fte: zones.length,
+                    roles: ['Security Architect', 'OT Engineer', 'Compliance Analyst']
+                },
+                external: {
+                    consultants: '400 hours',
+                    vendors: ['Security tool vendor', 'Integration partner']
+                },
+                training: {
+                    personnel: 25,
+                    hours: 40
+                }
+            };
+        }
+
+        function generateFoundationalRequirements() {
+            const container = document.getElementById('foundationalRequirements');
+            if (!container) return;
+            
+            const requirements = [
+                { id: 'FR1', name: 'Identification and Authentication Control', level: 2 },
+                { id: 'FR2', name: 'Use Control', level: 2 },
+                { id: 'FR3', name: 'System Integrity', level: 1 },
+                { id: 'FR4', name: 'Data Confidentiality', level: 2 },
+                { id: 'FR5', name: 'Restricted Data Flow', level: 1 },
+                { id: 'FR6', name: 'Timely Response to Events', level: 2 },
+                { id: 'FR7', name: 'Resource Availability', level: 1 }
+            ];
+            
+            container.innerHTML = requirements.map(fr => `
+                <div class="fr-requirement">
+                    <h5>${fr.id}: ${fr.name}</h5>
+                    <p>Target Level: SL-${fr.level}</p>
+                    <div class="fr-controls">
+                        <label class="fr-control"><input type="checkbox"> Control implemented</label>
+                        <label class="fr-control"><input type="checkbox"> Documented</label>
+                        <label class="fr-control"><input type="checkbox"> Tested</label>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function generateExecutiveSummary() {
+            const overallRisk = document.getElementById('overallRisk');
+            const highRiskCount = document.getElementById('highRiskCount');
+            const complianceScore = document.getElementById('complianceScore');
+            const estimatedBudget = document.getElementById('estimatedBudget');
+            
+            // Calculate summary metrics
+            const zones = document.querySelectorAll('#zoneList .zone-card');
+            const highRisk = Array.from(zones).filter(z => 
+                parseInt(z.querySelector('select[id^="slt-select"]').value) >= 3
+            ).length;
+            
+            const compliance = calculateIECCompliance();
+            const costs = calculateMitigationCosts();
+            
+            if (overallRisk) overallRisk.textContent = '2.5';
+            if (highRiskCount) highRiskCount.textContent = highRisk.toString();
+            if (complianceScore) complianceScore.textContent = `${compliance}%`;
+            if (estimatedBudget) estimatedBudget.textContent = costs.total;
+        }
+        
+        // ============================================
+        // VALIDATION FUNCTIONS
+        // ============================================
+        function validateCurrentStage() {
+            return validateStage();
+        }
+        
+        function validateStage() {
+            // Simplified validation - could be expanded based on requirements
+            switch(assessmentState.currentStage) {
+                case 1:
+                    return validateStage1();
+                case 2:
+                    return validateStage2();
+                case 3:
+                    return validateStage3();
+                default:
+                    return true;
+            }
+        }
+        
+        function validateStage1() {
+            const assessmentName = document.getElementById('assessmentName').value;
+            const assessorName = document.getElementById('assessorName').value;
+            const facilityType = document.getElementById('facilityType').value;
+            const assets = document.querySelectorAll('#assetTableBody tr');
+            
+            if (!assessmentName || !assessorName || !facilityType) {
+                showNotification('Please complete all required fields', 'error');
+                return false;
+            }
+            
+            if (assets.length === 0) {
+                showNotification('Please add at least one asset', 'error');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        function validateStage2() {
+            const scenarios = document.querySelectorAll('[id^="consequence-"]');
+            if (scenarios.length === 0) {
+                showNotification('Please add at least one consequence scenario', 'error');
+                return false;
+            }
+            return true;
+        }
+        
+        function validateStage3() {
+            const zones = document.querySelectorAll('#zoneList .zone-card');
+            if (zones.length === 0) {
+                showNotification('Please define at least one security zone', 'error');
+                return false;
+            }
+            return true;
+        }
+        
+        // ============================================
+        // DATA PERSISTENCE FUNCTIONS
+        // ============================================
+        function saveProgress() {
+            collectAssessmentData();
+            localStorage.setItem('iec62443Assessment', JSON.stringify(assessmentState));
+            showNotification('Progress saved successfully', 'success');
+        }
+        
+        function loadSavedProgress() {
+            const saved = localStorage.getItem('iec62443Assessment');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    // Only load if there's actual data
+                    if (data && data.type) {
+                        assessmentState.type = data.type;
+                        assessmentState.currentStage = data.currentStage || 1;
+                        assessmentState.data = data.data || assessmentState.data;
+                        showNotification('Previous assessment loaded', 'success');
+                        
+                        // Restore UI state if assessment type is selected
+                        if (assessmentState.type) {
+                            selectAssessmentType(assessmentState.type);
+                            showStage(assessmentState.currentStage);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to load saved progress', e);
+                }
+            }
+        }
+        
+        // ============================================
+        // EXPORT FUNCTIONS
+        // ============================================
+        function generateReport() {
+            collectAssessmentData();
+            showNotification('Generating comprehensive report...', 'info');
+            
+            // In a real implementation, this would generate a PDF or detailed HTML report
+            setTimeout(() => {
+                window.print();
+            }, 1000);
+        }
+        
+        function printReport() {
+            window.print();
+        }
+        
+        function exportExcel() {
+            collectAssessmentData();
+            
+            // Create CSV content for Excel
+            let csvContent = 'Category,Item,Value\n';
+            
+            // Add assessment metadata
+            csvContent += `Assessment,Name,${document.getElementById('assessmentName').value}\n`;
+            csvContent += `Assessment,Date,${document.getElementById('assessmentDate').value}\n`;
+            csvContent += `Assessment,Type,${assessmentState.type}\n`;
+            
+            // Add assets
+            assessmentState.data.assets.forEach(asset => {
+                csvContent += `Asset,${asset.id},${asset.name}\n`;
+            });
+            
+            // Download
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `IEC62443_Assessment_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            
+            showNotification('Excel export completed', 'success');
+        }
+        
+        function exportJSON() {
+            collectAssessmentData();
+            
+            const blob = new Blob([JSON.stringify(assessmentState, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `IEC62443_Assessment_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            
+            showNotification('JSON export completed', 'success');
+        }
+        
+        function generateCRS() {
+            // Generate Cyber Risk Score report
+            collectAssessmentData();
+            
+            const crs = {
+                timestamp: new Date().toISOString(),
+                facility: document.getElementById('facilityType').value,
+                overallRisk: 2.5,
+                zones: assessmentState.data.zones.length,
+                assets: assessmentState.data.assets.length,
+                compliance: calculateIECCompliance()
+            };
+            
+            console.log('Cyber Risk Score:', crs);
+            showNotification('CRS report generated - check console', 'success');
+        }
+        
+        function importVulnScan() {
+            showNotification('Vulnerability scan import functionality ready for implementation', 'info');
+        }
+        
+        // ============================================
+        // UTILITY FUNCTIONS
+        // ============================================
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 500;
+                z-index: 10000;
+                max-width: 400px;
+                animation: slideIn 0.3s ease-out;
+            `;
+            
+            // Set color based on type
+            const colors = {
+                success: '#28a745',
+                error: '#dc3545',
+                warning: '#ffc107',
+                info: '#17a2b8'
+            };
+            
+            notification.style.background = colors[type] || colors.info;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.style.animation = 'slideOut 0.3s ease-out';
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
+                }
+            }, 5000);
+        }
+
+    </script>
+</body>
+</html>

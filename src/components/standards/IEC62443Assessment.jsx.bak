@@ -519,20 +519,23 @@ function IEC62443Assessment() {
 
   const highRiskZones = useMemo(() => data.zones.filter(z => z.securityLevel === 'SL3' || z.securityLevel === 'SL4').length, [data.zones]);
 
+  // Updated requiredActions to compute outstanding actions
   const requiredActions = useMemo(() => {
     const actions = [];
-    // Threat scenarios with residual risk above threshold
+    
+    // Check threat scenarios with residual risk above threshold
     data.threatScenarios.forEach(scenario => {
       const residualRisk = calculateResidualRisk(scenario);
       if (residualRisk > data.tolerableRiskThreshold) {
         actions.push({
           type: 'threat',
           id: scenario.id,
-          text: `Reduce risk for \"${scenario.name || 'Unnamed threat scenario'}\" (${residualRisk.toFixed(2)} > ${data.tolerableRiskThreshold})`
+          text: `Reduce risk for "${scenario.name || 'Unnamed threat scenario'}" (${residualRisk.toFixed(2)} > ${data.tolerableRiskThreshold})`
         });
       }
     });
-    // Consequence scenarios with max impact above threshold
+    
+    // Check consequence scenarios with max impact above threshold
     data.consequenceScenarios.forEach(scenario => {
       const maxImpact = Math.max(
         scenario.impacts?.safety || 1,
@@ -541,30 +544,43 @@ function IEC62443Assessment() {
         scenario.impacts?.operational || 1,
         scenario.impacts?.regulatory || 1
       );
+      
       if (maxImpact > data.tolerableRiskThreshold) {
         actions.push({
           type: 'consequence',
           id: scenario.id,
-          text: `Mitigate impact for \"${scenario.name || 'Unnamed consequence scenario'}\" (${maxImpact} > ${data.tolerableRiskThreshold})`
+          text: `Mitigate impact for "${scenario.name || 'Unnamed consequence scenario'}" (${maxImpact} > ${data.tolerableRiskThreshold})`
         });
       }
     });
-    // Outstanding FRs (applied but not implemented)
+    
+    // Check for outstanding FRs (applied but not implemented)
     data.threatScenarios.forEach(scenario => {
       const appliedFRs = scenario.frApplied || [];
       const implementedFRs = scenario.frImplemented || [];
+      
+      // Find FRs that are applied but not implemented
       const outstandingFRs = appliedFRs.filter(fr => !implementedFRs.includes(fr));
+      
       if (outstandingFRs.length > 0) {
-        const frList = outstandingFRs.join(', ');
+        // Map FR keys to their labels for better readability
+        const frMap = {};
+        FR_LIST.forEach(fr => {
+          frMap[fr.key] = fr.key; // Just use the key (FR1, FR2, etc.)
+        });
+        
+        const frList = outstandingFRs.map(fr => frMap[fr] || fr).join(', ');
+        
         actions.push({
           type: 'fr',
           id: scenario.id,
-          text: `Implement outstanding requirements for \"${scenario.name || 'Unnamed scenario'}\": ${frList}`
+          text: `Implement outstanding requirements for "${scenario.name || 'Unnamed scenario'}": ${frList}`
         });
       }
     });
+    
     return actions;
-  }, [data.threatScenarios, data.consequenceScenarios, data.tolerableRiskThreshold]);
+  }, [data.threatScenarios, data.consequenceScenarios, data.tolerableRiskThreshold, calculateResidualRisk]);
 
   const complianceScore = useMemo(() => Math.floor(Math.random()*30)+70, [data.assets.length, data.zones.length]);
 
@@ -606,60 +622,118 @@ function IEC62443Assessment() {
             </div>
           </div>
         </div>
-      </div>
+          {/* Footer buttons */}
+          <Button variant="secondary" leadingIcon={Save} onClick={save}>
+            Save
+          </Button>
+          <Button variant="secondary" leadingIcon={FileDown} onClick={exportCSV}>
+            Export CSV
+          </Button>
+          <Button variant="secondary" onClick={exportJSON}>
+            Export JSON
+          </Button>
+          <Button variant="secondary" onClick={exportPDF}>
+            Export PDF
+          </Button>
+          <Button variant="secondary" leadingIcon={Copy} onClick={cloneAssessment}>
+            Clone
+          </Button>
 
-      {/* Assessment type */}
+        <Button
+          leadingIcon={ChevronRight}
+          onClick={next}
+        >
+          {currentStage === 7 ? 'Generate Report' : 'Next'}
+        </Button>
       <div className="dashboard-card p-4">
-        <h2 className="font-semibold text-secondary-900 dark:text-white">Select Assessment Type</h2>
-        <p className="text-sm text-secondary-500">Choose based on objectives and detail required.</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
-          {[
-            { 
-              key: 'initial', 
-              title: 'Initial (High-Level)', 
-              purpose: 'First stage of IEC 62443 risk analysis',
-              description: 'Define System under Consideration (SuC), assume likelihood = 1, estimate worst-case impacts, identify zones and conduits, set initial security-level targets (SL-T). Minimal asset details required.'
-            },
-            { 
-              key: 'detailed', 
-              title: 'Detailed', 
-              purpose: 'When risk exceeds tolerable limits',
-              description: 'Identify realistic threat scenarios, evaluate vulnerabilities and existing countermeasures, estimate likelihood and impact, refine SL-T for each zone/conduit, document cybersecurity requirements.'
-            },
-            { 
-              key: 'vulnerability', 
-              title: 'Vulnerability', 
-              purpose: 'Identify current vulnerabilities',
-              description: 'Use automated scans or manual enumeration to collect OS versions, services and configurations. Map discovered vulnerabilities to risk scenarios and feed into detailed assessment.'
-            },
-            { 
-              key: 'compliance', 
-              title: 'Compliance/Maturity', 
-              purpose: 'Determine alignment with IEC 62443',
-              description: 'Use checklists derived from IEC 62443-2-1, -2-4 and -3-3. Score each requirement, highlight gaps, recommend improvements and link to risk-mitigation plans.'
-            },
-          ].map(card => (
-            <button key={card.key} onClick={() => setData(d => ({ ...d, assessmentType: card.key }))}
-              className={`p-3 rounded-lg border transition ${data.assessmentType === card.key ? 'border-primary-500 bg-primary-50/40' : 'border-secondary-200 dark:border-secondary-700 hover:border-primary-300'}`}>
-              <h3 className="text-sm font-semibold text-primary-700 dark:text-primary-400">{card.title}</h3>
-              <p className="text-xs text-amber-500 font-medium">Purpose: {card.purpose}</p>
-              <p className="text-xs text-secondary-300 mt-2">{card.description}</p>
-            </button>
-          ))}
+
+      {/* Results & Report */}
+      <div className="dashboard-card p-4">
+        <h2 className="text-lg font-bold text-primary-600">Assessment Results &amp; Report</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+          <ResultCard label="Overall Risk Score" value={overallRiskScore} />
+          <ResultCard label="High Risk Zones" value={highRiskZones} />
+          <ResultCard label="Required Actions" value={requiredActions.length} />
+          <ResultCard label="Compliance %" value={`${complianceScore}%`} />
+        </div>
+
+        <div className="mt-6">
+          <h3 className="font-semibold text-secondary-900 dark:text-white mb-2">
+            Outstanding Actions
+          </h3>
+          {requiredActions.length === 0 ? (
+            <p className="text-sm text-green-600">No outstanding actions. Great work!</p>
+          ) : (
+            <ul className="list-disc pl-5 space-y-1 text-sm">
+              {requiredActions.map((act, idx) => (
+                <li key={idx}>{act.text}</li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* Stage nav */}
-      <div className="dashboard-card p-3 flex flex-wrap gap-2">
-        {[1,2,3,4,5,6,7].map(n => (
-          <button key={n} onClick={() => { setCurrentStage(n); setMeta(n); }}
-            className={`px-3 py-2 rounded border text-xs ${n===currentStage ? 'border-primary-500 bg-primary-50/40' : n<currentStage ? 'border-green-500 bg-green-50/40' : 'border-secondary-300 dark:border-secondary-700'}`}>
-            <span className="font-semibold">{zcrLabels[n]}</span>
-          </button>
+/* ------------------------------------------------------------------
+ * Small helper components & utilities
+ * ------------------------------------------------------------------ */
+function ResultCard({ label, value }) {
+  return (
+    <div className="dashboard-card p-3 text-center">
+      <div className="text-2xl font-bold text-primary-600">{value}</div>
+      <div className="text-xs text-secondary-500">{label}</div>
+    </div>
+  );
+}
+
+function ComplianceRow({ label }) {
+  const [status, setStatus] = useState('partial');
+  return (
+    <div
+      className={`flex items-center justify-between p-2 rounded border-l-4 ${
+        status === 'implemented'
+          ? 'border-green-500'
+          : status === 'partial'
+          ? 'border-amber-500'
+          : 'border-red-500'
+      }`}
+    >
+      <div>{label}</div>
+      <div className="flex gap-2">
+        {['implemented', 'partial', 'not-implemented'].map((s) => (
+          <Button
+            key={s}
+            size="xs"
+            className={status === s ? '!bg-primary-600 text-white' : ''}
+            onClick={() => setStatus(s)}
+          >
+            {s.replace('-', ' ')}
+          </Button>
         ))}
       </div>
+    </div>
+  );
+}
 
-      {/* Stage content */}
+// Utility helpers ----------------------------------------------------
+function quote(s = '') {
+  return '"' + String(s).replace(/"/g, '""') + '"';
+}
+
+function download(blob, filename) {
+  const a = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+export default IEC62443Assessment;
       {currentStage === 1 && (
         <div className="dashboard-card p-4 space-y-4">
           <h2 className="text-lg font-bold text-primary-600">ZCR 1: Define System Under Consideration (SuC)</h2>
@@ -1117,194 +1191,222 @@ function IEC62443Assessment() {
           </p>
           
           <div className="space-y-4">
-            {data.threatScenarios.map(s => (
-              <div key={s.id} className="dashboard-card p-4 border-l-4 border-primary-600">
-                <h4 className="font-semibold text-lg mb-3">Threat Scenario Name</h4>
-                
-                {/* Threat Actor and Attack Vector */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="text-xs text-secondary-500">Threat Actor:</label>
-                    <select 
-                      className="input w-full" 
-                      value={s.threatActor} 
-                      onChange={e => updateThreat(s.id, {threatActor: e.target.value})}
-                    >
-                      {['nation-state','cybercriminal','insider-threat','hacktivist','script-kiddie','competitor'].map(v => 
-                        <option key={v} value={v}>{v}</option>
-                      )}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs text-secondary-500">Attack Vector:</label>
-                    <select 
-                      className="input w-full" 
-                      value={s.attackVector} 
-                      onChange={e => updateThreat(s.id, {attackVector: e.target.value})}
-                    >
-                      {['network','email','removable-media','remote-access','physical','supply-chain','wireless'].map(v => 
-                        <option key={v} value={v}>{v}</option>
-                      )}
-                    </select>
-                  </div>
-                </div>
-                
-                {/* Attack Description */}
-                <div className="mb-4">
-                  <label className="text-xs text-secondary-500">Attack Description:</label>
-                  <textarea 
-                    className="input w-full min-h-[90px]" 
-                    placeholder="Describe the attack scenario, tactics, techniques, and procedures..." 
-                    value={s.description} 
-                    onChange={e => updateThreat(s.id, {description: e.target.value})}
-                  />
-                </div>
-                
-                {/* Targeted Assets, Targeted Zones, and Exploited Vulnerabilities */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div>
-                    <label className="text-xs text-secondary-500">Targeted Assets:</label>
-                    <input 
-                      className="input w-full" 
-                      placeholder="List affected assets" 
-                      value={s.targetedAssets || ''} 
-                      onChange={e => updateThreat(s.id, {targetedAssets: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-secondary-500">Targeted Zones:</label>
-                    <input 
-                      className="input w-full" 
-                      placeholder="List affected zones" 
-                      value={s.targetedZones || ''} 
-                      onChange={e => updateThreat(s.id, {targetedZones: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-secondary-500">Exploited Vulnerabilities:</label>
-                    <input 
-                      className="input w-full" 
-                      placeholder="CVE numbers or vulnerability descriptions" 
-                      value={s.exploitedVulnerabilities || ''} 
-                      onChange={e => updateThreat(s.id, {exploitedVulnerabilities: e.target.value})}
-                    />
-                  </div>
-                </div>
-                
-                {/* Likelihood Assessment */}
-                <div className="mb-4">
-                  <label className="text-xs text-secondary-500 block mb-1">Likelihood Assessment:</label>
-                  <div className="grid grid-cols-5 gap-1">
-                    {LIKELIHOOD_OPTIONS.map(option => (
-                      <button
-                        key={option.value}
-                        onClick={() => handleLikelihoodSelect(s.id, option.value)}
-                        className={`py-2 px-1 rounded text-center ${
-                          s.likelihood === option.value 
-                            ? 'bg-primary-600 text-white' 
-                            : 'bg-secondary-200 text-secondary-700 hover:bg-secondary-300'
-                        }`}
+            {data.threatScenarios.map(s => {
+              // Calculate base and residual risk scores
+              const baseRisk = s.likelihood * s.impact;
+              const residualRisk = calculateResidualRisk(s);
+              const hasReduction = baseRisk !== residualRisk;
+              
+              return (
+                <div key={s.id} className="dashboard-card p-4 border-l-4 border-primary-600">
+                  <h4 className="font-semibold text-lg mb-3">Threat Scenario Name</h4>
+                  
+                  {/* Threat Actor and Attack Vector */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="text-xs text-secondary-500">Threat Actor:</label>
+                      <select 
+                        className="input w-full" 
+                        value={s.threatActor} 
+                        onChange={e => updateThreat(s.id, {threatActor: e.target.value})}
                       >
-                        {option.label}
-                        <div className="text-xs mt-1">{option.value}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Impact Assessment */}
-                <div className="mb-4">
-                  <label className="text-xs text-secondary-500 block mb-1">Impact Assessment:</label>
-                  <div className="grid grid-cols-5 gap-1">
-                    {IMPACT_OPTIONS.map(option => (
-                      <button
-                        key={option.value}
-                        onClick={() => handleImpactSelect(s.id, option.value)}
-                        className={`py-2 px-1 rounded text-center ${
-                          s.impact === option.value 
-                            ? 'bg-primary-600 text-white' 
-                            : 'bg-secondary-200 text-secondary-700 hover:bg-secondary-300'
-                        }`}
-                      >
-                        {option.label}
-                        <div className="text-xs mt-1">{option.value}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Applicable Foundational Requirements (FR) */}
-                <div className="mb-4">
-                  <label className="text-xs text-secondary-500 block mb-1">Applicable Foundational Requirements (FR):</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-1">
-                    {FR_LIST.map(fr => (
-                      <button
-                        key={fr.key}
-                        onClick={() => toggleFR(s.id, fr.key)}
-                        className={`py-2 px-1 rounded text-center ${
-                          (s.frApplied || []).includes(fr.key) 
-                            ? 'bg-primary-600 text-white' 
-                            : 'bg-secondary-200 text-secondary-700 hover:bg-secondary-300'
-                        }`}
-                      >
-                        {fr.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Existing Controls */}
-                <div className="mb-4">
-                  <label className="text-xs text-secondary-500">Existing Controls:</label>
-                  <textarea 
-                    className="input w-full min-h-[90px]" 
-                    placeholder="List existing security controls that mitigate this threat..." 
-                    value={s.existingControls} 
-                    onChange={e => updateThreat(s.id, {existingControls: e.target.value})}
-                  />
-                </div>
-                
-                {/* Risk Score */}
-                {(() => {
-                  const baseRisk = s.likelihood * s.impact;
-                  const residualRisk = calculateResidualRisk(s);
-                  const hasReduction = baseRisk !== residualRisk;
-                  return (
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between">
-                      <div className="space-y-1">
-                        <div className="text-sm">
-                          <span className="font-semibold">Base Risk Score:</span>
-                          <span className="ml-2">{baseRisk.toFixed(2)}</span>
-                        </div>
-                        <div className="text-lg">
-                          <span className="font-semibold">Residual Risk Score:</span>
-                          <span
-                            className={`font-bold ml-2 ${
-                              hasReduction ? 'text-green-600' : 'text-primary-600'
-                            }`}
-                          >
-                            {residualRisk.toFixed(2)}
-                            {hasReduction && (
-                              <span className="text-xs ml-1 text-green-600">
-                                ({((baseRisk - residualRisk) / baseRisk * 100).toFixed(0)}% reduction)
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        className="mt-2 sm:mt-0"
-                        onClick={() => removeThreat(s.id)}
-                      >
-                        Remove Scenario
-                      </Button>
+                        {['nation-state','cybercriminal','insider-threat','hacktivist','script-kiddie','competitor'].map(v => 
+                          <option key={v} value={v}>{v}</option>
+                        )}
+                      </select>
                     </div>
-                  );
-                })()}
-              </div>
-            ))}
+                    <div>
+                      <label className="text-xs text-secondary-500">Attack Vector:</label>
+                      <select 
+                        className="input w-full" 
+                        value={s.attackVector} 
+                        onChange={e => updateThreat(s.id, {attackVector: e.target.value})}
+                      >
+                        {['network','email','removable-media','remote-access','physical','supply-chain','wireless'].map(v => 
+                          <option key={v} value={v}>{v}</option>
+                        )}
+                      </select>
+                    </div>
+                  </div>
+                  
+                  {/* Attack Description */}
+                  <div className="mb-4">
+                    <label className="text-xs text-secondary-500">Attack Description:</label>
+                    <textarea 
+                      className="input w-full min-h-[90px]" 
+                      placeholder="Describe the attack scenario, tactics, techniques, and procedures..." 
+                      value={s.description} 
+                      onChange={e => updateThreat(s.id, {description: e.target.value})}
+                    />
+                  </div>
+                  
+                  {/* Targeted Assets, Targeted Zones, and Exploited Vulnerabilities */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <label className="text-xs text-secondary-500">Targeted Assets:</label>
+                      <input 
+                        className="input w-full" 
+                        placeholder="List affected assets" 
+                        value={s.targetedAssets || ''} 
+                        onChange={e => updateThreat(s.id, {targetedAssets: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-secondary-500">Targeted Zones:</label>
+                      <input 
+                        className="input w-full" 
+                        placeholder="List affected zones" 
+                        value={s.targetedZones || ''} 
+                        onChange={e => updateThreat(s.id, {targetedZones: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-secondary-500">Exploited Vulnerabilities:</label>
+                      <input 
+                        className="input w-full" 
+                        placeholder="CVE numbers or vulnerability descriptions" 
+                        value={s.exploitedVulnerabilities || ''} 
+                        onChange={e => updateThreat(s.id, {exploitedVulnerabilities: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Likelihood Assessment */}
+                  <div className="mb-4">
+                    <label className="text-xs text-secondary-500 block mb-1">Likelihood Assessment:</label>
+                    <div className="grid grid-cols-5 gap-1">
+                      {LIKELIHOOD_OPTIONS.map(option => (
+                        <button
+                          key={option.value}
+                          onClick={() => handleLikelihoodSelect(s.id, option.value)}
+                          className={`py-2 px-1 rounded text-center ${
+                            s.likelihood === option.value 
+                              ? 'bg-primary-600 text-white' 
+                              : 'bg-secondary-200 text-secondary-700 hover:bg-secondary-300'
+                          }`}
+                        >
+                          {option.label}
+                          <div className="text-xs mt-1">{option.value}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Impact Assessment */}
+                  <div className="mb-4">
+                    <label className="text-xs text-secondary-500 block mb-1">Impact Assessment:</label>
+                    <div className="grid grid-cols-5 gap-1">
+                      {IMPACT_OPTIONS.map(option => (
+                        <button
+                          key={option.value}
+                          onClick={() => handleImpactSelect(s.id, option.value)}
+                          className={`py-2 px-1 rounded text-center ${
+                            s.impact === option.value 
+                              ? 'bg-primary-600 text-white' 
+                              : 'bg-secondary-200 text-secondary-700 hover:bg-secondary-300'
+                          }`}
+                        >
+                          {option.label}
+                          <div className="text-xs mt-1">{option.value}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Applicable Foundational Requirements (FR) */}
+                  <div className="mb-4">
+                    <label className="text-xs text-secondary-500 block mb-1">Applicable Foundational Requirements (FR):</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-1">
+                      {FR_LIST.map(fr => (
+                        <button
+                          key={fr.key}
+                          onClick={() => toggleFR(s.id, fr.key)}
+                          className={`py-2 px-1 rounded text-center ${
+                            (s.frApplied || []).includes(fr.key) 
+                              ? 'bg-primary-600 text-white' 
+                              : 'bg-secondary-200 text-secondary-700 hover:bg-secondary-300'
+                          }`}
+                        >
+                          {fr.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Implemented Foundational Requirements (FR) */}
+                  <div className="mb-4">
+                    <label className="text-xs text-secondary-500 block mb-1">
+                      Implemented Foundational Requirements (evidence in Existing Controls):
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-1">
+                      {FR_LIST.map(fr => (
+                        <button
+                          key={fr.key}
+                          onClick={() => toggleFRImplemented(s.id, fr.key)}
+                          disabled={!(s.frApplied || []).includes(fr.key)}
+                          className={`py-2 px-1 rounded text-center ${
+                            (s.frImplemented || []).includes(fr.key) 
+                              ? 'bg-green-600 text-white' 
+                              : (s.frApplied || []).includes(fr.key)
+                                ? 'bg-secondary-200 text-secondary-700 hover:bg-secondary-300'
+                                : 'bg-secondary-100 text-secondary-400 cursor-not-allowed'
+                          }`}
+                        >
+                          {fr.label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-secondary-500 mt-1">
+                      Only reduces risk when Existing Controls describe how these FRs are in place.
+                    </p>
+                  </div>
+                  
+                  {/* Existing Controls */}
+                  <div className="mb-4">
+                    <label className="text-xs text-secondary-500">Existing Controls:</label>
+                    <textarea 
+                      className="input w-full min-h-[90px]" 
+                      placeholder="List existing security controls that mitigate this threat..." 
+                      value={s.existingControls} 
+                      onChange={e => updateThreat(s.id, {existingControls: e.target.value})}
+                    />
+                  </div>
+                  
+                  {/* Risk Score */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+                    <div className="space-y-1">
+                      <div className="text-sm">
+                        <span className="font-semibold">Base Risk Score:</span>
+                        <span className="ml-2">{baseRisk.toFixed(2)}</span>
+                      </div>
+                      <div className="text-lg">
+                        <span className="font-semibold">Residual Risk Score:</span>
+                        <span
+                          className={`font-bold ml-2 ${
+                            hasReduction ? 'text-green-600' : 'text-primary-600'
+                          }`}
+                        >
+                          {residualRisk.toFixed(2)}
+                          {hasReduction && (
+                            <span className="text-xs ml-1 text-green-600">
+                              ({((baseRisk - residualRisk) / baseRisk * 100).toFixed(0)}% reduction)
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      className="mt-2 sm:mt-0"
+                      onClick={() => removeThreat(s.id)}
+                    >
+                      Remove Scenario
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
             
             {data.threatScenarios.length === 0 && (
               <div className="text-sm text-secondary-500 p-4 text-center">
@@ -1414,61 +1516,4 @@ function IEC62443Assessment() {
       <div className="dashboard-card p-3 flex items-center justify-between">
         <Button variant="secondary" leadingIcon={ChevronLeft} onClick={prev} disabled={currentStage===1}>Previous</Button>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" leadingIcon={Save} onClick={save}>Save</Button>
-          <Button variant="secondary" leadingIcon={FileDown} onClick={exportCSV}>Export CSV</Button>
-          <Button variant="secondary" onClick={exportJSON}>Export JSON</Button>
-          <Button variant="secondary" onClick={exportPDF}>Export PDF</Button>
-          <Button variant="secondary" leadingIcon={Copy} onClick={cloneAssessment}>Clone</Button>
-        </div>
-        <Button leadingIcon={ChevronRight} onClick={next}>{currentStage===7 ? 'Generate Report' : 'Next'}</Button>
-      </div>
-
-      {/* Results */}
-      <div className="dashboard-card p-4">
-        <h2 className="text-lg font-bold text-primary-600">Assessment Results & Report</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
-          <ResultCard label="Overall Risk Score" value={overallRiskScore} />
-          <ResultCard label="High Risk Zones" value={highRiskZones} />
-          <ResultCard label="Required Actions" value={requiredActions.length} />
-          <ResultCard label="Compliance %" value={`${complianceScore}%`} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ResultCard({ label, value }) {
-  return (
-    <div className="dashboard-card p-3 text-center">
-      <div className="text-2xl font-bold text-primary-600">{value}</div>
-      <div className="text-xs text-secondary-500">{label}</div>
-    </div>
-  );
-}
-
-function ComplianceRow({ label }) {
-  const [status, setStatus] = useState('partial');
-  return (
-    <div className={`flex items-center justify-between p-2 rounded border-l-4 ${status==='implemented' ? 'border-green-500' : status==='partial' ? 'border-amber-500' : 'border-red-500'}`}>
-      <div>{label}</div>
-      <div className="flex gap-2">
-        {['implemented','partial','not-implemented'].map(s => (
-          <Button key={s} size="xs" className={status===s ? '!bg-primary-600 text-white' : ''} onClick={()=>setStatus(s)}>
-            {s.replace('-', ' ')}
-          </Button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Utilities
-function quote(s='') { return '"' + String(s).replace(/"/g, '""') + '"'; }
-function download(blob, filename) {
-  const a = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-  a.href = url; a.download = filename; document.body.appendChild(a); a.click();
-  a.remove(); URL.revokeObjectURL(url);
-}
-
-export default IEC62443Assessment;
+          <Button variant="secondary" leadingIcon={Save}
