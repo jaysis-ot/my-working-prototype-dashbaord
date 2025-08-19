@@ -327,6 +327,44 @@ const MitreAttackNavigator = ({
     return mapping;
   }, [filters.selectedGroups, threatGroups]);
 
+  /* ---------- Color blending helpers for multi-group overlay ---------- */
+  const hexToRgb = (hex) => {
+    const m = hex.replace('#', '');
+    const bigint = parseInt(m.length === 3 ? m.split('').map((c) => c + c).join('') : m, 16);
+    return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
+  };
+
+  const rgbToHex = ({ r, g, b }) =>
+    `#${[r, g, b]
+      .map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0'))
+      .join('')}`;
+
+  const blendColors = (colors) => {
+    if (!colors || colors.length === 0) return null;
+    if (colors.length === 1) return colors[0];
+    const sum = colors.reduce(
+      (acc, c) => {
+        const { r, g, b } = hexToRgb(c);
+        return { r: acc.r + r, g: acc.g + g, b: acc.b + b };
+      },
+      { r: 0, g: 0, b: 0 }
+    );
+    const avg = {
+      r: sum.r / colors.length,
+      g: sum.g / colors.length,
+      b: sum.b / colors.length,
+    };
+    return rgbToHex(avg);
+  };
+
+  const getTechniqueOverlayColor = useCallback(
+    (techniqueId) => {
+      const cols = highlightedTechniques[techniqueId] || [];
+      return blendColors(cols);
+    },
+    [highlightedTechniques]
+  );
+
   const getCoverageValue = useCallback((techniqueId) => { 
     if (colorMode !== 'coverage') return null; 
     if (coverageSource === 'groups') { 
