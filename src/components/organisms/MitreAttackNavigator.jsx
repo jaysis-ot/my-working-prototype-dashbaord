@@ -16,6 +16,8 @@ import {
   Workflow,
   BarChart3,
   AlertTriangle,
+  Download,
+  Upload,
   BookOpen
 } from 'lucide-react';
 import Button from '../atoms/Button';
@@ -55,7 +57,7 @@ const Tooltip = ({ children, content, position = 'top' }) => {
   );
 };
 
-const MatrixCell = ({ technique, highlightColor, onSelect }) => {
+const MatrixCell = ({ technique, highlightColor, onSelect, colorMode, coverageValue, heatColor }) => {
   const getSeverityPastelColor = (severity) => {
     switch (severity) {
       case 'Critical': return '#ef44444D';
@@ -66,7 +68,9 @@ const MatrixCell = ({ technique, highlightColor, onSelect }) => {
   };
   
   const cellStyle = {
-    backgroundColor: highlightColor ? `${highlightColor}33` : getSeverityPastelColor(technique.severity),
+    backgroundColor: colorMode === 'coverage' 
+      ? heatColor 
+      : (highlightColor ? `${highlightColor}33` : getSeverityPastelColor(technique.severity)),
   };
 
   const tooltipContent = (
@@ -76,6 +80,9 @@ const MatrixCell = ({ technique, highlightColor, onSelect }) => {
       <div className="pt-1">
         <p><span className="font-semibold">Platforms:</span> {technique.platforms.join(', ')}</p>
         <p><span className="font-semibold">Severity:</span> {technique.severity}</p>
+        {colorMode === 'coverage' && (
+          <p><span className="font-semibold">Coverage:</span> {Math.round(coverageValue || 0)}%</p>
+        )}
       </div>
     </div>
   );
@@ -83,13 +90,18 @@ const MatrixCell = ({ technique, highlightColor, onSelect }) => {
   return (
     <Tooltip content={tooltipContent}>
       <div
-        className="p-2 text-xs border-b border-secondary-200 dark:border-secondary-700 hover:bg-primary-100 dark:hover:bg-primary-500/20 cursor-pointer transition-colors"
+        className="p-2 text-xs border-b border-secondary-200 dark:border-secondary-700 hover:bg-primary-100 dark:hover:bg-primary-500/20 cursor-pointer transition-colors relative"
         style={cellStyle}
         onClick={() => onSelect(technique)}
         role="button"
         tabIndex={0}
         onKeyPress={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect(technique)}
       >
+        {colorMode === 'coverage' && coverageValue > 0 && (
+          <div className="absolute top-1 right-1 bg-blue-600 text-white text-[10px] px-1 rounded-sm font-medium">
+            {Math.round(coverageValue)}%
+          </div>
+        )}
         <p className="font-medium text-secondary-800 dark:text-secondary-200 truncate" title={technique.name}>
           {technique.name}
         </p>
@@ -176,23 +188,41 @@ const ControlsPanel = ({ threatGroups, filters, onFilterChange, isOpen, onToggle
   </div>
 );
 
-const MatrixView = ({ tactics, getTechniquesForTactic, highlightedTechniques, onTechniqueSelect }) => (
+const MatrixView = ({ tactics, getTechniquesForTactic, highlightedTechniques, onTechniqueSelect, colorMode, getCoverageValue, getCoverageHeatColor }) => (
   <div className="flex-1 overflow-auto bg-white dark:bg-secondary-800 rounded-lg shadow-md border border-secondary-200 dark:border-secondary-700">
     <div className="flex min-w-max h-full">
       {tactics.map(tactic => (
         <div key={tactic.id} className="flex-shrink-0 w-48 border-r border-secondary-200 dark:border-secondary-700 flex flex-col">
           <div className="p-2 text-center bg-secondary-100 dark:bg-secondary-700/50 border-b-2 border-primary-500">
             <h4 className="text-xs font-bold uppercase tracking-wider truncate" title={tactic.name}>{tactic.name}</h4>
+            {(() => {
+              const list = getTechniquesForTactic(tactic.id);
+              const covered = colorMode === 'coverage'
+                ? list.filter(t => (getCoverageValue(t.id) || 0) > 0).length
+                : list.filter(t => highlightedTechniques[t.id]).length;
+              return (
+                <div className="text-[10px] text-secondary-600 dark:text-secondary-300 mt-1">
+                  {covered} / {list.length} covered
+                </div>
+              );
+            })()}
           </div>
           <div className="flex-grow overflow-y-auto">
-            {getTechniquesForTactic(tactic.id).map(technique => (
-              <MatrixCell
-                key={technique.id}
-                technique={technique}
-                highlightColor={highlightedTechniques[technique.id]?.[0]}
-                onSelect={onTechniqueSelect}
-              />
-            ))}
+            {getTechniquesForTactic(tactic.id).map(technique => {
+              const value = getCoverageValue(technique.id);
+              const heat = getCoverageHeatColor(value);
+              return (
+                <MatrixCell
+                  key={technique.id}
+                  technique={technique}
+                  highlightColor={highlightedTechniques[technique.id]?.[0]}
+                  onSelect={onTechniqueSelect}
+                  colorMode={colorMode}
+                  coverageValue={value}
+                  heatColor={heat}
+                />
+              );
+            })}
           </div>
         </div>
       ))}
@@ -279,6 +309,11 @@ const MitreAttackNavigator = ({
   const [selectedTechnique, setSelectedTechnique] = useState(null);
   const [activeView, setActiveView] = useState('dashboard');
   const [isControlsPanelOpen, setIsControlsPanelOpen] = useState(true);
+  const [colorMode, setColorMode] = useState('groups'); // 'groups' | 'coverage'
+  const [coverageSource, setCoverageSource] = useState('groups'); // 'groups' | 'import'
+  const [importedCoverage, setImportedCoverage] = useState({}); // { [techniqueId]: score(0-100) }
+  const [importMeta, setImportMeta] = useState(null);
+  const fileInputRef = useRef(null);
 
   const highlightedTechniques = useMemo(() => {
     if (filters.selectedGroups.length === 0) return {};
@@ -291,6 +326,105 @@ const MitreAttackNavigator = ({
     });
     return mapping;
   }, [filters.selectedGroups, threatGroups]);
+
+  const getCoverageValue = useCallback((techniqueId) => { 
+    if (colorMode !== 'coverage') return null; 
+    if (coverageSource === 'groups') { 
+      return highlightedTechniques[techniqueId] ? 100 : 0; 
+    } 
+    const v = importedCoverage[techniqueId]; 
+    return typeof v === 'number' ? Math.max(0, Math.min(100, v)) : 0; 
+  }, [colorMode, coverageSource, highlightedTechniques, importedCoverage]);
+
+  const getCoverageHeatColor = useCallback((value) => { 
+    if (value == null) return null; 
+    // gray to blue ramp
+    if (value <= 0) return '#f3f4f6'; 
+    const t = value / 100; 
+    const r = Math.round(243 + (37 - 243) * t); 
+    const g = Math.round(244 + (99 - 244) * t); 
+    const b = Math.round(246 + (235 - 246) * t); 
+    return `rgb(${r}, ${g}, ${b})`; 
+  }, []);
+
+  const handleImportClick = () => fileInputRef.current && fileInputRef.current.click();
+
+  const handleFileChange = async (e) => { 
+    const file = e.target.files && e.target.files[0]; 
+    if (!file) return; 
+    try { 
+      const text = await file.text(); 
+      const json = JSON.parse(text); // Navigator layer format
+      const layer = json.layers ? json.layers[0] : json; 
+      const techniquesArr = layer.techniques || []; 
+      const scoreMap = {}; 
+      techniquesArr.forEach(t => { 
+        const id = t.techniqueID || t.techniqueId || t.tactic?.techniqueID || t.tactic?.techniqueId || t.tid || t.id; 
+        if (!id) return; 
+        const score = typeof t.score === 'number' ? t.score : (typeof t.weight === 'number' ? t.weight : (t.color && t.color.startsWith('#') ? 100 : 0)); 
+        scoreMap[id] = score; 
+      }); 
+      setImportedCoverage(scoreMap); 
+      setImportMeta({ 
+        name: layer.name || file.name, 
+        description: layer.description || '', 
+        count: Object.keys(scoreMap).length 
+      }); 
+      setCoverageSource('import'); 
+      setColorMode('coverage'); 
+    } catch (err) { 
+      console.error('Failed to parse layer', err); 
+    } finally { 
+      e.target.value = ''; 
+    } 
+  };
+
+  const downloadBlob = (data, filename, type='application/json') => { 
+    const blob = new Blob([data], { type }); 
+    const url = URL.createObjectURL(blob); 
+    const a = document.createElement('a'); 
+    a.href = url; 
+    a.download = filename; 
+    document.body.appendChild(a); 
+    a.click(); 
+    a.remove(); 
+    URL.revokeObjectURL(url); 
+  };
+
+  const handleExportLayer = () => { 
+    // Build a simple layer JSON with technique scores from current coverage mode
+    const allTechniqueIds = new Set(); 
+    tactics.forEach(t => { 
+      getTechniquesForTactic(t.id).forEach(tech => allTechniqueIds.add(tech.id)); 
+    }); 
+    const techniquesList = Array.from(allTechniqueIds).map(id => ({ 
+      techniqueID: id, 
+      score: getCoverageValue(id) ?? (highlightedTechniques[id] ? 100 : 0) 
+    })); 
+    const layer = { 
+      name: 'Navigator Coverage Export', 
+      description: 'Generated from dashboard', 
+      domain: 'enterprise-attack', 
+      version: '4.5', 
+      techniques: techniquesList 
+    }; 
+    downloadBlob(JSON.stringify(layer, null, 2), 'navigator-layer.json'); 
+  };
+
+  const handleExportGapsCSV = () => { 
+    // Export techniques with 0 coverage
+    const allTechniqueIds = new Set(); 
+    tactics.forEach(t => { 
+      getTechniquesForTactic(t.id).forEach(tech => allTechniqueIds.add(tech.id)); 
+    }); 
+    const rows = [['Technique ID','Coverage']]; 
+    Array.from(allTechniqueIds).forEach(id => { 
+      const v = getCoverageValue(id) ?? (highlightedTechniques[id] ? 100 : 0); 
+      if (v <= 0) rows.push([id, '0']); 
+    }); 
+    const csv = rows.map(r => r.join(',')).join('\n'); 
+    downloadBlob(csv, 'coverage-gaps.csv', 'text/csv'); 
+  };
 
   const viewOptions = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -315,6 +449,75 @@ const MitreAttackNavigator = ({
               {option.label}
             </Button>
           ))}
+        </div>
+        <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-secondary-600">Color:</label>
+            <select 
+              className="text-xs border border-secondary-300 rounded px-2 py-1"
+              value={colorMode}
+              onChange={(e) => setColorMode(e.target.value)}
+            >
+              <option value="groups">Groups</option>
+              <option value="coverage">Coverage Heatmap</option>
+            </select>
+          </div>
+          
+          {colorMode === 'coverage' && (
+            <>
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-medium text-secondary-600">Source:</label>
+                <select 
+                  className="text-xs border border-secondary-300 rounded px-2 py-1"
+                  value={coverageSource}
+                  onChange={(e) => setCoverageSource(e.target.value)}
+                >
+                  <option value="groups">Groups</option>
+                  <option value="import" disabled={Object.keys(importedCoverage).length === 0}>
+                    Imported Layer
+                  </option>
+                </select>
+              </div>
+              
+              <div className="flex items-center gap-1 bg-secondary-100 rounded px-2 py-1">
+                <div className="flex h-2 w-20">
+                  <div className="w-1/5 h-full bg-gray-200" title="0%"></div>
+                  <div className="w-1/5 h-full bg-blue-200" title="25%"></div>
+                  <div className="w-1/5 h-full bg-blue-300" title="50%"></div>
+                  <div className="w-1/5 h-full bg-blue-400" title="75%"></div>
+                  <div className="w-1/5 h-full bg-blue-500" title="100%"></div>
+                </div>
+                <span className="text-xs text-secondary-600">0-100%</span>
+              </div>
+            </>
+          )}
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            leadingIcon={Upload}
+            onClick={handleImportClick}
+          >
+            Import Layer
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            leadingIcon={Download}
+            onClick={handleExportLayer}
+          >
+            Export Layer
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            leadingIcon={Download}
+            onClick={handleExportGapsCSV}
+          >
+            Export Gaps CSV
+          </Button>
         </div>
       </div>
 
@@ -345,6 +548,9 @@ const MitreAttackNavigator = ({
                 getTechniquesForTactic={getTechniquesForTactic}
                 highlightedTechniques={highlightedTechniques}
                 onTechniqueSelect={setSelectedTechnique}
+                colorMode={colorMode}
+                getCoverageValue={getCoverageValue}
+                getCoverageHeatColor={getCoverageHeatColor}
               />
             </div>
           )}
@@ -356,6 +562,14 @@ const MitreAttackNavigator = ({
           )}
         </main>
       </div>
+      
+      <input 
+        ref={fileInputRef}
+        type="file"
+        accept="application/json"
+        onChange={handleFileChange}
+        className="hidden"
+      />
     </div>
   );
 };
