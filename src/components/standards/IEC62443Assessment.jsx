@@ -19,6 +19,19 @@ const LIKELIHOOD_OPTIONS = [
   { label: 'Very High', value: 0.9 }
 ];
 
+// ---------------------------------------------------------------------------
+// Advisory mapping for each FR – concise best-practice recommendations
+// ---------------------------------------------------------------------------
+const FR_ADVISORIES = {
+  FR1: ['Unique user IDs', 'MFA for admins', 'Secure credential storage'],
+  FR2: ['RBAC / least privilege', 'Session timeouts', 'Approval for privileged ops'],
+  FR3: ['Application allow-listing', 'Secure boot', 'Integrity monitoring'],
+  FR4: ['TLS 1.2+ encryption', 'Encrypt data at rest', 'Key management'],
+  FR5: ['Zoning / segmentation', 'ACLs between zones', 'Unidirectional gateways'],
+  FR6: ['Centralised logging', 'Alerts to SOC', 'Response playbooks'],
+  FR7: ['Back-ups & restore tests', 'Redundancy / HA', 'Capacity monitoring']
+};
+
 const IMPACT_OPTIONS = [
   { label: 'Very Low', value: 1 },
   { label: 'Low', value: 2 },
@@ -386,9 +399,174 @@ function IEC62443Assessment() {
   };
 
   // Helpers
-  const addAsset = () => setData(d => ({ ...d, assets: [...d.assets, { id: Date.now(), name: '', type: '', location: '', vendor: '', osVersion: '', network: '', criticality: 'medium' }] }));
+  // ------------------------------------------------------------------
+  // Asset helpers (add/clear/template/etc.)
+  // ------------------------------------------------------------------
+
+  // Add a blank asset (now includes zone field)
+  const addAsset = () =>
+    setData(d => ({
+      ...d,
+      assets: [
+        ...d.assets,
+        {
+          id: Date.now(),
+          name: '',
+          type: '',
+          location: '',
+          vendor: '',
+          osVersion: '',
+          network: '',
+          zone: '',
+          criticality: 'medium'
+        }
+      ]
+    }));
   const removeAsset = (id) => setData(d => ({ ...d, assets: d.assets.filter(a => a.id !== id) }));
   const updateAsset = (id, patch) => setData(d => ({ ...d, assets: d.assets.map(a => a.id === id ? { ...a, ...patch } : a) }));
+
+  // Download a blank CSV template for assets
+  const downloadAssetCSVTemplate = () => {
+    const header =
+      'name,type,location,vendor,osversion,network,criticality\n' +
+      'PLC-01,plc,Control Room,Siemens,S7-1500,control,high';
+    const blob = new Blob([header], { type: 'text/csv' });
+    download(blob, 'asset_template.csv');
+  };
+
+  // Load a small â€œGas Templateâ€ inventory
+  const loadGasTemplateAssets = () => {
+    if (
+      !window.confirm(
+        'Load sample Gas Template assets? This will append about 10 sample rows to your current inventory.'
+      )
+    )
+      return;
+
+    const sampleAssets = [
+      { name: 'PLC-01', type: 'plc', location: 'Compressor A', vendor: 'Siemens', osVersion: 'S7-1500', network: 'control', zone: '', criticality: 'high' },
+      { name: 'PLC-02', type: 'plc', location: 'Compressor B', vendor: 'Siemens', osVersion: 'S7-1500', network: 'control', zone: '', criticality: 'high' },
+      { name: 'HMI-01', type: 'hmi', location: 'Control Room', vendor: 'Rockwell', osVersion: 'PanelView Plus', network: 'control', zone: '', criticality: 'medium' },
+      { name: 'SCADA-SRV', type: 'scada', location: 'Server Rack', vendor: 'Schneider', osVersion: 'EcoStruxure', network: 'dmz', zone: '', criticality: 'critical' },
+      { name: 'Historian', type: 'historian', location: 'Server Rack', vendor: 'OSIsoft', osVersion: 'Pi 2023', network: 'dmz', zone: '', criticality: 'medium' },
+      { name: 'FW-OT', type: 'firewall', location: 'Edge', vendor: 'Palo Alto', osVersion: 'PAN-OS 10', network: 'dmz', zone: '', criticality: 'high' },
+      { name: 'Layer2-SW', type: 'switch', location: 'MCC', vendor: 'Cisco', osVersion: 'IOS 15', network: 'control', zone: '', criticality: 'medium' },
+      { name: 'Router-Corp', type: 'router', location: 'Edge', vendor: 'Cisco', osVersion: 'IOS XE', network: 'enterprise', zone: '', criticality: 'medium' },
+      { name: 'Eng-WS', type: 'workstation', location: 'Control Room', vendor: 'Dell', osVersion: 'Win10', network: 'control', zone: '', criticality: 'low' },
+      { name: 'SIS-CPU', type: 'safety-system', location: 'Safety Panel', vendor: 'HIMA', osVersion: 'HIMax', network: 'safety', zone: '', criticality: 'critical' }
+    ].map(a => ({ ...a, id: Date.now() + Math.random() }));
+
+    setData(d => ({ ...d, assets: [...d.assets, ...sampleAssets] }));
+  };
+
+  // Clear all assets
+  const clearAssets = () => {
+    if (
+      window.confirm(
+        'Are you sure you want to delete the entire asset inventory? This action cannot be undone.'
+      )
+    ) {
+      setData(d => ({ ...d, assets: [] }));
+    }
+  };
+
+  // Memoised validation summary
+  const assetValidation = useMemo(() => {
+    const summary = {
+      total: data.assets.length,
+      byType: {},
+      byCriticality: {},
+      missing: 0
+    };
+
+    data.assets.forEach(a => {
+      summary.byType[a.type || 'unknown'] = (summary.byType[a.type || 'unknown'] || 0) + 1;
+      summary.byCriticality[a.criticality || 'unknown'] =
+        (summary.byCriticality[a.criticality || 'unknown'] || 0) + 1;
+      // Required fields
+      if (!a.name || !a.type || !a.network || !a.criticality) summary.missing++;
+    });
+    return summary;
+  }, [data.assets]);
+
+  // ------------------------------------------------------------------
+  // Excel export (multi-sheet)
+  // ------------------------------------------------------------------
+  const exportXLSX = () => {
+    const wb = XLSX.utils.book_new();
+
+    // Summary sheet
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.json_to_sheet([
+        {
+          AssessmentName: data.metadata.name,
+          Assessor: data.metadata.assessor,
+          Date: data.metadata.date,
+          OverallRisk: overallRiskScore,
+          HighRiskZones: highRiskZones,
+          RequiredActions: requiredActions.length
+        }
+      ]),
+      'Summary'
+    );
+
+    // Simple helpers to sheet-ify
+    const append = (name, arr, columns) => {
+      const rows = arr.map(item => {
+        const row = {};
+        columns.forEach(col => (row[col] = item[col] ?? ''));
+        return row;
+      });
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), name);
+    };
+
+    append('Assets', data.assets, [
+      'name',
+      'type',
+      'location',
+      'vendor',
+      'osVersion',
+      'network',
+      'zone',
+      'criticality'
+    ]);
+    append('Zones', data.zones, ['name', 'type', 'securityLevel']);
+    append('Conduits', data.conduits, [
+      'name',
+      'sourceZone',
+      'destinationZone',
+      'type',
+      'protocols',
+      'securityRequirements'
+    ]);
+    append('Consequence Scenarios', data.consequenceScenarios, [
+      'name',
+      'asset',
+      'failureMode',
+      'impacts'
+    ]);
+
+    const threatsSheet = data.threatScenarios.map(t => ({
+      name: t.name,
+      threatActor: t.threatActor,
+      attackVector: t.attackVector,
+      likelihood: t.likelihood,
+      impact: t.impact,
+      existingControls: t.existingControls,
+      FR_Applied: (t.frApplied || []).join(', '),
+      FR_Implemented: (t.frImplemented || []).join(', ')
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(threatsSheet), 'Threat Scenarios');
+
+    append(
+      'Required Actions',
+      requiredActions,
+      ['type', 'text']
+    );
+
+    XLSX.writeFile(wb, 'iec62443_assessment.xlsx');
+  };
 
   const addZone = () => setData(d => ({ ...d, zones: [...d.zones, { id: Date.now(), name: '', type: 'control', securityLevel: 'SL1' }] }));
   const removeZone = (id) => setData(d => ({ ...d, zones: d.zones.filter(z => z.id !== id) }));
@@ -566,6 +744,27 @@ function IEC62443Assessment() {
     return actions;
   }, [data.threatScenarios, data.consequenceScenarios, data.tolerableRiskThreshold]);
 
+  const frCoverage = useMemo(() => {
+    const scenarios = data.threatScenarios || [];
+    return FR_LIST.map(fr => {
+      const appliedCount = scenarios.reduce((acc, s) => acc + (((s.frApplied || []).includes(fr.key)) ? 1 : 0), 0);
+      const implementedCount = scenarios.reduce((acc, s) => acc + (((s.frImplemented || []).includes(fr.key)) ? 1 : 0), 0);
+      const coveragePct = appliedCount ? (implementedCount / appliedCount) * 100 : 0;
+      return { frKey: fr.key, label: fr.label, appliedCount, implementedCount, coveragePct };
+    });
+  }, [data.threatScenarios]);
+
+  const outstandingRequirements = useMemo(() => {
+    const list = [];
+    (data.threatScenarios || []).forEach(s => {
+      const applied = s.frApplied || [];
+      const implemented = s.frImplemented || [];
+      applied.filter(fr => !implemented.includes(fr)).forEach(fr => {
+        list.push({ scenarioId: s.id, scenarioName: s.name || 'Unnamed scenario', fr });
+      });
+    });
+    return list;
+  }, [data.threatScenarios]);
   const complianceScore = useMemo(() => Math.floor(Math.random()*30)+70, [data.assets.length, data.zones.length]);
 
   const next = () => { const n = Math.min(7, currentStage + 1); setCurrentStage(n); setMeta(n); };
@@ -817,6 +1016,13 @@ function IEC62443Assessment() {
               <Button size="sm" onClick={addAsset}>Add Asset</Button>
             </div>
 
+            {/* Action bar */}
+            <div className="flex flex-wrap gap-2 mb-3">
+              <Button size="xs" variant="secondary" onClick={downloadAssetCSVTemplate}>Download CSV Template</Button>
+              <Button size="xs" variant="secondary" onClick={loadGasTemplateAssets}>Load Gas Template</Button>
+              <Button size="xs" variant="danger" onClick={clearAssets}>Clear Assets</Button>
+            </div>
+
             {/* Import Drop-zone */}
             <div
               className={`dashboard-card p-3 mb-4 border-2 border-dashed transition-colors text-center cursor-pointer ${
@@ -843,7 +1049,7 @@ function IEC62443Assessment() {
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="text-left text-secondary-500">
-                    {['Name','Type','Location','Vendor/Model','OS/Firmware','Network','Criticality',''].map(h => <th key={h} className="py-2 pr-3">{h}</th>)}
+                    {['Name','Type','Location','Vendor/Model','OS/Firmware','Network','Zone','Criticality',''].map(h => <th key={h} className="py-2 pr-3">{h}</th>)}
                   </tr>
                 </thead>
                 <tbody>
@@ -860,6 +1066,12 @@ function IEC62443Assessment() {
                       <td className="py-1 pr-2"><input className="input" value={a.osVersion} onChange={e=>updateAsset(a.id,{osVersion:e.target.value})} /></td>
                       <td className="py-1 pr-2"><input className="input" value={a.network} onChange={e=>updateAsset(a.id,{network:e.target.value})} /></td>
                       <td className="py-1 pr-2">
+                        <select className="input" value={a.zone || ''} onChange={e=>updateAsset(a.id,{zone:e.target.value})}>
+                          <option value="">Unassigned</option>
+                          {data.zones.map(z => <option key={z.id} value={z.name||z.id}>{z.name || z.id}</option>)}
+                        </select>
+                      </td>
+                      <td className="py-1 pr-2">
                         <select className="input" value={a.criticality} onChange={e=>updateAsset(a.id,{criticality:e.target.value})}>
                           {['critical','high','medium','low'].map(v=> <option key={v} value={v}>{v}</option>)}
                         </select>
@@ -868,10 +1080,18 @@ function IEC62443Assessment() {
                     </tr>
                   ))}
                   {data.assets.length === 0 && (
-                    <tr><td colSpan={8} className="py-4 text-center text-secondary-500">No assets yet. Click Add Asset to begin.</td></tr>
+                    <tr><td colSpan={9} className="py-4 text-center text-secondary-500">No assets yet. Click Add Asset to begin.</td></tr>
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Validation summary */}
+            <div className="mt-2 text-xs text-secondary-600">
+              <div>Total assets: {assetValidation.total}</div>
+              <div>By type: {Object.entries(assetValidation.byType).map(([k,v])=>`${k}:${v}`).join(', ') || 'â€”'}</div>
+              <div>By criticality: {Object.entries(assetValidation.byCriticality).map(([k,v])=>`${k}:${v}`).join(', ') || 'â€”'}</div>
+              <div>Assets with missing required fields: {assetValidation.missing}</div>
             </div>
           </div>
       )}
@@ -1252,6 +1472,29 @@ function IEC62443Assessment() {
                     ))}
                   </div>
                 </div>
+
+                {/* Implemented FR Controls */}
+                <div className="mb-4">
+                  <label className="text-xs text-secondary-500 block mb-1">Implemented FR Controls:</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-1">
+                    {FR_LIST.map(fr => (
+                      <button
+                        key={fr.key}
+                        onClick={() => toggleFRImplemented(s.id, fr.key)}
+                        disabled={!(s.frApplied || []).includes(fr.key)}
+                        className={`py-2 px-1 rounded text-center ${
+                          !(s.frApplied || []).includes(fr.key)
+                            ? 'bg-secondary-100 text-secondary-400 cursor-not-allowed'
+                            : (s.frImplemented || []).includes(fr.key)
+                              ? 'bg-primary-600 text-white'
+                              : 'bg-secondary-200 text-secondary-700 hover:bg-secondary-300'
+                        }`}
+                      >
+                        {fr.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 
                 {/* Existing Controls */}
                 <div className="mb-4">
@@ -1342,7 +1585,39 @@ function IEC62443Assessment() {
           </div>
 
           <div className="dashboard-card p-3">
-            <h4 className="font-semibold mb-2">Risk Mitigation Plan</h4>
+                      <div className="dashboard-card p-3">
+            <h4 className="font-semibold mb-2">FR Coverage Summary</h4>
+            <div className="space-y-2">
+              {frCoverage.reduce((sum, i) => sum + i.appliedCount, 0) === 0 ? (
+                <div className="text-sm text-secondary-500">No FRs applied yet in threat scenarios.</div>
+              ) : (
+                frCoverage.map(item => (
+                  <div key={item.frKey} className="flex items-center text-sm">
+                    <div className="w-64 shrink-0">{item.label}</div>
+                    <div className="flex-1 mx-3">
+                      <div className="w-full bg-secondary-200 dark:bg-secondary-700 rounded h-2">
+                        <div className="bg-primary-600 h-2 rounded" style={{ width: `${item.coveragePct}%` }} />
+                      </div>
+                    </div>
+                    <div className="w-40 text-right">{item.implementedCount}/{item.appliedCount} ({item.coveragePct.toFixed(0)}%)</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="dashboard-card p-3">
+            <h4 className="font-semibold mb-2">Outstanding Requirements</h4>
+            {outstandingRequirements.length > 0 ? (
+              <ul className="list-disc pl-5 text-sm">
+                {outstandingRequirements.map((o, idx) => (
+                  <li key={o.scenarioId + '-' + idx}>Scenario: {o.scenarioName} — {o.fr} not implemented</li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-sm text-secondary-500">All applied FRs are implemented.</div>
+            )}
+          </div><h4 className="font-semibold mb-2">Risk Mitigation Plan</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
               <div>
                 <h5 className="font-semibold">High Priority</h5>
@@ -1376,6 +1651,23 @@ function IEC62443Assessment() {
             {['FR1 Identification & Authentication','FR2 Use Control','FR3 System Integrity','FR4 Data Confidentiality','FR5 Restricted Data Flow','FR6 Timely Response to Events','FR7 Resource Availability'].map(fr => (
               <ComplianceRow key={fr} label={fr} />
             ))}
+          </div>
+          <div className="dashboard-card p-3">
+            <h4 className="font-semibold mb-2">Advisory Mapping</h4>
+            {frCoverage.filter(i => i.appliedCount > 0 && i.coveragePct < 100).length === 0 ? (
+              <div className="text-sm text-secondary-500">No advisory items — all applied FRs are implemented.</div>
+            ) : (
+              <div className="space-y-2">
+                {frCoverage.filter(i => i.appliedCount > 0 && i.coveragePct < 100).map(item => (
+                  <div key={item.frKey} className="p-2 rounded border border-secondary-200 dark:border-secondary-700">
+                    <div className="text-sm font-semibold">{item.label}</div>
+                    <ul className="list-disc pl-5 text-sm">
+                      {(FR_ADVISORIES[item.frKey] || []).map((adv, i) => <li key={i}>{adv}</li>)}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1415,7 +1707,7 @@ function IEC62443Assessment() {
         <Button variant="secondary" leadingIcon={ChevronLeft} onClick={prev} disabled={currentStage===1}>Previous</Button>
         <div className="flex items-center gap-2">
           <Button variant="secondary" leadingIcon={Save} onClick={save}>Save</Button>
-          <Button variant="secondary" leadingIcon={FileDown} onClick={exportCSV}>Export CSV</Button>
+          <Button variant="secondary" leadingIcon={FileDown} onClick={exportCSV}>Export CSV</Button>`n          <Button variant="secondary" onClick={exportXLSX}>Export Excel</Button>
           <Button variant="secondary" onClick={exportJSON}>Export JSON</Button>
           <Button variant="secondary" onClick={exportPDF}>Export PDF</Button>
           <Button variant="secondary" leadingIcon={Copy} onClick={cloneAssessment}>Clone</Button>
@@ -1472,3 +1764,6 @@ function download(blob, filename) {
 }
 
 export default IEC62443Assessment;
+
+
+

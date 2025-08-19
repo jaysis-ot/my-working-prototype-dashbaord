@@ -19,6 +19,8 @@ import {
   Layers,
   Grid
 } from 'lucide-react';
+import { Navigation } from 'lucide-react';
+import MitreAttackNavigator from '../organisms/MitreAttackNavigator';
 import useMitreAttack from '../../hooks/useMitreAttack';
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
@@ -528,6 +530,7 @@ const MitreAttackPage = () => {
   const {
     tactics,
     techniques,
+    groups,
     selectedTactic,
     selectedTechnique,
     loading,
@@ -546,8 +549,46 @@ const MitreAttackPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('matrix'); // 'matrix', 'technique', 'search'
   const [selectedTechniqueDetails, setSelectedTechniqueDetails] = useState(null);
+  const [activeTab, setActiveTab] = useState('framework'); // 'framework' | 'navigator'
+  const [navigatorFilters, setNavigatorFilters] = useState({ selectedGroups: [] });
   const searchInputRef = useRef(null);
   
+  // initialize navigator filters once groups are loaded
+  useEffect(() => {
+    if (groups && groups.length && navigatorFilters.selectedGroups.length === 0) {
+      setNavigatorFilters({ selectedGroups: groups.map(g => g.id) });
+    }
+  }, [groups, navigatorFilters.selectedGroups.length]);
+
+  // helper to change navigator filters
+  const onNavigatorFilterChange = useCallback((key, value) => {
+    setNavigatorFilters(prev => ({ ...prev, [key]: value }));
+  }, []);
+
+  // technique extractor for navigator
+  const getTechniquesForTactic = useCallback(
+    (tacticId) => {
+      const list = [];
+      techniques.forEach(t => {
+        if (t.tacticIds?.includes(tacticId)) {
+          list.push(t);
+        }
+        if (t.subTechniques && t.subTechniques.length) {
+          t.subTechniques.forEach(st => {
+            if (st.tacticIds?.includes(tacticId)) {
+              list.push({
+                ...st,
+                platforms: st.platforms || [],
+              });
+            }
+          });
+        }
+      });
+      return list;
+    },
+    [techniques]
+  );
+
   // --- Effects ---
   
   // Update view mode based on selection state
@@ -637,7 +678,7 @@ const MitreAttackPage = () => {
       {/* Header */}
       <div className="dashboard-card p-4 md:p-6 mb-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
+          <div className="flex flex-col gap-4">
             <h1 className="text-2xl font-bold text-secondary-900 dark:text-white flex items-center">
               <Shield className="h-7 w-7 mr-3 text-primary-600" />
               MITRE ATT&CK Framework
@@ -645,69 +686,132 @@ const MitreAttackPage = () => {
             <p className="text-secondary-500 dark:text-secondary-400 mt-1">
               Explore tactics and techniques used by threat actors in cyber attacks.
             </p>
+
+            {/* TAB SWITCHER (mobile stacked) */}
+            <div className="flex items-center gap-2 mt-2 md:hidden">
+              <Button
+                variant={activeTab === 'framework' ? 'primary' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveTab('framework')}
+              >
+                Framework
+              </Button>
+              <Button
+                variant={activeTab === 'navigator' ? 'primary' : 'ghost'}
+                size="sm"
+                leadingIcon={Navigation}
+                onClick={() => setActiveTab('navigator')}
+              >
+                Navigator View
+              </Button>
+            </div>
           </div>
           
-          <form onSubmit={handleSearch} className="flex w-full md:w-auto">
-            <div className="relative flex-grow">
-              <Input
-                ref={searchInputRef}
-                type="text"
-                placeholder="Search techniques, groups, software... (Ctrl+K)"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                leadingIcon={Search}
-                className="w-full md:w-80"
-              />
-              {searchLoading && (
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <RefreshCw className="w-4 h-4 text-secondary-400 animate-spin" />
-                </div>
-              )}
+          {/* RIGHT COLUMN (tabs + search stacked on md+) */}
+          <div className="flex flex-col md:items-end gap-3 w-full md:w-auto">
+            <div className="hidden md:flex items-center gap-2">
+              <Button
+                variant={activeTab === 'framework' ? 'primary' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveTab('framework')}
+              >
+                Framework
+              </Button>
+              <Button
+                variant={activeTab === 'navigator' ? 'primary' : 'ghost'}
+                size="sm"
+                leadingIcon={Navigation}
+                onClick={() => setActiveTab('navigator')}
+              >
+                Navigator View
+              </Button>
             </div>
-            <Button type="submit" className="ml-2">Search</Button>
-          </form>
+
+            <form onSubmit={handleSearch} className="flex w-full md:w-auto">
+              <div className="relative flex-grow">
+                <Input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search techniques, groups, software... (Ctrl+K)"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  leadingIcon={Search}
+                  className="w-full md:w-80"
+                />
+                {searchLoading && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <RefreshCw className="w-4 h-4 text-secondary-400 animate-spin" />
+                  </div>
+                )}
+              </div>
+              <Button type="submit" className="ml-2">Search</Button>
+            </form>
+          </div>
         </div>
       </div>
       
       {/* Main Content */}
-      <div className="flex flex-col md:flex-row min-h-[70vh] dashboard-card overflow-hidden">
-        {/* Sidebar - always visible on desktop, conditionally on mobile */}
-        {(viewMode === 'matrix' || window.innerWidth >= 768) && (
-          <TacticSidebar
-            tactics={tactics}
-            selectedTactic={selectedTactic}
-            onSelectTactic={selectTactic}
-          />
-        )}
-        
-        {/* Main Content Area */}
-        <div className="flex-grow overflow-y-auto">
-          {viewMode === 'matrix' && (
-            <MatrixView
+      {activeTab === 'framework' ? (
+        <div className="flex flex-col md:flex-row min-h-[70vh] dashboard-card overflow-hidden">
+          {(viewMode === 'matrix' || window.innerWidth >= 768) && (
+            <TacticSidebar
               tactics={tactics}
-              techniques={techniquesByTactic}
               selectedTactic={selectedTactic}
-              selectedTechnique={selectedTechnique}
-              onSelectTechnique={handleSelectTechnique}
+              onSelectTactic={selectTactic}
             />
           )}
-          
-          {viewMode === 'technique' && (
-            <TechniqueDetails
-              technique={selectedTechniqueDetails}
-              onBack={handleBackFromTechnique}
-            />
-          )}
-          
-          {viewMode === 'search' && (
-            <SearchResults
-              results={searchResults}
-              onSelectTechnique={handleSelectTechnique}
-              onClearSearch={handleClearSearch}
-            />
-          )}
+
+          <div className="flex-grow overflow-y-auto">
+            {viewMode === 'matrix' && (
+              <MatrixView
+                tactics={tactics}
+                techniques={techniquesByTactic}
+                selectedTactic={selectedTactic}
+                selectedTechnique={selectedTechnique}
+                onSelectTechnique={handleSelectTechnique}
+              />
+            )}
+            {viewMode === 'technique' && (
+              <TechniqueDetails
+                technique={selectedTechniqueDetails}
+                onBack={handleBackFromTechnique}
+              />
+            )}
+            {viewMode === 'search' && (
+              <SearchResults
+                results={searchResults}
+                onSelectTechnique={handleSelectTechnique}
+                onClearSearch={handleClearSearch}
+              />
+            )}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="dashboard-card p-0 overflow-hidden min-h-[70vh]">
+          {(() => {
+            const palette = ['#3b82f6','#ef4444','#10b981','#a855f7','#f59e0b','#06b6d4'];
+            const threatGroups = groups.map((g, idx) => ({
+              id: g.id,
+              name: g.name,
+              alias: g.aliases?.[0] || '',
+              country: (g.targetCountries && g.targetCountries[0]) || '',
+              techniques: g.techniques,
+              color: palette[idx % palette.length],
+              description: g.description,
+            }));
+            return (
+              <MitreAttackNavigator
+                tactics={tactics}
+                techniques={techniques}
+                threatGroups={threatGroups}
+                filters={navigatorFilters}
+                onFilterChange={onNavigatorFilterChange}
+                getTechniquesForTactic={getTechniquesForTactic}
+              />
+            );
+          })()}
+        </div>
+      )}
       
       {/* Footer with Attribution */}
       <div className="mt-6 text-center text-sm text-secondary-500 dark:text-secondary-400">
